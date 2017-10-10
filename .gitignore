@@ -1,0 +1,13 @@
+# Created by https://www.gitignore.io/api/elisp
+### Elisp ###
+# Compiled
+*.elc
+
+# Packaging
+.cask
+
+# Backup files
+*~
+
+# Undo-tree save-files
+*.~undo-tree
