@@ -1,0 +1,14 @@
+* Full Interleave mode rewrite
+After using [[https://github.com/rudolfochrist/interleave][interleave-mode]] for some time, I got some ideas of how I could improve it,
+usability and feature-wise. As doing a refactor on a foreign codebase takes a long time,
+because of the discussion with the owner (who is, of course, free to disagree with me
+about it), learning its internals, proposing pull requests, more back and forth in code
+review, etc, and as I like doing things from scratch, I started doing what is an ad-hoc
+replacement for interleave-mode. Note that not every feature of the original mode will be
+available, even when this is done! You may prefer using the original, because this is a
+different take on the same idea!
+
+The name of this package is also Interleave, /but only temporarily/, because I couldn't
+think yet of a better name.
+
+And, of course, I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and the inspiration!
