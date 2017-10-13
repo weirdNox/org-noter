@@ -30,7 +30,11 @@
 (defconst interleave--property-pdf-file "INTERLEAVE_PDF"
   "Name of the property which specifies the PDF file.")
 
-(cl-defstruct interleave--session frame org-file-path pdf-file-path notes-buffer pdf-buffer)
+(defconst interleave--property-note-page "INTERLEAVE_NOTE_PAGE"
+  "Name of the property which specifies the page of the current note.")
+
+(cl-defstruct interleave--session frame property-text org-file-path
+              pdf-file-path notes-buffer pdf-buffer)
 
 (defvar interleave--sessions nil
   "List of Interleave sessions")
@@ -50,6 +54,91 @@
   (dolist (session interleave--sessions)
     (when (eq (interleave--session-frame session) frame)
       (interleave-kill-session session))))
+
+(defun interleave--find-parent-heading-with-property (prop &optional value try-all)
+  (save-restriction
+    (widen)
+    (save-excursion
+      (let (element)
+        (unless (org-before-first-heading-p)
+          (unless (org-at-heading-p) (org-back-to-heading))
+          (setq
+           element
+           (catch 'heading
+             (while t
+               (let ((prop (org-entry-get nil prop)))
+                 (when (and prop (or (not value) (string= prop value)))
+                   (throw 'heading (org-element-at-point)))
+                 (unless (org-up-heading-safe)
+                   (throw 'heading nil)))))))
+        (when (and (not element) try-all)
+          (message "Searching entire document for heading with property...")
+          (let ((pos (org-find-property prop value)))
+            (when pos
+              (goto-char pos)
+              (setq element (org-element-at-point)))))
+        element))))
+
+(defun interleave--narrow-to-root (session)
+  (save-excursion
+    (widen)
+    (let ((heading (interleave--find-parent-heading-with-property
+                    interleave--property-pdf-file
+                    (interleave--session-property-text session)
+                    t))
+          properties properties-begin  properties-end)
+      (when heading
+        (goto-char (org-element-property :begin heading))
+        (org-show-entry)
+        (org-show-children)
+        (setq properties-begin (org-element-property :contents-begin heading)
+              properties (progn (goto-char properties-begin) (org-element-at-point))
+              properties-end (org-element-property :end properties))
+        (when (eq properties-end (org-element-property :contents-end heading))
+          (goto-char properties-end)
+          (insert "\n"))
+        (narrow-to-region properties-end
+                          (progn
+                            (goto-char properties-begin)
+                            (org-end-of-subtree t t)
+                            (when (and (org-at-heading-p) (not (eobp)))
+                              (backward-char 1))
+                            (point)))
+        properties-end))))
+
+(defun interleave--current-page (session)
+  (when (interleave--session-valid session)
+    (with-current-buffer (interleave--session-pdf-buffer session)
+      (image-mode-window-get 'page))))
+
+(defun interleave--note-element-of-page (session page)
+  (when (interleave--session-valid session)
+    (setq page (number-to-string page))
+    (with-current-buffer (interleave--session-notes-buffer session)
+      (save-restriction
+        (let ((contents-pos (interleave--narrow-to-root session)))
+          (unless contents-pos (error "Root position not found!!"))
+          (goto-char contents-pos)
+          (catch 'element
+            (while t
+              (if (string= (org-entry-get nil interleave--property-note-page)
+                           page)
+                  (throw 'element (org-element-at-point))
+                (unless (org-get-next-sibling)
+                  (throw 'element nil))))))))))
+
+(defun interleave-insert-note ()
+  (interactive)
+  (let* ((page (interleave--current-page session))
+         (page-string (number-to-string page))
+         (note (interleave--note-element-of-page session page)))
+    (if note
+        (progn)
+      (unless (org-at-heading-p) (org-goto-first-child))
+      (while (and
+              (string< page-string (org-entry-get nil interleave--property-note-page))
+              (org-get-next-sibling)))
+      (move-beginning-of-line))))
 
 (defun interleave-kill-session (&optional session)
   (interactive)
@@ -82,14 +171,17 @@
         (kill-buffer notes-buffer)))))
 
 ;;;###autoload
-(defun interleave ()
-  (interactive)
+(defun interleave (arg)
+  "Start Interleave.
+When with an argument, only check for the property in the current
+heading"
+  (interactive "P")
   (when (eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
       (error "Interleave must be issued inside a heading."))
     (let ((org-file-path (buffer-file-name))
-          (pdf-property (org-entry-get nil interleave--property-pdf-file t))
-          pdf-file-path pdf-file-name session)
+          (pdf-property (org-entry-get nil interleave--property-pdf-file (not arg)))
+          pdf-file-path pdf-name session)
       (when (stringp pdf-property) (setq pdf-file-path (expand-file-name pdf-property)))
       (unless (and pdf-file-path (not (file-directory-p pdf-file-path)) (file-readable-p pdf-file-path))
         (setq pdf-file-path (expand-file-name
@@ -123,58 +215,39 @@ Should I end the session? "))
                           (throw 'should-continue t))
                       (throw 'should-continue nil)))))
               t)
-        (setq pdf-file-name (file-name-nondirectory
-                             (file-name-sans-extension pdf-file-path))
+        (setq pdf-name (file-name-nondirectory
+                        (file-name-sans-extension pdf-file-path))
               session
               (make-interleave--session
-               :frame (make-frame `((name . ,(format "Emacs - Interleave %s" pdf-file-name))
+               :frame (make-frame `((name . ,(format "Emacs - Interleave %s" pdf-name))
                                     (fullscreen . maximized)))
+               :property-text pdf-property
                :org-file-path org-file-path
                :pdf-file-path pdf-file-path
                :notes-buffer (make-indirect-buffer
                               (current-buffer)
                               (generate-new-buffer-name
-                               (format "Interleave - Notes of %s" pdf-file-name))
+                               (format "Interleave - Notes of %s" pdf-name))
                               t)
                :pdf-buffer (make-indirect-buffer (find-file-noselect pdf-file-path)
                                                  (generate-new-buffer-name
-                                                  (format "Interleave - %s"
-                                                          pdf-file-name))
-                                                 t)))
+                                                  (format "Interleave - %s" pdf-name)))))
         (with-current-buffer (interleave--session-pdf-buffer session)
-          (setq interleave--session session
-                buffer-file-name pdf-file-path)
+          (setq buffer-file-name pdf-file-path)
+          (pdf-tools-install)
           (kill-local-variable 'kill-buffer-hook)
+          (setq interleave--session session)
           (add-hook 'kill-buffer-hook 'interleave--handle-buffer-kill nil t))
         (with-current-buffer (interleave--session-notes-buffer session)
           (setq interleave--session session)
           (add-hook 'kill-buffer-hook 'interleave--handle-buffer-kill nil t)
-          (let ((heading-location (org-find-property interleave--property-pdf-file pdf-property))
-                heading properties properties-begin  properties-end)
-            (goto-char heading-location)
-            (org-show-entry)
-            (org-show-children)
-            (setq heading (org-element-at-point)
-                  properties-begin (org-element-property ':contents-begin heading)
-                  properties (save-excursion (goto-char properties-begin)
-                                             (org-element-at-point))
-                  properties-end (org-element-property ':end properties))
-            (when (eq properties-end (org-element-property ':contents-end heading))
-              (save-excursion
-                (goto-char properties-end)
-                (insert "\n")))
-            (save-excursion
-              (narrow-to-region properties-end
-                                (progn (org-end-of-subtree t t)
-                                       (when (and (org-at-heading-p) (not (eobp))) (backward-char 1))
-                                       (point))))))
+          (interleave--narrow-to-root session))
         (with-selected-frame (interleave--session-frame session)
           (let ((pdf-window (selected-window))
                 (notes-window (split-window-right)))
             ;; TODO(nox): Option to customize this
             (set-window-buffer pdf-window (interleave--session-pdf-buffer session))
             (set-window-dedicated-p pdf-window t)
-            (set-window-buffer notes-window (interleave--session-notes-buffer session))
-            (set-window-dedicated-p notes-window t)))
+            (set-window-buffer notes-window (interleave--session-notes-buffer session))))
         (add-hook 'delete-frame-functions 'interleave--handle-delete-frame)
         (push session interleave--sessions)))))
