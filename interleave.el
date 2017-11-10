@@ -30,7 +30,8 @@
 (defconst interleave--property-pdf-file "INTERLEAVE_PDF"
   "Name of the property which specifies the PDF file.")
 
-(defconst interleave--property-note-page "INTERLEAVE_NOTE_PAGE"
+;; TODO(nox): Change this string, this is for compatibility with previous interleave mode
+(defconst interleave--property-note-page "INTERLEAVE_PAGE_NOTE"
   "Name of the property which specifies the page of the current note.")
 
 (cl-defstruct interleave--session frame property-text org-file-path
@@ -58,13 +59,15 @@
                                                  nil nil default)
                                 collection)))))
   (when (and session (memq session interleave--sessions))
-    (setq interleave--sessions (delq session interleave--sessions))
-    (when (eq (length interleave--sessions) 0)
-      (setq delete-frame-functions (delq 'interleave--handle-delete-frame
-                                         delete-frame-functions)))
     (let ((frame (interleave--session-frame session))
           (notes-buffer (interleave--session-notes-buffer session))
           (pdf-buffer (interleave--session-pdf-buffer session)))
+      (with-current-buffer notes-buffer
+        (interleave--unset-read-only (interleave--parse-root)))
+      (setq interleave--sessions (delq session interleave--sessions))
+      (when (eq (length interleave--sessions) 0)
+        (setq delete-frame-functions (delq 'interleave--handle-delete-frame
+                                           delete-frame-functions)))
       (when (frame-live-p frame)
         (delete-frame frame))
       (when (buffer-live-p pdf-buffer)
@@ -131,19 +134,20 @@
 (defun interleave--set-read-only (ast)
   (when ast
     (let ((begin (org-element-property :begin ast))
-          (end (org-element-property :end ast))
           (properties-end (interleave--get-properties-end ast))
           (modified (buffer-modified-p)))
-      (add-text-properties begin properties-end '(read-only t rear-nonsticky t))
+      (add-text-properties begin (1+ begin) '(read-only t front-sticky t))
+      (add-text-properties (1+ begin) (1- properties-end) '(read-only t))
+      (add-text-properties (1- properties-end) properties-end '(read-only t rear-nonsticky t))
       (set-buffer-modified-p modified))))
 
 (defun interleave--unset-read-only (ast)
   (when ast
     (let ((begin (org-element-property :begin ast))
-          (end (org-element-property :end ast))
+          (end (interleave--get-properties-end ast))
           (inhibit-read-only t)
           (modified (buffer-modified-p)))
-      (remove-list-of-text-properties begin end '(read-only))
+      (remove-list-of-text-properties begin end '(read-only front-sticky rear-nonsticky))
       (set-buffer-modified-p modified))))
 
 (defun interleave--narrow-to-root (ast)
@@ -164,6 +168,54 @@
   (interleave--with-valid-session
    (with-current-buffer (interleave--session-pdf-buffer session)
      (image-mode-window-get 'page))))
+
+(defun interleave-insert-note ()
+  (interactive)
+  (interleave--with-valid-session
+   (let* ((ast (interleave--parse-root))
+          (page (interleave--current-page))
+          (page-string (number-to-string page))
+          note-element closest-previous-element)
+     (when ast
+       (setq
+        note-element
+        (org-element-map (org-element-contents ast) 'headline
+          (lambda (headline)
+            (let ((property-value (org-element-property
+                                   (intern (concat ":" interleave--property-note-page)) headline)))
+              (cond ((string= property-value page-string) headline)
+                    ((or (not property-value) (string< property-value page-string))
+                     (setq closest-previous-element headline)
+                     nil))))
+          nil t 'headline))
+       (with-selected-frame (interleave--session-frame session)
+         (pop-to-buffer (interleave--session-notes-buffer session))
+         (with-selected-window (get-buffer-window (interleave--session-notes-buffer session))
+           (if note-element
+               (let ((last (car (last (car (org-element-contents note-element)))))
+                     (num-blank (org-element-property :post-blank note-element)))
+                 (goto-char (org-element-property :end note-element))
+                 (cond ((eq (org-element-type last) 'property-drawer)
+                        (when (eq num-blank 0) (insert "\n")))
+                       (t (while (< num-blank 2)
+                            (insert "\n")
+                            (setq num-blank (1+ num-blank)))))
+                 (forward-line -1)
+                 (org-show-entry)
+                 (org-show-siblings))
+             (if closest-previous-element
+                 (progn
+                   (goto-char (org-element-property :end closest-previous-element))
+                   (org-insert-heading))
+               (goto-char (interleave--get-properties-end ast))
+               (while (not (eq (char-before) ?:))
+                 (message "%s" (char-before))
+                 (backward-char))
+               (outline-show-entry)
+               (org-insert-subheading nil))
+             (insert (format "Notes for page %d\n" page))
+             (org-entry-put nil interleave--property-note-page page-string))
+           (org-cycle-hide-drawers 'all)))))))
 
 ;;;###autoload
 (defun interleave (arg)
