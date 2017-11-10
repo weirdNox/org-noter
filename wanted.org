@@ -1,0 +1,3 @@
+* Wanted features [0/2]
+- [ ] Open containing folder
+- [ ] Just open the PDF file without interleaving
