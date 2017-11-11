@@ -1,5 +1,5 @@
-* Wanted features [0/4]
+* Wanted features [1/4]
 - [ ] Open containing folder
 - [ ] Just open the PDF file without interleaving
 - [ ] Customização do texto "Note for page"...
-- [ ] Open PDF on the page of the note where the point is
+- [X] Open PDF on the page of the note where the point is

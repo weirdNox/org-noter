@@ -1,12 +1,12 @@
-;;; interleave.el --- Interleave PDFs                     -*- lexical-binding: t; -*-
+;;; interleave.el --- Annotate PDFs in an interleaved fashion!           -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Gonçalo Santos
 
 ;; Author: Gonçalo Santos (aka. weirdNox@GitHub)
 ;; Homepage: https://github.com/weirdNox/interleave
 ;; Keywords: lisp pdf interleave annotate
-;; Package-Requires: (cl-lib)
-;; Version: 0.0.1
+;; Package-Requires: (cl-lib (org "9.0"))
+;; Version: 0.1.0
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,21 +25,46 @@
 
 ;;; Commentary:
 
-;; TODO
-;; THE NAME IS TEMPORARY
-;; This is a rewrite from scratch of Interleave mode, by rudolfochrist, using many of his
-;; great ideas, and trying to achieve better user experience by providing extra features.
+;; This is a rewrite from scratch of Sebastian Christ's amazing Interleave package, which
+;; helps you annotate PDFs in Org mode.
+
+;; The idea is that, like an interleaved textbook, this opens the PDF and the notes buffer
+;; side by side and, as you scroll through your PDF, it will present you the notes you
+;; have for each page. Taking a note is as simple as pressing i and writing away!
+
+;; Link to the original Interleave package:
+;; https://github.com/rudolfochrist/interleave
 
 ;;; Code:
 (require 'cl-lib)
+(require 'org)
 
-(defconst interleave--property-pdf-file "INTERLEAVE_PDF"
-  "Name of the property which specifies the PDF file.")
+;; --------------------------------------------------------------------------------
+;; NOTE(nox): User variables
+(defgroup interleave nil
+  "Annotate PDFs in an interleaved fashion!"
+  :group 'convenience
+  :version "25.3.1")
 
-;; TODO(nox): Change this string, this is for compatibility with previous interleave mode
-(defconst interleave--property-note-page "INTERLEAVE_PAGE_NOTE"
-  "Name of the property which specifies the page of the current note.")
+(defcustom interleave-property-pdf-file "INTERLEAVE_PDF"
+  "Name of the property which specifies the PDF file."
+  :group 'interleave
+  :type 'string)
 
+(defcustom interleave-property-note-page "INTERLEAVE_NOTE_PAGE"
+  "Name of the property which specifies the page of the current note."
+  :group 'interleave
+  :type 'string)
+
+(defcustom interleave-split-direction 'horizontal
+  "Whether the interleave frame should be split horizontally or
+  vertically."
+  :group 'interleave
+  :type '(choice (const :tag "Horizontal" horizontal)
+                 (const :tag "Vertical" vertical)))
+
+;; --------------------------------------------------------------------------------
+;; NOTE(nox): Private variables
 (cl-defstruct interleave--session frame pdf-mode property-text
               org-file-path pdf-file-path notes-buffer
               pdf-buffer)
@@ -87,32 +112,39 @@ After a page change, it will always reset to `nil'")
     (when (eq (interleave--session-frame session) frame)
       (interleave-kill-session session))))
 
-(defun interleave--parse-root ()
+(defun interleave--parse-root (&optional buffer property-pdf-path)
   (let* ((session interleave--session)
-         (notes-buffer (when session (interleave--session-notes-buffer session))))
+         (use-args (and (stringp property-pdf-path)
+                        (buffer-live-p buffer)
+                        (with-current-buffer buffer (eq major-mode 'org-mode))))
+         (notes-buffer (if use-args
+                           buffer
+                         (when session (interleave--session-notes-buffer session))))
+         (wanted-value (if use-args
+                           property-pdf-path
+                         (when session (interleave--session-property-text session))))
+         element)
     (when (buffer-live-p notes-buffer)
       (with-current-buffer notes-buffer
         (org-with-wide-buffer
-         (let ((wanted-value (interleave--session-property-text session))
-               element)
-           (unless (org-before-first-heading-p)
-             ;; NOTE(nox): Start by trying to find a parent heading with the specified
-             ;; property
-             (let ((try-next t) property-value)
-               (while try-next
-                 (setq property-value (org-entry-get nil interleave--property-pdf-file))
-                 (when (and property-value (string= property-value wanted-value))
-                   (org-narrow-to-subtree)
-                   (setq element (org-element-parse-buffer 'greater-element)))
-                 (setq try-next (and (not element) (org-up-heading-safe))))))
-           (unless element
-             ;; NOTE(nox): Could not find parent with property, do a global search
-             (let ((pos (org-find-property interleave--property-pdf-file wanted-value)))
-               (when pos
-                 (goto-char pos)
+         (unless (org-before-first-heading-p)
+           ;; NOTE(nox): Start by trying to find a parent heading with the specified
+           ;; property
+           (let ((try-next t) property-value)
+             (while try-next
+               (setq property-value (org-entry-get nil interleave-property-pdf-file))
+               (when (and property-value (string= property-value wanted-value))
                  (org-narrow-to-subtree)
-                 (setq element (org-element-parse-buffer 'greater-element)))))
-           (car (org-element-contents element))))))))
+                 (setq element (org-element-parse-buffer 'greater-element)))
+               (setq try-next (and (not element) (org-up-heading-safe))))))
+         (unless element
+           ;; NOTE(nox): Could not find parent with property, do a global search
+           (let ((pos (org-find-property interleave-property-pdf-file wanted-value)))
+             (when pos
+               (goto-char pos)
+               (org-narrow-to-subtree)
+               (setq element (org-element-parse-buffer 'greater-element)))))
+         (car (org-element-contents element)))))))
 
 (defun interleave--get-properties-end (ast &optional force-trim)
   (when ast
@@ -203,7 +235,7 @@ After a page change, it will always reset to `nil'")
           (lambda (headline)
             (when (string= page-string
                            (org-element-property
-                            (intern (concat ":" interleave--property-note-page))
+                            (intern (concat ":" interleave-property-note-page))
                             headline))
               headline))
           nil t 'headline))
@@ -223,10 +255,20 @@ After a page change, it will always reset to `nil'")
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
 (defun interleave-kill-session (&optional session)
+  "Kill a interleave session.
+
+When called interactively, if there is no prefix argument and the
+buffer has an interleave session, it will kill it; if the current
+buffer has no session defined or it is called with a prefix
+argument, it will show a list of interleave sessions, asking for
+which to kill.
+
+When called from elisp code, you have to pass in the session you
+want to kill."
   (interactive "P")
   (when (and (interactive-p) (> (length interleave--sessions) 0))
     ;; NOTE(nox): `session' is representing a prefix argument
-    (if (and interleave--session (not (equal session '(4))))
+    (if (and interleave--session (not session))
         (setq session interleave--session)
       (setq session nil)
       (let (collection default pdf-file-name org-file-name display)
@@ -260,8 +302,16 @@ After a page change, it will always reset to `nil'")
       (when (buffer-live-p notes-buffer)
         (kill-buffer notes-buffer)))))
 
-(defun interleave-insert-note ()
-  (interactive)
+(defun interleave-insert-note (&optional arg)
+  "Insert note in the current page.
+
+This will insert a new subheading inside the root heading if
+there are no notes for this page yet; if there are, it will
+create a new paragraph inside the page's notes.
+
+With a prefix argument, ask for the title of the inserted
+heading."
+  (interactive "P")
   (interleave--with-valid-session
    (let* ((ast (interleave--parse-root))
           (page (interleave--current-page))
@@ -273,25 +323,27 @@ After a page change, it will always reset to `nil'")
         (org-element-map (org-element-contents ast) org-element-all-elements
           (lambda (element)
             (let ((property-value (org-element-property
-                                   (intern (concat ":" interleave--property-note-page)) element)))
+                                   (intern (concat ":" interleave-property-note-page)) element)))
               (cond ((string= property-value page-string) element)
                     ((or (not property-value) (< (string-to-number property-value) page))
                      (setq closest-previous-element element)
                      nil))))
           nil t 'headline))
+       ;; NOTE(nox): Need to be careful changing the next part, it is a bit complicated to
+       ;; get it right...
        (with-selected-frame (interleave--session-frame session)
          (select-window (interleave--get-notes-window))
          (if note-element
              (let ((last (car (last (car (org-element-contents note-element)))))
                    (num-blank (org-element-property :post-blank note-element))
-                   (prev-char (char-before)))
+                   prev-char)
                (goto-char (org-element-property :end note-element))
                (cond ((eq (org-element-type last) 'property-drawer)
                       (when (eq num-blank 0) (insert "\n")))
                      (t (while (< num-blank 2)
                           (insert "\n")
                           (setq num-blank (1+ num-blank)))))
-               (when (eq prev-char ?\n)
+               (when (org-at-heading-p)
                  (forward-line -1))
                (org-show-context)
                (org-show-siblings)
@@ -305,17 +357,24 @@ After a page change, it will always reset to `nil'")
              (goto-char (interleave--get-properties-end ast t))
              (outline-show-entry)
              (org-insert-subheading nil))
-           (insert (format "Notes for page %d\n" page))
-           (org-entry-put nil interleave--property-note-page page-string))
+           (insert (if arg
+                       (read-string "Title: ")
+                     (format "Notes for page %d" page)))
+           (if (org-next-line-empty-p)
+               (forward-line)
+             (insert "\n"))
+           (org-entry-put nil interleave-property-note-page page-string))
          (org-cycle-hide-drawers 'all))))))
 
 (defun interleave-sync-previous-page-note ()
+  "Go to the page of the previous note, in relation to the
+selected note (where the point is now)."
   (interactive)
   (interleave--with-valid-session
    (let ((ast (interleave--parse-root))
          (point (with-selected-window (interleave--get-notes-window) (point)))
          (max (with-selected-window (interleave--get-notes-window) (point-max)))
-         (property-name (intern (concat ":" interleave--property-note-page)))
+         (property-name (intern (concat ":" interleave-property-note-page)))
          (current-page (interleave--current-page))
          contents previous-page-string should-goto)
      (setq contents (org-element-contents ast))
@@ -338,19 +397,22 @@ After a page change, it will always reset to `nil'")
    (select-window (interleave--get-pdf-window))))
 
 (defun interleave-sync-page-note ()
+  "Go to the page of the selected note (where the point is now)."
   (interactive)
   (interleave--with-valid-session
    (with-selected-window (interleave--get-notes-window)
-     (let ((page-string (org-entry-get nil interleave--property-note-page t)))
+     (let ((page-string (org-entry-get nil interleave-property-note-page t)))
        (interleave--goto-page page-string t)))
    (select-window (interleave--get-pdf-window))))
 
 (defun interleave-sync-next-page-note ()
+  "Go to the page of the next note, in relation to the
+selected note (where the point is now)."
   (interactive)
   (interleave--with-valid-session
    (let ((ast (interleave--parse-root))
          (point (with-selected-window (interleave--get-notes-window) (point)))
-         (property-name (intern (concat ":" interleave--property-note-page)))
+         (property-name (intern (concat ":" interleave-property-note-page)))
          (current-page (interleave--current-page))
          contents start-searching page-string)
      (setq contents (org-element-contents ast))
@@ -378,47 +440,53 @@ After a page change, it will always reset to `nil'")
 ;;;###autoload
 (defun interleave (arg)
   "Start Interleave.
-When with an argument, only check for the property in the current
-heading"
+
+This will open a session for interleaving your notes, with
+indirect buffers to the PDF and the notes side by side. Your
+current window configuration won't be changed, because this opens
+in a new frame.
+
+You only need to run this command inside a heading (which will
+hold the notes for this PDF). If no PDF path property is found,
+this command will ask you for the target file.
+
+With a prefix ARG, only check for the property in the current
+heading, don't inherit from parents."
   (interactive "P")
   (when (eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
-      (error "Interleave must be issued inside a heading."))
+      (error "Interleave must be issued inside a heading"))
     (let ((org-file-path (buffer-file-name))
-          (pdf-property (org-entry-get nil interleave--property-pdf-file (not arg)))
-          pdf-file-path session)
+          (pdf-property (org-entry-get nil interleave-property-pdf-file (not arg)))
+          pdf-file-path ast session)
       (when (stringp pdf-property) (setq pdf-file-path (expand-file-name pdf-property)))
       (unless (and pdf-file-path (not (file-directory-p pdf-file-path)) (file-readable-p pdf-file-path))
         (setq pdf-file-path (expand-file-name
                              (read-file-name
-                              "No INTERLEAVE_PDF property found. Please specify a PDF path: "
+                              "Invalid or no PDF property found. Please specify a PDF path: "
                               nil nil t)))
         (when (or (file-directory-p pdf-file-path) (not (file-readable-p pdf-file-path)))
           (error "Invalid file path."))
         (setq pdf-property (if (y-or-n-p "Do you want a relative file name? ")
                                (file-relative-name pdf-file-path)
                              pdf-file-path))
-        (org-entry-put nil interleave--property-pdf-file pdf-property))
+        (org-entry-put nil interleave-property-pdf-file pdf-property))
+      (setq ast (interleave--parse-root (current-buffer) pdf-property))
       (when (catch 'should-continue
               (dolist (session interleave--sessions)
-                (when (string= (interleave--session-pdf-file-path session)
-                               pdf-file-path)
-                  (if (string= (interleave--session-org-file-path session)
-                               org-file-path)
-                      (if (interleave--valid-session session)
-                          (progn
-                            (raise-frame (interleave--session-frame session))
-                            (throw 'should-continue nil))
-                        ;; NOTE(nox): This should not happen, but we may as well account
-                        ;; for it
-                        (interleave-kill-session session)
-                        (throw 'should-continue t))
-                    (if (y-or-n-p (format "%s is already being Interleaved in another notes file. \
-Should I end the session? "))
-                        (progn
-                          (interleave-kill-session session)
-                          (throw 'should-continue t))
-                      (throw 'should-continue nil)))))
+                (when (interleave--valid-session session)
+                  (when (and (string= (interleave--session-pdf-file-path session)
+                                      pdf-file-path)
+                             (string= (interleave--session-org-file-path session)
+                                      org-file-path))
+                    (let ((test-ast (with-current-buffer
+                                        (interleave--session-notes-buffer session)
+                                      (interleave--parse-root))))
+                      (when (eq (org-element-property :begin ast)
+                                (org-element-property :begin test-ast))
+                        ;; NOTE(nox): This is an existing session!
+                        (raise-frame (interleave--session-frame session))
+                        (throw 'should-continue nil))))))
               t)
         (setq
          session
@@ -465,16 +533,19 @@ Should I end the session? "))
           (local-set-key (kbd "M-n") 'interleave-sync-next-page-note))
         (with-selected-frame (interleave--session-frame session)
           (let ((pdf-window (selected-window))
-                (notes-window (split-window-right)))
-            ;; TODO(nox): Option to customize this
+                (notes-window (if (eq interleave-split-direction 'horizontal)
+                                  (split-window-right)
+                                (split-window-below))))
             (set-window-buffer pdf-window (interleave--session-pdf-buffer session))
             (set-window-dedicated-p pdf-window t)
             (set-window-buffer notes-window (interleave--session-notes-buffer session))))
         (add-hook 'delete-frame-functions 'interleave--handle-delete-frame)
         (push session interleave--sessions)
-        ;; TODO(nox): Load page of current note?
-        (with-current-buffer (interleave--session-pdf-buffer session)
-          (interleave--page-change-handler 1))))))
+        (let ((current-note-page (org-entry-get nil interleave-property-note-page t)))
+          (with-current-buffer (interleave--session-pdf-buffer session)
+            (if current-note-page
+                (interleave--goto-page current-note-page)
+              (interleave--page-change-handler 1))))))))
 
 (provide 'interleave)
 

@@ -1,14 +1,58 @@
-* Full Interleave mode rewrite
-After using [[https://github.com/rudolfochrist/interleave][interleave-mode]] for some time, I got some ideas of how I could improve it,
-usability and feature-wise. As doing a refactor on a foreign codebase takes a long time,
-because of the discussion with the owner (who is, of course, free to disagree with me
-about it), learning its internals, proposing pull requests, more back and forth in code
-review, etc, and as I like doing things from scratch, I started doing what is an ad-hoc
-replacement for interleave-mode. Note that not every feature of the original mode will be
-available, even when this is done! You may prefer using the original, because this is a
-different take on the same idea!
+* Annotate PDFs in an Interleaved fashion!
+After using Sebastian Christ's amazing [[https://github.com/rudolfochrist/interleave][Interleave package]] for some time, I got some ideas
+on how I could improve it, usability and feature-wise. So I created this package from
+scratch with those ideas in mind!
 
-The name of this package is also Interleave, /but only temporarily/, because I couldn't
-think yet of a better name.
+*Note*: /not every feature of the original mode is available/! You may prefer using the
+original, because this is a different take on the same idea.
 
-And, of course, I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and the inspiration!
+Also, it is not needed, but for a much better experience with PDFs, try [[https://github.com/politza/pdf-tools][PDF Tools]].
+Nevertheless, this package is also compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]].
+
+** What is this?
+This is a rewrite from scratch of Sebastian's Interleave package, which helps you annotate
+PDFs in [[http://orgmode.org/][Org mode]].
+
+The idea is that, like an interleaved textbook, this opens the PDF and the notes buffer
+side by side and, as you scroll through your PDF, it will present you the notes you have
+for each page. Taking a note is as simple as pressing @@html:<kbd>@@i@@html:</kbd>@@ and
+writing away!
+
+** Features and differences to the original Interleave
+- Easy to use annotation interface :: Just press @@html:<kbd>@@i@@html:</kbd>@@ in the PDF
+     buffer and write your notes!
+- Easy navigation :: You may navigate your PDF as usual, seeing the notes buffer scroll
+     and show you the respective notes, or instead, you may navigate by note, to only see
+     the annotated pages
+- Isolated interface :: Each Interleave session has its own frame and the PDF and notes
+     buffers are indirect buffers to the original ones. Killing any of these things will
+     kill your Interleave session.
+- Simultaneous Interleave sessions :: You may open as many Interleave sessions as you
+     wish, at the same time! Every root heading interleaved will be read-only to prevent
+     you from deleting a heading from an open Interleave session.
+
+*** TODO Differences
+** Keybindings
+| Key                              | Description                                 | Where?               |
+| @@html:<kbd>@@i@@html:</kbd>@@   | Insert new note on this page                | PDF buffer           |
+| @@html:<kbd>@@q@@html:</kbd>@@   | Kill Interleave session                     | PDF buffer           |
+| @@html:<kbd>@@M-p@@html:</kbd>@@ | Go to the page of the previous set of notes | PDF and notes buffer |
+| @@html:<kbd>@@M-.@@html:</kbd>@@ | Go to the page of the selected set of notes | PDF and notes buffer |
+| @@html:<kbd>@@M-n@@html:</kbd>@@ | Go to the page of the next set of notes     | PDF and notes buffer |
+
+You may use the usual keybindings to navigate the PDF (@@html:<kbd>@@n@@html:</kbd>@@,
+@@html:<kbd>@@p@@html:</kbd>@@, @@html:<kbd>@@SPC@@html:</kbd>@@, ...).
+
+In PDF Tools, I use the hook provided to know when the current page changes
+(=pdf-view-after-change-page-hook=). In DocView, I advise =doc-view-goto-page=.
+
+** Why a rewrite from scratch? Why not contribute to the existing Interleave?
+Doing a refactor on a foreign codebase takes a long time because of several factors, like
+introducing the ideas to the owner (with which he may even disagree), learning its
+internals, proposing pull requests, more back and forth in code review, etc...
+
+Besides, I like doing things from scratch, not only because it expands my skills, to do
+everything, but also because it is something I find very rewarding!
+
+** Acknowledgments
+I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and the inspiration!
