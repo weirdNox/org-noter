@@ -93,10 +93,18 @@ Also, this is as if you always used the multi-pdf mode of the original - you can
 interleave without having a parent headline. As such, there is still no way to open the
 notes from the PDF file (when I have time, maybe I'll try to implement this).
 
-One of the reasons of rewriting from scratch is to fix some bugs, like the notes not
-opening when executing some different page change commands (like goto-page or
-beginning-of-buffer), and when it started narrowing the wrong part of the notes, resulting
-in errors.
+If you want to be compatible with Sebastian's Interleave, *you must* change
+~interleave-property-note-page~ like this:
+#+BEGIN_SRC emacs-lisp
+  (setq interleave-property-note-page "INTERLEAVE_PAGE_NOTE")
+#+END_SRC
+
+One of the reasons of rewriting from scratch is to fix some bugs, like:
+- Notes not sorted
+- Notes not synced when executing different page change commands, eg. goto-page or
+  beginning-of-buffer
+- Sometimes it would start narrowing other parts of the buffer, giving errors when trying
+  to go to notes.
 
 ** Acknowledgments
 I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and the inspiration!

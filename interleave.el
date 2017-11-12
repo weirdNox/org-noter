@@ -68,6 +68,13 @@
   :type '(choice (const :tag "Horizontal" horizontal)
                  (const :tag "Vertical" vertical)))
 
+(defcustom interleave-default-heading-title "Notes for page $p$"
+  "The title of the headings created by `interleave-insert-note'.
+$p$ is replaced by the number of the page you are in at the
+moment."
+  :group 'interleave
+  :type 'string)
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables
 (cl-defstruct interleave--session frame pdf-mode property-text
@@ -321,6 +328,9 @@ heading."
    (let* ((ast (interleave--parse-root))
           (page (interleave--current-page))
           (page-string (number-to-string page))
+          (title (if arg (read-string "Title: ")
+                   (replace-regexp-in-string (regexp-quote "$p$") page-string
+                                             interleave-default-heading-title)))
           note-element closest-previous-element)
      (when ast
        (setq
@@ -361,9 +371,7 @@ heading."
              (goto-char (interleave--get-properties-end ast t))
              (outline-show-entry)
              (org-insert-subheading nil))
-           (insert (if arg
-                       (read-string "Title: ")
-                     (format "Notes for page %d" page)))
+           (insert title)
            (if (org-next-line-empty-p)
                (forward-line)
              (insert "\n"))
