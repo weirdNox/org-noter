@@ -4,7 +4,7 @@ on how I could improve it, usability and feature-wise. So I created this package
 scratch with those ideas in mind!
 
 *Note*: /not every feature of the original mode is available/! You may prefer using the
-original, because this is a different take on the same idea.
+original, because this is a different take on the same idea. [[#diff][View some differences here.]]
 
 Also, it is not needed, but for a much better experience with PDFs, try [[https://github.com/politza/pdf-tools][PDF Tools]].
 Nevertheless, this package is also compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]].
@@ -18,7 +18,7 @@ side by side and, as you scroll through your PDF, it will present you the notes 
 for each page. Taking a note is as simple as pressing @@html:<kbd>@@i@@html:</kbd>@@ and
 writing away!
 
-** Features and differences to the original Interleave
+** Features
 - Easy to use annotation interface :: Just press @@html:<kbd>@@i@@html:</kbd>@@ in the PDF
      buffer and write your notes!
 - Easy navigation :: You may navigate your PDF as usual, seeing the notes buffer scroll
@@ -31,8 +31,30 @@ writing away!
      wish, at the same time! Every root heading interleaved will be read-only to prevent
      you from deleting a heading from an open Interleave session.
 
-*** TODO Differences
-** Keybindings
+** Installation & Usage
+For now, the installation is manual. Using =package.el=, download =interleave.el=, run
+~M-x package-install-file~ and pass the file to the command. If you want to configure
+something, you must have the following in your =init.el=:
+#+BEGIN_SRC emacs-lisp
+  (setq package-enable-at-startup nil)
+  (package-initialize)
+#+END_SRC
+
+For now, this is OK. In the mean time, I'll talk to Sebastian about this and think of a
+name in order to submit it to MELPA.
+
+The usage is very simple:
+  - Just have an Org file where you want the notes to go
+  - Create a root heading to hold the notes
+  - Run ~M-x interleave~ inside!
+    On the first try, it will ask you for the path of the PDF and save it in a property.
+
+This will open a new Interleave frame where you can use [[#keys][the keybindings described here]].
+
+** Keybindings @@html:<a name="keys">@@
+:PROPERTIES:
+:CUSTOM_ID: keys
+:END:
 | Key                              | Description                                 | Where?               |
 | @@html:<kbd>@@i@@html:</kbd>@@   | Insert new note on this page                | PDF buffer           |
 | @@html:<kbd>@@q@@html:</kbd>@@   | Kill Interleave session                     | PDF buffer           |
@@ -40,19 +62,41 @@ writing away!
 | @@html:<kbd>@@M-.@@html:</kbd>@@ | Go to the page of the selected set of notes | PDF and notes buffer |
 | @@html:<kbd>@@M-n@@html:</kbd>@@ | Go to the page of the next set of notes     | PDF and notes buffer |
 
-You may use the usual keybindings to navigate the PDF (@@html:<kbd>@@n@@html:</kbd>@@,
+You can use the usual keybindings to navigate the PDF (@@html:<kbd>@@n@@html:</kbd>@@,
 @@html:<kbd>@@p@@html:</kbd>@@, @@html:<kbd>@@SPC@@html:</kbd>@@, ...).
 
 In PDF Tools, I use the hook provided to know when the current page changes
 (=pdf-view-after-change-page-hook=). In DocView, I advise =doc-view-goto-page=.
+
+You may also want to check the docstrings of the functions associated with the
+keybindings, because there is some extra functionality in some.
 
 ** Why a rewrite from scratch? Why not contribute to the existing Interleave?
 Doing a refactor on a foreign codebase takes a long time because of several factors, like
 introducing the ideas to the owner (with which he may even disagree), learning its
 internals, proposing pull requests, more back and forth in code review, etc...
 
-Besides, I like doing things from scratch, not only because it expands my skills, to do
-everything, but also because it is something I find very rewarding!
+Besides, I like doing things from scratch, not only because it expands my skills, but also
+because it is something I find very rewarding!
+
+*** Differences from the original Interleave @@html:<a name="diff">@@
+:PROPERTIES:
+:CUSTOM_ID: diff
+:END:
+There are some new features, such as each session having its own frame and the possibility
+of having several Interleave sessions simultaneously (even of the same PDF and/or from the
+same notes file!). Aside from that, using indirect buffers is also great, because the
+narrowing is only applied in the indirect one, not on the original, so you may continue
+working on the rest of the buffer when interleaving.
+
+Also, this is as if you always used the multi-pdf mode of the original - you can't
+interleave without having a parent headline. As such, there is still no way to open the
+notes from the PDF file (when I have time, maybe I'll try to implement this).
+
+One of the reasons of rewriting from scratch is to fix some bugs, like the notes not
+opening when executing some different page change commands (like goto-page or
+beginning-of-buffer), and when it started narrowing the wrong part of the notes, resulting
+in errors.
 
 ** Acknowledgments
 I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and the inspiration!

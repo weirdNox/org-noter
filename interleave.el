@@ -36,8 +36,13 @@
 ;; https://github.com/rudolfochrist/interleave
 
 ;;; Code:
-(require 'cl-lib)
 (require 'org)
+(require 'org-element)
+(require 'cl-lib)
+
+(declare-function pdf-view-goto-page "ext:pdf-view")
+(declare-function doc-view-goto-page "doc-view")
+(declare-function image-mode-window-get "image-mode")
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User variables
@@ -266,7 +271,7 @@ which to kill.
 When called from elisp code, you have to pass in the session you
 want to kill."
   (interactive "P")
-  (when (and (interactive-p) (> (length interleave--sessions) 0))
+  (when (and (called-interactively-p 'any) (> (length interleave--sessions) 0))
     ;; NOTE(nox): `session' is representing a prefix argument
     (if (and interleave--session (not session))
         (setq session interleave--session)
@@ -335,8 +340,7 @@ heading."
          (select-window (interleave--get-notes-window))
          (if note-element
              (let ((last (car (last (car (org-element-contents note-element)))))
-                   (num-blank (org-element-property :post-blank note-element))
-                   prev-char)
+                   (num-blank (org-element-property :post-blank note-element)))
                (goto-char (org-element-property :end note-element))
                (cond ((eq (org-element-type last) 'property-drawer)
                       (when (eq num-blank 0) (insert "\n")))
