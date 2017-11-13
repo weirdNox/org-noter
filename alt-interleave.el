@@ -1,4 +1,4 @@
-;;; interleave.el --- Annotate PDFs in an interleaved fashion!           -*- lexical-binding: t; -*-
+;;; alt-interleave.el --- Annotate PDFs in an interleaved fashion!          -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Gonçalo Santos
 
@@ -349,6 +349,7 @@ heading."
        (with-selected-frame (interleave--session-frame session)
          (select-window (interleave--get-notes-window))
          (if note-element
+             ;; TODO(nox): Should this be able to rename the heading with new title??
              (let ((last (car (last (car (org-element-contents note-element)))))
                    (num-blank (org-element-property :post-blank note-element)))
                (goto-char (org-element-property :end note-element))
@@ -462,17 +463,22 @@ You only need to run this command inside a heading (which will
 hold the notes for this PDF). If no PDF path property is found,
 this command will ask you for the target file.
 
-With a prefix ARG, only check for the property in the current
-heading, don't inherit from parents."
+With a prefix universal argument ARG, only check for the property
+in the current heading, don't inherit from parents.
+
+With a prefix number ARG, open the PDF without interleaving if
+ARG >= 0, or open the folder containing the PDF when ARG < 0."
   (interactive "P")
   (when (eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
       (error "Interleave must be issued inside a heading"))
     (let ((org-file-path (buffer-file-name))
-          (pdf-property (org-entry-get nil interleave-property-pdf-file (not arg)))
+          (pdf-property (org-entry-get nil interleave-property-pdf-file (eq arg '(4))))
           pdf-file-path ast session)
       (when (stringp pdf-property) (setq pdf-file-path (expand-file-name pdf-property)))
-      (unless (and pdf-file-path (not (file-directory-p pdf-file-path)) (file-readable-p pdf-file-path))
+      (unless (and pdf-file-path
+                   (not (file-directory-p pdf-file-path))
+                   (file-readable-p pdf-file-path))
         (setq pdf-file-path (expand-file-name
                              (read-file-name
                               "Invalid or no PDF property found. Please specify a PDF path: "
@@ -485,6 +491,12 @@ heading, don't inherit from parents."
         (org-entry-put nil interleave-property-pdf-file pdf-property))
       (setq ast (interleave--parse-root (current-buffer) pdf-property))
       (when (catch 'should-continue
+              (when (or (numberp arg) (eq arg '-))
+                (let ((number (prefix-numeric-value arg)))
+                  (if (>= number 0)
+                      (find-file pdf-file-path)
+                    (find-file (file-name-directory pdf-file-path))))
+                (throw 'should-continue nil))
               (dolist (session interleave--sessions)
                 (when (interleave--valid-session session)
                   (when (and (string= (interleave--session-pdf-file-path session)
@@ -497,12 +509,12 @@ heading, don't inherit from parents."
                       (when (eq (org-element-property :begin ast)
                                 (org-element-property :begin test-ast))
                         ;; NOTE(nox): This is an existing session!
-                        (raise-frame (interleave--session-frame session))
+                        (select-frame-set-input-focus (interleave--session-frame session))
                         (throw 'should-continue nil))))))
               t)
         (setq
          session
-         (let* ((display-name (file-name-nondirectory (file-name-sans-extension pdf-file-path)))
+         (let* ((display-name (org-element-property :raw-value ast))
                 (notes-buffer-name
                  (generate-new-buffer-name (format "Interleave - Notes of %s" display-name)))
                 (pdf-buffer-name
@@ -559,6 +571,6 @@ heading, don't inherit from parents."
                 (interleave--goto-page current-note-page)
               (interleave--page-change-handler 1))))))))
 
-(provide 'interleave)
+(provide 'alt-interleave)
 
-;;; interleave.el ends here
+;;; alt-interleave.el ends here

@@ -32,7 +32,7 @@ writing away!
      you from deleting a heading from an open Interleave session.
 
 ** Installation & Usage
-For now, the installation is manual. Using =package.el=, download =interleave.el=, run
+For now, the installation is manual. Using =package.el=, download =alt-interleave.el=, run
 ~M-x package-install-file~ and pass the file to the command. If you want to configure
 something, you must have the following in your =init.el=:
 #+BEGIN_SRC emacs-lisp
@@ -41,7 +41,7 @@ something, you must have the following in your =init.el=:
 #+END_SRC
 
 For now, this is OK. In the mean time, I'll talk to Sebastian about this and think of a
-name in order to submit it to MELPA.
+name (is =alt-interleave= good enough?) in order to submit it to MELPA.
 
 The usage is very simple:
   - Just have an Org file where you want the notes to go
