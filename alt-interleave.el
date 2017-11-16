@@ -254,8 +254,7 @@ After a page change, it will always reset to `nil'")
        (when note
          (with-selected-window (interleave--get-notes-window)
            (when (or (< (point) (interleave--get-properties-end note))
-                     (and (not (eobp))
-                          (>= (point) (org-element-property :end note))))
+                     (>= (point) (org-element-property :end note)))
              (goto-char (interleave--get-properties-end note)))
            (org-show-context)
            (org-show-siblings)
@@ -367,12 +366,16 @@ heading."
                (progn
                  (goto-char (org-element-property :end closest-previous-element))
                  (if (eq (org-element-type closest-previous-element) 'headline)
+                     ;; FIXME(nox): This is wrong!!! When the element has headlines inside,
+                     ;; it will insert a subheading of the notes
                      (org-insert-heading)
                    (org-insert-subheading nil)))
              (goto-char (interleave--get-properties-end ast t))
              (outline-show-entry)
              (org-insert-subheading nil))
            (insert title)
+           ;; FIXME(nox): Goes to the end of the title when it is inserted in the end of
+           ;; the buffer
            (if (org-next-line-empty-p)
                (forward-line)
              (insert "\n"))
@@ -422,6 +425,8 @@ selected note (where the point is now)."
   "Go to the page of the next note, in relation to the
 selected note (where the point is now)."
   (interactive)
+  ;; TODO(nox): This should warn when there are no more pages (and maybe go to the last
+  ;; page?) The same for sync-previous
   (interleave--with-valid-session
    (let ((ast (interleave--parse-root))
          (point (with-selected-window (interleave--get-notes-window) (point)))
@@ -473,7 +478,8 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
     (when (org-before-first-heading-p)
       (error "Interleave must be issued inside a heading"))
     (let ((org-file-path (buffer-file-name))
-          (pdf-property (org-entry-get nil interleave-property-pdf-file (eq arg '(4))))
+          (pdf-property (org-entry-get nil interleave-property-pdf-file
+                                       (not (eq arg '(4)))))
           pdf-file-path ast session)
       (when (stringp pdf-property) (setq pdf-file-path (expand-file-name pdf-property)))
       (unless (and pdf-file-path
@@ -541,6 +547,7 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
           (kill-local-variable 'kill-buffer-hook)
           (setq interleave--session session)
           (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
+          ;; TODO(nox): This should not be setting on the mode map
           (local-set-key (kbd "i") 'interleave-insert-note)
           (local-set-key (kbd "q") 'interleave-kill-session)
           (local-set-key (kbd "M-p") 'interleave-sync-previous-page-note)
