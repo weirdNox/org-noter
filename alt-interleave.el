@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/weirdNox/interleave
 ;; Keywords: lisp pdf interleave annotate
 ;; Package-Requires: (cl-lib (org "9.0"))
-;; Version: 0.1.0
+;; Version: 1.0
 
 ;; This file is not part of GNU Emacs.
 
@@ -86,11 +86,6 @@ moment."
 
 (defvar-local interleave--session nil
   "Session associated with the current buffer.")
-
-(defvar interleave--inhibit-next-page-change nil
-  "Whether or not it should keep the point on the same place even
-  if the page changes to another page that has a note.
-After a page change, it will always reset to `nil'")
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Utility functions
@@ -204,6 +199,14 @@ After a page change, it will always reset to `nil'")
           (goto-char contents-pos)
         (goto-char old-point)))))
 
+(defun interleave--insert-heading (level)
+  (org-insert-heading)
+  (let* ((initial-level (org-element-property :level (org-element-at-point)))
+         (changer (if (> level initial-level) 'org-do-demote 'org-do-promote))
+         (number-of-times (abs (- level initial-level))))
+    (dotimes (_ number-of-times)
+      (funcall changer))))
+
 (defun interleave--get-notes-window ()
   (interleave--with-valid-session
    (display-buffer (interleave--session-notes-buffer session) nil
@@ -214,9 +217,8 @@ After a page change, it will always reset to `nil'")
    (get-buffer-window (interleave--session-pdf-buffer session)
                       (interleave--session-frame session))))
 
-(defun interleave--goto-page (page-str &optional inhibit-point-change)
+(defun interleave--goto-page (page-str)
   (interleave--with-valid-session
-   (setq interleave--inhibit-next-page-change inhibit-point-change)
    (with-selected-window (get-buffer-window (interleave--session-pdf-buffer session)
                                             (interleave--session-frame session))
      (cond ((eq major-mode 'pdf-view-mode)
@@ -240,7 +242,7 @@ After a page change, it will always reset to `nil'")
           (ast (interleave--parse-root))
           (notes (when ast (org-element-contents ast)))
           note)
-     (when (and notes (not interleave--inhibit-next-page-change))
+     (when notes
        (setq
         note
         (org-element-map notes 'headline
@@ -260,8 +262,7 @@ After a page change, it will always reset to `nil'")
            (org-show-siblings)
            (org-show-subtree)
            (org-cycle-hide-drawers 'all)
-           (recenter))))
-     (setq interleave--inhibit-next-page-change nil))))
+           (recenter)))))))
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
@@ -330,6 +331,7 @@ heading."
           (title (if arg (read-string "Title: ")
                    (replace-regexp-in-string (regexp-quote "$p$") page-string
                                              interleave-default-heading-title)))
+          (insertion-level (1+ (org-element-property :level ast)))
           note-element closest-previous-element)
      (when ast
        (setq
@@ -358,28 +360,22 @@ heading."
                           (insert "\n")
                           (setq num-blank (1+ num-blank)))))
                (when (org-at-heading-p)
-                 (forward-line -1))
-               (org-show-context)
-               (org-show-siblings)
-               (org-show-subtree))
+                 (forward-line -1)))
            (if closest-previous-element
                (progn
                  (goto-char (org-element-property :end closest-previous-element))
-                 (if (eq (org-element-type closest-previous-element) 'headline)
-                     ;; FIXME(nox): This is wrong!!! When the element has headlines inside,
-                     ;; it will insert a subheading of the notes
-                     (org-insert-heading)
-                   (org-insert-subheading nil)))
+                 (interleave--insert-heading insertion-level))
              (goto-char (interleave--get-properties-end ast t))
              (outline-show-entry)
-             (org-insert-subheading nil))
+             (interleave--insert-heading insertion-level))
            (insert title)
-           ;; FIXME(nox): Goes to the end of the title when it is inserted in the end of
-           ;; the buffer
-           (if (org-next-line-empty-p)
+           (if (and (not (eobp)) (org-next-line-empty-p))
                (forward-line)
              (insert "\n"))
            (org-entry-put nil interleave-property-note-page page-string))
+         (org-show-context)
+         (org-show-siblings)
+         (org-show-subtree)
          (org-cycle-hide-drawers 'all))))))
 
 (defun interleave-sync-previous-page-note ()
@@ -387,29 +383,33 @@ heading."
 selected note (where the point is now)."
   (interactive)
   (interleave--with-valid-session
-   (let ((ast (interleave--parse-root))
-         (point (with-selected-window (interleave--get-notes-window) (point)))
-         (max (with-selected-window (interleave--get-notes-window) (point-max)))
+   (let ((contents (org-element-contents (interleave--parse-root)))
+         (point-info
+          (with-selected-window (interleave--get-notes-window)
+            (cons (point) (point-max))))
          (property-name (intern (concat ":" interleave-property-note-page)))
          (current-page (interleave--current-page))
-         contents previous-page-string should-goto)
-     (setq contents (org-element-contents ast))
-     (setq
-      should-goto
-      (org-element-map contents 'headline
-        (lambda (headline)
-          (if (and (>= point (org-element-property :begin headline))
-                   (or (< point (org-element-property :end headline))
-                       (eq (org-element-property :end headline) max)))
-              t
-            (setq previous-page-string (or (org-element-property property-name headline)
-                                           previous-page-string))
-            nil))
-        nil t 'headline))
-     (when (and should-goto previous-page-string)
-       (if (eq current-page (string-to-number previous-page-string))
-           (interleave--page-change-handler current-page)
-         (interleave--goto-page previous-page-string))))
+         previous-page-string page-string)
+     (org-element-map contents 'headline
+       (lambda (headline)
+         (let ((begin (org-element-property :begin headline))
+               (end (org-element-property :end headline)))
+           (if (< (car point-info) begin)
+               t
+             (if (and (>= (car point-info) begin)
+                      (or (<  (car point-info) end)
+                          (eq (cdr point-info) end)))
+                 (setq page-string previous-page-string)
+               (setq previous-page-string
+                     (or (org-element-property property-name headline)
+                         previous-page-string))
+               nil))))
+       nil t 'headline)
+     (if page-string
+         (if (eq current-page (string-to-number previous-page-string))
+             (interleave--page-change-handler current-page)
+           (interleave--goto-page previous-page-string))
+       (error "There is no previous note")))
    (select-window (interleave--get-pdf-window))))
 
 (defun interleave-sync-page-note ()
@@ -418,22 +418,21 @@ selected note (where the point is now)."
   (interleave--with-valid-session
    (with-selected-window (interleave--get-notes-window)
      (let ((page-string (org-entry-get nil interleave-property-note-page t)))
-       (interleave--goto-page page-string t)))
+       (if page-string
+           (interleave--goto-page page-string)
+         (error "No note selected"))))
    (select-window (interleave--get-pdf-window))))
 
 (defun interleave-sync-next-page-note ()
   "Go to the page of the next note, in relation to the
 selected note (where the point is now)."
   (interactive)
-  ;; TODO(nox): This should warn when there are no more pages (and maybe go to the last
-  ;; page?) The same for sync-previous
   (interleave--with-valid-session
-   (let ((ast (interleave--parse-root))
+   (let ((contents (org-element-contents (interleave--parse-root)))
          (point (with-selected-window (interleave--get-notes-window) (point)))
          (property-name (intern (concat ":" interleave-property-note-page)))
          (current-page (interleave--current-page))
-         contents start-searching page-string)
-     (setq contents (org-element-contents ast))
+         set-next page-string)
      (org-element-map contents 'headline
        (lambda (headline)
          (when (< point (org-element-property :begin headline))
@@ -442,18 +441,29 @@ selected note (where the point is now)."
        nil t)
      (org-element-map contents 'headline
        (lambda (headline)
-         (if start-searching
-             (setq page-string (org-element-property property-name headline))
-           (when (and (>= point (org-element-property :begin headline))
-                      (< point (org-element-property :end headline)))
-             (setq start-searching t)
-             nil)))
+         (when (< point (org-element-property :begin headline))
+           (setq page-string (org-element-property property-name headline))))
        nil t 'headline)
-     (when page-string
-       (if (eq current-page (string-to-number page-string))
-           (interleave--page-change-handler current-page)
-         (interleave--goto-page page-string))))
+     (if page-string
+         (if (eq current-page (string-to-number page-string))
+             (interleave--page-change-handler current-page)
+           (interleave--goto-page page-string))
+       (error "There is no next note")))
    (select-window (interleave--get-pdf-window))))
+
+(define-minor-mode interleave-pdf-mode
+  "Minor mode for the Interleave PDF buffer."
+  :keymap `((,(kbd   "i") . interleave-insert-note)
+            (,(kbd   "q") . interleave-kill-session)
+            (,(kbd "M-p") . interleave-sync-previous-page-note)
+            (,(kbd "M-.") . interleave-sync-page-note)
+            (,(kbd "M-n") . interleave-sync-next-page-note)))
+
+(define-minor-mode interleave-notes-mode
+  "Minor mode for the Interleave notes buffer."
+  :keymap `((,(kbd "M-p") . interleave-sync-previous-page-note)
+            (,(kbd "M-.") . interleave-sync-page-note)
+            (,(kbd "M-n") . interleave-sync-next-page-note)))
 
 ;;;###autoload
 (defun interleave (arg)
@@ -490,7 +500,7 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
                               "Invalid or no PDF property found. Please specify a PDF path: "
                               nil nil t)))
         (when (or (file-directory-p pdf-file-path) (not (file-readable-p pdf-file-path)))
-          (error "Invalid file path."))
+          (error "Invalid file path"))
         (setq pdf-property (if (y-or-n-p "Do you want a relative file name? ")
                                (file-relative-name pdf-file-path)
                              pdf-file-path))
@@ -547,21 +557,14 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
           (kill-local-variable 'kill-buffer-hook)
           (setq interleave--session session)
           (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
-          ;; TODO(nox): This should not be setting on the mode map
-          (local-set-key (kbd "i") 'interleave-insert-note)
-          (local-set-key (kbd "q") 'interleave-kill-session)
-          (local-set-key (kbd "M-p") 'interleave-sync-previous-page-note)
-          (local-set-key (kbd "M-.") 'interleave-sync-page-note)
-          (local-set-key (kbd "M-n") 'interleave-sync-next-page-note))
+          (interleave-pdf-mode 1))
         (with-current-buffer (interleave--session-notes-buffer session)
           (setq interleave--session session)
           (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
           (let ((ast (interleave--parse-root)))
             (interleave--set-read-only ast)
             (interleave--narrow-to-root ast))
-          (local-set-key (kbd "M-p") 'interleave-sync-previous-page-note)
-          (local-set-key (kbd "M-.") 'interleave-sync-page-note)
-          (local-set-key (kbd "M-n") 'interleave-sync-next-page-note))
+          (interleave-notes-mode 1))
         (with-selected-frame (interleave--session-frame session)
           (let ((pdf-window (selected-window))
                 (notes-window (if (eq interleave-split-direction 'horizontal)
