@@ -5,7 +5,7 @@
 ;; Author: Gonçalo Santos (aka. weirdNox@GitHub)
 ;; Homepage: https://github.com/weirdNox/interleave
 ;; Keywords: lisp pdf interleave annotate
-;; Package-Requires: (cl-lib (org "9.0"))
+;; Package-Requires: ((emacs "24.4") cl-lib (org "9.0"))
 ;; Version: 1.0
 
 ;; This file is not part of GNU Emacs.
@@ -62,8 +62,7 @@
   :type 'string)
 
 (defcustom interleave-split-direction 'horizontal
-  "Whether the interleave frame should be split horizontally or
-  vertically."
+  "Whether the interleave frame should be split horizontally or vertically."
   :group 'interleave
   :type '(choice (const :tag "Horizontal" horizontal)
                  (const :tag "Vertical" vertical)))
@@ -82,7 +81,7 @@ moment."
               pdf-buffer)
 
 (defvar interleave--sessions nil
-  "List of Interleave sessions")
+  "List of Interleave sessions.")
 
 (defvar-local interleave--session nil
   "Session associated with the current buffer.")
@@ -275,7 +274,7 @@ buffer has no session defined or it is called with a prefix
 argument, it will show a list of interleave sessions, asking for
 which to kill.
 
-When called from elisp code, you have to pass in the session you
+When called from elisp code, you have to pass in the SESSION you
 want to kill."
   (interactive "P")
   (when (and (called-interactively-p 'any) (> (length interleave--sessions) 0))
@@ -321,7 +320,7 @@ This will insert a new subheading inside the root heading if
 there are no notes for this page yet; if there are, it will
 create a new paragraph inside the page's notes.
 
-With a prefix argument, ask for the title of the inserted
+With a prefix ARG, ask for the title of the inserted
 heading."
   (interactive "P")
   (interleave--with-valid-session
@@ -379,8 +378,9 @@ heading."
          (org-cycle-hide-drawers 'all))))))
 
 (defun interleave-sync-previous-page-note ()
-  "Go to the page of the previous note, in relation to the
-selected note (where the point is now)."
+  "Go to the page of the previous note.
+
+This is in relation to the current note (where the point is now)."
   (interactive)
   (interleave--with-valid-session
    (let ((contents (org-element-contents (interleave--parse-root)))
@@ -424,15 +424,16 @@ selected note (where the point is now)."
    (select-window (interleave--get-pdf-window))))
 
 (defun interleave-sync-next-page-note ()
-  "Go to the page of the next note, in relation to the
-selected note (where the point is now)."
+  "Go to the page of the next note.
+
+This is in relation to the current note (where the point is now)."
   (interactive)
   (interleave--with-valid-session
    (let ((contents (org-element-contents (interleave--parse-root)))
          (point (with-selected-window (interleave--get-notes-window) (point)))
          (property-name (intern (concat ":" interleave-property-note-page)))
          (current-page (interleave--current-page))
-         set-next page-string)
+         page-string)
      (org-element-map contents 'headline
        (lambda (headline)
          (when (< point (org-element-property :begin headline))
