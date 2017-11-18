@@ -255,7 +255,8 @@ moment."
        (when note
          (with-selected-window (interleave--get-notes-window)
            (when (or (< (point) (interleave--get-properties-end note))
-                     (>= (point) (org-element-property :end note)))
+                     (and (not (eq (point-max) (org-element-property :end note)))
+                          (>= (point) (org-element-property :end note))))
              (goto-char (interleave--get-properties-end note)))
            (org-show-context)
            (org-show-siblings)
