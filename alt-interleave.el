@@ -155,12 +155,17 @@ moment."
 (defun interleave--get-properties-end (ast &optional force-trim)
   (when ast
     (let* ((properties (org-element-map ast 'property-drawer 'identity nil t))
-           (last-element (car (last (car (org-element-contents ast)))))
+           (has-other-element
+            (org-element-map (org-element-contents ast) org-element-all-elements
+              (lambda (element)
+                (unless (memq (org-element-type element) '(section property-drawer))
+                  t))
+              nil t))
            properties-end)
       (if (not properties)
           (org-element-property :contents-begin ast)
         (setq properties-end (org-element-property :end properties))
-        (while (and (or force-trim (eq (org-element-type last-element) 'property-drawer))
+        (while (and (or force-trim (not has-other-element))
                     (not (eq (char-before properties-end) ?:)))
           (setq properties-end (1- properties-end)))
         properties-end))))
@@ -328,9 +333,7 @@ heading."
    (let* ((ast (interleave--parse-root))
           (page (interleave--current-page))
           (page-string (number-to-string page))
-          (title (if arg (read-string "Title: ")
-                   (replace-regexp-in-string (regexp-quote "$p$") page-string
-                                             interleave-default-heading-title)))
+          (property-symbol (intern (concat ":" interleave-property-note-page)))
           (insertion-level (1+ (org-element-property :level ast)))
           note-element closest-previous-element)
      (when ast
@@ -338,8 +341,7 @@ heading."
         note-element
         (org-element-map (org-element-contents ast) org-element-all-elements
           (lambda (element)
-            (let ((property-value (org-element-property
-                                   (intern (concat ":" interleave-property-note-page)) element)))
+            (let ((property-value (org-element-property property-symbol element)))
               (cond ((string= property-value page-string) element)
                     ((or (not property-value) (< (string-to-number property-value) page))
                      (setq closest-previous-element element)
@@ -351,28 +353,45 @@ heading."
          (select-window (interleave--get-notes-window))
          (if note-element
              ;; TODO(nox): Should this be able to rename the heading with new title??
-             (let ((last (car (last (car (org-element-contents note-element)))))
+             (let ((has-other-element
+                    (org-element-map (org-element-contents note-element) org-element-all-elements
+                      (lambda (element)
+                        (unless (memq (org-element-type element) '(section property-drawer))
+                          t))
+                      nil t))
                    (num-blank (org-element-property :post-blank note-element)))
                (goto-char (org-element-property :end note-element))
-               (cond ((eq (org-element-type last) 'property-drawer)
-                      (when (eq num-blank 0) (insert "\n")))
-                     (t (while (< num-blank 2)
-                          (insert "\n")
-                          (setq num-blank (1+ num-blank)))))
+               ;; NOTE(nox): Org doesn't count `:post-blank' when at the end of the buffer
+               (when (org-next-line-empty-p) ;; NOTE(nox): This is only true at the end, I think
+                 (goto-char (point-max))
+                 (save-excursion
+                   (beginning-of-line)
+                   (while (looking-at "[[:space:]]*$")
+                     (setq num-blank (1+ num-blank))
+                     (beginning-of-line 0))))
+               (cond (has-other-element
+                      (while (< num-blank 2)
+                        (insert "\n")
+                        (setq num-blank (1+ num-blank))))
+                     (t
+                      (when (eq num-blank 0) (insert "\n"))))
                (when (org-at-heading-p)
                  (forward-line -1)))
-           (if closest-previous-element
-               (progn
-                 (goto-char (org-element-property :end closest-previous-element))
-                 (interleave--insert-heading insertion-level))
-             (goto-char (interleave--get-properties-end ast t))
-             (outline-show-entry)
-             (interleave--insert-heading insertion-level))
-           (insert title)
-           (if (and (not (eobp)) (org-next-line-empty-p))
-               (forward-line)
-             (insert "\n"))
-           (org-entry-put nil interleave-property-note-page page-string))
+           (let ((title (if arg (read-string "Title: ")
+                          (replace-regexp-in-string (regexp-quote "$p$") page-string
+                                                    interleave-default-heading-title))))
+             (if closest-previous-element
+                 (progn
+                   (goto-char (org-element-property :end closest-previous-element))
+                   (interleave--insert-heading insertion-level))
+               (goto-char (interleave--get-properties-end ast t))
+               (outline-show-entry)
+               (interleave--insert-heading insertion-level))
+             (insert title)
+             (if (and (not (eobp)) (org-next-line-empty-p))
+                 (forward-line)
+               (insert "\n"))
+             (org-entry-put nil interleave-property-note-page page-string)))
          (org-show-context)
          (org-show-siblings)
          (org-show-subtree)
