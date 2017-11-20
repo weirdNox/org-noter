@@ -76,7 +76,7 @@ moment."
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables
-(cl-defstruct interleave--session frame pdf-mode property-text
+(cl-defstruct interleave--session frame pdf-mode display-name property-text
               org-file-path pdf-file-path notes-buffer
               pdf-buffer)
 
@@ -245,7 +245,7 @@ moment."
                         (or page-arg (interleave--current-page))))
           (ast (interleave--parse-root))
           (notes (when ast (org-element-contents ast)))
-          note)
+          note target-pos)
      (when notes
        (setq
         note
@@ -259,10 +259,11 @@ moment."
           nil t 'headline))
        (when note
          (with-selected-window (interleave--get-notes-window)
-           (when (or (< (point) (interleave--get-properties-end note))
+           (setq target-pos (interleave--get-properties-end note))
+           (when (or (< (point) target-pos)
                      (and (not (eq (point-max) (org-element-property :end note)))
                           (>= (point) (org-element-property :end note))))
-             (goto-char (interleave--get-properties-end note)))
+             (goto-char target-pos))
            (org-show-context)
            (org-show-siblings)
            (org-show-subtree)
@@ -288,13 +289,12 @@ want to kill."
     (if (and interleave--session (not session))
         (setq session interleave--session)
       (setq session nil)
-      (let (collection default pdf-file-name org-file-name display)
+      (let (collection default pdf-display-name org-file-name display)
         (dolist (session interleave--sessions)
-          (setq pdf-file-name (file-name-nondirectory
-                               (interleave--session-pdf-file-path session))
+          (setq pdf-display-name (interleave--session-display-name session)
                 org-file-name (file-name-nondirectory
                                (interleave--session-org-file-path session))
-                display (concat pdf-file-name " with notes from " org-file-name))
+                display (concat pdf-display-name " with notes from " org-file-name))
           (when (eq session interleave--session) (setq default display))
           (push (cons display session) collection))
         (setq session (cdr (assoc (completing-read "Which session? " collection nil t
@@ -562,9 +562,10 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
                 (notes-buffer (make-indirect-buffer (current-buffer) notes-buffer-name t))
                 (pdf-buffer (make-indirect-buffer orig-pdf-buffer pdf-buffer-name))
                 (pdf-mode (with-current-buffer orig-pdf-buffer major-mode)))
-           (make-interleave--session :frame frame :pdf-mode pdf-mode :property-text pdf-property
-                                     :org-file-path org-file-path :pdf-file-path pdf-file-path
-                                     :notes-buffer notes-buffer :pdf-buffer pdf-buffer)))
+           (make-interleave--session :frame frame :pdf-mode pdf-mode :display-name display-name
+                                     :property-text pdf-property :org-file-path org-file-path
+                                     :pdf-file-path pdf-file-path :notes-buffer notes-buffer
+                                     :pdf-buffer pdf-buffer)))
         (with-current-buffer (interleave--session-pdf-buffer session)
           (setq buffer-file-name pdf-file-path)
           (cond ((eq (interleave--session-pdf-mode session) 'pdf-view-mode)
