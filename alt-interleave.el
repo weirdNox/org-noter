@@ -213,11 +213,14 @@ moment."
         (goto-char old-point)))))
 
 (defun interleave--set-scroll (window &rest ignored)
-  (interleave--with-valid-session
-   (let ((level (interleave--session-level session)))
-     (with-selected-window window
-       (when (and org-indent-mode (zerop (window-hscroll)))
-         (scroll-left (* (1- level) 2) t))))))
+  (with-selected-window window
+    (interleave--with-valid-session
+     (let* ((level (interleave--session-level session))
+            (goal (* (1- level) 2))
+            (current-scroll (window-hscroll)))
+       (when (and org-indent-mode (< current-scroll goal))
+         (scroll-right current-scroll)
+         (scroll-left goal t))))))
 
 (defun interleave--insert-heading (level)
   (org-insert-heading)
