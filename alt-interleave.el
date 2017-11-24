@@ -78,7 +78,7 @@ moment."
 ;; NOTE(nox): Private variables
 (cl-defstruct interleave--session frame pdf-mode display-name property-text
               org-file-path pdf-file-path notes-buffer
-              pdf-buffer)
+              pdf-buffer level)
 
 (defvar interleave--sessions nil
   "List of Interleave sessions.")
@@ -171,23 +171,32 @@ moment."
         properties-end))))
 
 (defun interleave--set-read-only (ast)
-  (when ast
-    (let ((begin (org-element-property :begin ast))
-          (properties-end (interleave--get-properties-end ast t))
-          (modified (buffer-modified-p)))
-      (add-text-properties begin (1+ begin) '(read-only t front-sticky t))
-      (add-text-properties (1+ begin) (1- properties-end) '(read-only t))
-      (add-text-properties (1- properties-end) properties-end '(read-only t rear-nonsticky t))
-      (set-buffer-modified-p modified))))
+  (org-with-wide-buffer
+   (when ast
+     (let* ((level (org-element-property :level ast))
+            (begin (org-element-property :begin ast))
+            (title-begin (+ 1 level begin))
+            (contents-begin (org-element-property :contents-begin ast))
+            (properties-end (interleave--get-properties-end ast t))
+            (inhibit-read-only t)
+            (modified (buffer-modified-p)))
+       (add-text-properties (1- begin) (1- title-begin) '(read-only t))
+       (add-text-properties (1- title-begin) title-begin '(read-only t rear-nonsticky t))
+       (add-text-properties (1- contents-begin) (1- properties-end) '(read-only t))
+       (add-text-properties (1- properties-end) properties-end
+                            '(read-only t rear-nonsticky t))
+       (set-buffer-modified-p modified)))))
 
 (defun interleave--unset-read-only (ast)
-  (when ast
-    (let ((begin (org-element-property :begin ast))
-          (end (interleave--get-properties-end ast t))
-          (inhibit-read-only t)
-          (modified (buffer-modified-p)))
-      (remove-list-of-text-properties begin end '(read-only front-sticky rear-nonsticky))
-      (set-buffer-modified-p modified))))
+  (org-with-wide-buffer
+   (when ast
+     (let ((begin (org-element-property :begin ast))
+           (end (interleave--get-properties-end ast t))
+           (inhibit-read-only t)
+           (modified (buffer-modified-p)))
+       (remove-list-of-text-properties (1- begin) end
+                                       '(read-only front-sticky rear-nonsticky))
+       (set-buffer-modified-p modified)))))
 
 (defun interleave--narrow-to-root (ast)
   (when ast
@@ -202,6 +211,13 @@ moment."
       (if (or (< old-point begin) (>= old-point end))
           (goto-char contents-pos)
         (goto-char old-point)))))
+
+(defun interleave--set-scroll (window &rest ignored)
+  (interleave--with-valid-session
+   (let ((level (interleave--session-level session)))
+     (with-selected-window window
+       (when (and org-indent-mode (zerop (window-hscroll)))
+         (scroll-left (* (1- level) 2) t))))))
 
 (defun interleave--insert-heading (level)
   (org-insert-heading)
@@ -561,32 +577,12 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
                                      (fullscreen . maximized))))
                 (notes-buffer (make-indirect-buffer (current-buffer) notes-buffer-name t))
                 (pdf-buffer (make-indirect-buffer orig-pdf-buffer pdf-buffer-name))
-                (pdf-mode (with-current-buffer orig-pdf-buffer major-mode)))
+                (pdf-mode (with-current-buffer orig-pdf-buffer major-mode))
+                (level (org-element-property :level ast)))
            (make-interleave--session :frame frame :pdf-mode pdf-mode :display-name display-name
                                      :property-text pdf-property :org-file-path org-file-path
                                      :pdf-file-path pdf-file-path :notes-buffer notes-buffer
-                                     :pdf-buffer pdf-buffer)))
-        (with-current-buffer (interleave--session-pdf-buffer session)
-          (setq buffer-file-name pdf-file-path)
-          (cond ((eq (interleave--session-pdf-mode session) 'pdf-view-mode)
-                 (pdf-view-mode)
-                 (add-hook 'pdf-view-after-change-page-hook
-                           'interleave--page-change-handler nil t))
-                ((eq (interleave--session-pdf-mode session) 'doc-view-mode)
-                 (doc-view-mode)
-                 (advice-add 'doc-view-goto-page :after 'interleave--doc-view-advice))
-                (t (error "This PDF handler is not supported :/")))
-          (kill-local-variable 'kill-buffer-hook)
-          (setq interleave--session session)
-          (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
-          (interleave-pdf-mode 1))
-        (with-current-buffer (interleave--session-notes-buffer session)
-          (setq interleave--session session)
-          (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
-          (let ((ast (interleave--parse-root)))
-            (interleave--set-read-only ast)
-            (interleave--narrow-to-root ast))
-          (interleave-notes-mode 1))
+                                     :pdf-buffer pdf-buffer :level level)))
         (with-selected-frame (interleave--session-frame session)
           (let ((pdf-window (selected-window))
                 (notes-window (if (eq interleave-split-direction 'horizontal)
@@ -594,7 +590,31 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
                                 (split-window-below))))
             (set-window-buffer pdf-window (interleave--session-pdf-buffer session))
             (set-window-dedicated-p pdf-window t)
-            (set-window-buffer notes-window (interleave--session-notes-buffer session))))
+            (set-window-buffer notes-window (interleave--session-notes-buffer session))
+            (with-selected-window pdf-window
+              (setq buffer-file-name pdf-file-path)
+              (cond ((eq (interleave--session-pdf-mode session) 'pdf-view-mode)
+                     (pdf-view-mode)
+                     (add-hook 'pdf-view-after-change-page-hook
+                               'interleave--page-change-handler nil t))
+                    ((eq (interleave--session-pdf-mode session) 'doc-view-mode)
+                     (doc-view-mode)
+                     (advice-add 'doc-view-goto-page :after 'interleave--doc-view-advice))
+                    (t (error "This PDF handler is not supported :/")))
+              (kill-local-variable 'kill-buffer-hook)
+              (setq interleave--session session)
+              (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
+              (interleave-pdf-mode 1))
+            (with-selected-window notes-window
+              (setq interleave--session session
+                    fringe-indicator-alist '((truncation . nil)))
+              (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
+              (add-hook 'window-scroll-functions 'interleave--set-scroll nil t)
+              (interleave--set-scroll (selected-window))
+              (let ((ast (interleave--parse-root)))
+                (interleave--set-read-only ast)
+                (interleave--narrow-to-root ast))
+              (interleave-notes-mode 1))))
         (add-hook 'delete-frame-functions 'interleave--handle-delete-frame)
         (push session interleave--sessions)
         (let ((current-note-page (org-entry-get nil interleave-property-note-page t)))
