@@ -157,8 +157,10 @@ moment."
 
 (defun interleave--get-properties-end (ast &optional force-trim)
   (when ast
-    (let* ((properties (org-element-map ast 'property-drawer 'identity nil t
-                                        org-element-all-elements))
+    (let* ((properties (when ast
+                         (org-element-map (org-element-contents ast)
+                             'property-drawer 'identity nil t
+                             'headline)))
            (has-contents
             (org-element-map (org-element-contents ast) org-element-all-elements
               (lambda (element)
@@ -222,7 +224,7 @@ moment."
      (let* ((level (interleave--session-level session))
             (goal (* (1- level) 2))
             (current-scroll (window-hscroll)))
-       (when (and org-indent-mode (< current-scroll goal))
+       (when (and (bound-and-true-p org-indent-mode) (< current-scroll goal))
          (scroll-right current-scroll)
          (scroll-left goal t))))))
 
@@ -253,9 +255,20 @@ moment."
   (when (interleave--valid-session interleave--session)
     (interleave--page-change-handler page)))
 
-(defun interleave--page-property (element)
-  (let* ((property (org-element-property (intern (concat ":" interleave-property-note-page))
-                                         element))
+(defun interleave--read-start-page (root-prop-value)
+  (catch 'break
+    (while t
+      (let ((value (org-entry-get nil interleave-property-note-page)))
+        (when value
+          (throw 'break value))
+        (when (string= root-prop-value
+                       (org-entry-get nil interleave-property-pdf-file))
+          (throw 'break ""))))))
+
+(defun interleave--page-property (arg)
+  (let* ((property (if (stringp arg) arg
+                     (org-element-property (intern (concat ":" interleave-property-note-page))
+                                           arg)))
          value)
     (when (and (stringp property) (> (length property) 0))
       (setq value (car (read-from-string property)))
@@ -264,6 +277,17 @@ moment."
             ((integerp value)
              (cons (max 1 value) 0))
             (t nil)))))
+
+(defun interleave--get-slice ()
+  (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
+         (slice-top (float (nth 1 slice)))
+         (slice-height (float (nth 3 slice))))
+    (when (or (> slice-top 1)
+              (> slice-height 1))
+      (let ((height (cdr (image-size (image-mode-window-get 'image) t))))
+        (setq slice-top (/ slice-top height)
+              slice-height (/ slice-height height))))
+    (cons slice-top slice-height)))
 
 (defun interleave--ask-scroll-percentage ()
   (interleave--with-valid-session
@@ -274,14 +298,12 @@ moment."
          (while (not (and (eq 'mouse-1 (car event))
                           (eq window (posn-window (event-start event)))))
            (setq event (read-event "Click where you want the start of the note to be!")))
-         (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
-                (slice-top (nth 1 slice))
-                (slice-heigth (nth 3 slice))
+         (let* ((slice (interleave--get-slice))
                 (display-height (cdr (image-display-size (image-get-display-property))))
                 (current-scroll (window-vscroll))
                 (top (+ current-scroll (cdr (posn-col-row (event-start event)))))
                 (display-percentage (/ top display-height))
-                (percentage (+ slice-top (* slice-heigth display-percentage))))
+                (percentage (+ (car slice) (* (cdr slice) display-percentage))))
            (max 0 (min 1 percentage))))))))
 
 (defun interleave--scroll-to-percentage (percentage)
@@ -289,12 +311,10 @@ moment."
    (let ((window (interleave--get-pdf-window)))
      (when (window-live-p window)
        (with-selected-window window
-         (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
-                (slice-top (nth 1 slice))
-                (slice-heigth (nth 3 slice))
+         (let* ((slice (interleave--get-slice))
                 (display-height (cdr (image-display-size (image-get-display-property))))
                 (current-scroll (window-vscroll))
-                (display-percentage (/ (- percentage slice-top) slice-heigth))
+                (display-percentage (/ (- percentage (car slice)) (cdr slice)))
                 goal-scroll diff-scroll)
            (setq display-percentage (min 1 (max 0 display-percentage))
                  goal-scroll (max 0 (floor (* display-percentage display-height)))
@@ -368,6 +388,21 @@ moment."
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
+(defun interleave-set-start-page (arg)
+  "Set current page the one to show when starting a new session.
+With a prefix ARG, remove start page."
+  (interactive "P")
+  (interleave--with-valid-session
+   (let ((inhibit-read-only t)
+         (ast (interleave--parse-root))
+         (page (interleave--current-page)))
+     (with-current-buffer (interleave--session-notes-buffer session)
+       (org-with-wide-buffer
+        (goto-char (org-element-property :begin ast))
+        (if arg
+            (org-entry-delete nil interleave-property-note-page)
+          (org-entry-put nil interleave-property-note-page (number-to-string page))))))))
+
 (defun interleave-kill-session (&optional session)
   "Kill a interleave session.
 
@@ -614,6 +649,16 @@ This is in relation to the current note (where the point is now)."
             (,(kbd "M-n") . interleave-sync-next-page-note)))
 
 ;;;###autoload
+(defun interleave-other-window-config (arg)
+  "Start Interleave with alternative window configuration.
+See `interleave' docstring for more info."
+  (interactive "P")
+  (let ((interleave-split-direction (if (eq interleave-split-direction 'horizontal)
+                                        'vertical
+                                      'horizontal)))
+    (interleave arg)))
+
+;;;###autoload
 (defun interleave (arg)
   "Start Interleave.
 
@@ -722,13 +767,11 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
             (interleave-notes-mode 1)))
         (add-hook 'delete-frame-functions 'interleave--handle-delete-frame)
         (push session interleave--sessions)
-        (with-current-buffer (interleave--session-pdf-buffer session)
-          (let* ((element (org-element-at-point))
-                 (current-page (interleave--page-property element)))
+        (with-current-buffer (interleave--session-notes-buffer session)
+          (let* ((current-page (interleave--page-property (interleave--read-start-page
+                                                           pdf-property))))
             (if current-page
-                (progn
-                  (interleave--goto-page current-page)
-                  (interleave--focus-notes-region (list element)))
+                (interleave--goto-page current-page)
               (interleave--page-change-handler 1)))))))
   (when (and (not (eq major-mode 'org-mode)) (interleave--valid-session interleave--session))
     (interleave--restore-windows interleave--session)

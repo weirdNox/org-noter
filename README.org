@@ -6,8 +6,10 @@ scratch with those ideas in mind!
 *Note*: /not every feature of the original mode is available/! You may prefer using the
 original, because this is a different take on the same idea. [[#diff][View some differences here.]]
 
-Also, it is not needed, but for a much better experience with PDFs, try [[https://github.com/politza/pdf-tools][PDF Tools]].
-Nevertheless, this package is also compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]].
+Also, it is not needed, but for a /much better/ experience with PDFs, try [[https://github.com/politza/pdf-tools][PDF Tools]].
+Nevertheless, this package is also compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]]. Note that /there might be
+discrepancies/ between the two, for example, when setting a localized note (it might end
+somewhat above or below the actual position if you change from one to another!).
 
 ** What is this?
 This is a rewrite from scratch of Sebastian's Interleave package, which helps you annotate
