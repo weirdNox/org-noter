@@ -425,7 +425,7 @@ want to kill."
           (setq pdf-display-name (interleave--session-display-name session)
                 org-file-name (file-name-nondirectory
                                (interleave--session-org-file-path session))
-                display (concat pdf-display-name " with notes from " org-file-name))
+                display (concat pdf-display-name " - " org-file-name))
           (when (eq session interleave--session) (setq default display))
           (push (cons display session) collection))
         (setq session (cdr (assoc (completing-read "Which session? " collection nil t
@@ -493,16 +493,20 @@ more info)."
        ;; NOTE(nox): Need to be careful changing the next part, it is a bit complicated to
        ;; get it right...
        (if (and notes (not arg))
-           (let (note has-contents num-blank collection match)
+           (let ((point (point))
+                 default note has-contents num-blank collection match)
              (if (eq (length notes) 1)
                  (setq note (car notes))
                (dolist (iterator notes (setq collection (nreverse collection)))
-                 (push (cons (org-element-property :raw-value iterator)
-                             iterator)
-                       collection))
+                 (let ((display (org-element-property :raw-value iterator)))
+                   (when (or (not default)
+                             (>= point (org-element-property :begin iterator)))
+                     (setq default display))
+                   (push (cons display iterator) collection)))
                (setq note
                      (cdr
-                      (assoc (completing-read "Insert in which note? " collection nil t)
+                      (assoc (completing-read "Insert in which note? " collection nil t nil nil
+                                              default)
                              collection))))
              (when note
                (setq has-contents
