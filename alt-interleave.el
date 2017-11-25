@@ -155,7 +155,7 @@ moment."
 (defun interleave--get-properties-end (ast &optional force-trim)
   (when ast
     (let* ((properties (org-element-map ast 'property-drawer 'identity nil t))
-           (has-other-element
+           (has-contents
             (org-element-map (org-element-contents ast) org-element-all-elements
               (lambda (element)
                 (unless (memq (org-element-type element) '(section property-drawer))
@@ -165,7 +165,7 @@ moment."
       (if (not properties)
           (org-element-property :contents-begin ast)
         (setq properties-end (org-element-property :end properties))
-        (while (and (or force-trim (not has-other-element))
+        (while (and (or force-trim (not has-contents))
                     (not (eq (char-before properties-end) ?:)))
           (setq properties-end (1- properties-end)))
         properties-end))))
@@ -240,14 +240,14 @@ moment."
    (get-buffer-window (interleave--session-pdf-buffer session)
                       (interleave--session-frame session))))
 
-(defun interleave--goto-page (page-str)
+;; TODO(nox): Convert all calls to page number
+(defun interleave--goto-page (page)
   (interleave--with-valid-session
-   (with-selected-window (get-buffer-window (interleave--session-pdf-buffer session)
-                                            (interleave--session-frame session))
+   (with-selected-window (interleave--get-pdf-window)
      (cond ((eq major-mode 'pdf-view-mode)
-            (pdf-view-goto-page (string-to-number page-str)))
+            (pdf-view-goto-page page))
            ((eq major-mode 'doc-view-mode)
-            (doc-view-goto-page (string-to-number page-str)))))))
+            (doc-view-goto-page page))))))
 
 (defun interleave--current-page ()
   (interleave--with-valid-session
@@ -258,36 +258,88 @@ moment."
   (when (interleave--valid-session interleave--session)
     (interleave--page-change-handler page)))
 
+(defun interleave--ask-scroll-percentage ()
+  (interleave--with-valid-session
+   (let ((window (interleave--get-pdf-window))
+         event)
+     (when (window-live-p window)
+       (with-selected-window window
+         (while (not (eq (event-basic-type event) 'mouse-1))
+           (setq event (read-event "Click where you want the start of the note to be!")))
+         (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
+                (slice-top (nth 1 slice))
+                (slice-heigth (nth 3 slice))
+                (display-height (cdr (image-display-size (image-get-display-property))))
+                (current-scroll (image-mode-window-get 'vscroll))
+                (top (+ current-scroll (cdr (posn-col-row (event-start event)))))
+                (display-percentage (/ top display-height))
+                (percentage (+ slice-top (* slice-heigth display-percentage))))
+           (max 0 (min 1 percentage))))))))
+
+(defun interleave--scroll-to-percentage (percentage)
+  (interleave--with-valid-session
+   (let ((window (interleave--get-pdf-window)))
+     (when (window-live-p window)
+       (with-selected-window window
+         (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
+                (slice-top (nth 1 slice))
+                (slice-heigth (nth 3 slice))
+                (display-height (cdr (image-display-size (image-get-display-property))))
+                (current-scroll (image-mode-window-get 'vscroll))
+                (display-percentage (/ (- percentage slice-top) slice-heigth))
+                goal-scroll diff-scroll)
+           (setq display-percentage (min 1 (max 0 display-percentage))
+                 goal-scroll (max 0 (floor (* display-percentage display-height)))
+                 diff-scroll (- goal-scroll current-scroll))
+           (image-scroll-up diff-scroll)))))))
+
+(defun interleave--page-property (element)
+  (let ((value (car (read-from-string
+                     (org-element-property
+                      (intern (concat ":" interleave-property-note-page))
+                      element)))))
+    (cond ((and (consp value) (integerp (car value)) (numberp (cdr value)))
+           (cons (max 1 (car value)) (max 0 (min 1 (cdr value)))))
+          ((integerp value)
+           (cons (max 1 value) 0))
+          (t '(1 . 0)))))
+
 (defun interleave--page-change-handler (&optional page-arg)
   (interleave--with-valid-session
-   (let* ((page-string (number-to-string
-                        (or page-arg (interleave--current-page))))
+   (let* ((page (or page-arg (interleave--current-page)))
           (ast (interleave--parse-root))
-          (notes (when ast (org-element-contents ast)))
-          note target-pos)
+          (contents (when ast (org-element-contents ast)))
+          notes)
+     ;; NOTE(nox): This only considers the first group of notes from the same page that
+     ;; are together in the document (no notes from other pages in between).
+     (org-element-map contents 'headline
+       (lambda (headline)
+         (if (not (= page (car (interleave--page-property headline))))
+             (when notes t)
+           (push headline notes)
+           nil))
+       nil t org-element-all-elements)
      (when notes
-       (setq
-        note
-        (org-element-map notes 'headline
-          (lambda (headline)
-            (when (string= page-string
-                           (org-element-property
-                            (intern (concat ":" interleave-property-note-page))
-                            headline))
-              headline))
-          nil t 'headline))
-       (when note
-         (with-selected-window (interleave--get-notes-window)
-           (setq target-pos (interleave--get-properties-end note))
-           (when (or (< (point) target-pos)
-                     (and (not (eq (point-max) (org-element-property :end note)))
-                          (>= (point) (org-element-property :end note))))
+       (setq notes (nreverse notes))
+       (with-selected-window (interleave--get-notes-window)
+         (let ((pos (point))
+               (target-pos (interleave--get-properties-end (car notes)))
+               (begin (org-element-property :begin (car notes)))
+               (end (org-element-property :end (car (last notes)))))
+           (save-excursion
+             (goto-char target-pos)
+             (recenter 10)
+             (unless (pos-visible-in-window-p end)
+               (goto-char end)
+               (recenter -1)))
+           (when (or (< pos begin)
+                     (and (not (eq (point-max) end))
+                          (>= pos end)))
              (goto-char target-pos))
            (org-show-context)
            (org-show-siblings)
            (org-show-subtree)
-           (org-cycle-hide-drawers 'all)
-           (recenter)))))))
+           (org-cycle-hide-drawers 'all)))))))
 
 (defun interleave--restore-windows (session)
   (when (interleave--valid-session session)
@@ -351,48 +403,68 @@ want to kill."
       (when (buffer-live-p notes-buffer)
         (kill-buffer notes-buffer)))))
 
-(defun interleave-insert-note (&optional arg)
-  "Insert note in the current page.
+(defun interleave-insert-note (&optional arg scroll-percentage)
+  "Insert note associated with the current page.
 
-This will insert a new subheading inside the root heading if
-there are no notes for this page yet; if there are, it will
-create a new paragraph inside the page's notes.
+If:
+  - There are no notes for this page yet, this will insert a new
+    subheading inside the root heading.
+  - There is only one note for this page, it will insert there
+  - If there are multiple notes for this page, it will ask you in
+    which one to write
 
-With a prefix ARG, ask for the title of the inserted
-heading."
+When inserting a new note, it will ask you for a title; if you
+want the default title, input an empty string.
+
+If you want to force the creation of a separate note, use a
+prefix ARG. SCROLL-PERCENTAGE makes the new note associated with
+that part of the page (see `interleave-insert-localized-note' for
+more info)."
   (interactive "P")
   (interleave--with-valid-session
    (let* ((ast (interleave--parse-root))
+          (contents (when ast (org-element-contents ast)))
           (page (interleave--current-page))
-          (page-string (number-to-string page))
           (property-symbol (intern (concat ":" interleave-property-note-page)))
           (insertion-level (1+ (org-element-property :level ast)))
-          note-element closest-previous-element)
-     (when ast
-       (setq
-        note-element
-        (org-element-map (org-element-contents ast) org-element-all-elements
-          (lambda (element)
-            (let ((property-value (org-element-property property-symbol element)))
-              (cond ((string= property-value page-string) element)
-                    ((or (not property-value) (< (string-to-number property-value) page))
-                     (setq closest-previous-element element)
-                     nil))))
-          nil t 'headline))
+          (window (interleave--get-notes-window))
+          notes best-previous-element)
+     (org-element-map contents 'headline
+       (lambda (headline)
+         (let ((property-cons (interleave--page-property headline)))
+           (if (= page (car property-cons))
+               (progn
+                 (push headline notes)
+                 (when (< (cdr property-cons) scroll-percentage)
+                   (setq best-previous-element headline)))
+             (when (< (car property-cons) page)
+               (setq best-previous-element headline)))))
+       nil nil org-element-all-elements)
+     (setq notes (nreverse notes))
+     (with-selected-window window
        ;; NOTE(nox): Need to be careful changing the next part, it is a bit complicated to
        ;; get it right...
-       (with-selected-frame (interleave--session-frame session)
-         (select-window (interleave--get-notes-window))
-         (if note-element
-             ;; TODO(nox): Should this be able to rename the heading with new title??
-             (let ((has-other-element
-                    (org-element-map (org-element-contents note-element) org-element-all-elements
-                      (lambda (element)
-                        (unless (memq (org-element-type element) '(section property-drawer))
-                          t))
-                      nil t))
-                   (num-blank (org-element-property :post-blank note-element)))
-               (goto-char (org-element-property :end note-element))
+       (if (and notes (not arg))
+           (let (note has-contents num-blank collection match)
+             (if (eq (length notes) 1)
+                 (setq note (car notes))
+               (dolist (iterator notes (setq collection (nreverse collection)))
+                 (push (cons (org-element-property :raw-value iterator)
+                             iterator)
+                       collection))
+               (setq note
+                     (cdr
+                      (assoc (completing-read "Insert in which note? " collection nil t)
+                             collection))))
+             (when note
+               (setq has-contents
+                     (org-element-map (org-element-contents note) org-element-all-elements
+                       (lambda (element)
+                         (unless (memq (org-element-type element) '(section property-drawer))
+                           t))
+                       nil t)
+                     num-blank (org-element-property :post-blank note))
+               (goto-char (org-element-property :end note))
                ;; NOTE(nox): Org doesn't count `:post-blank' when at the end of the buffer
                (when (org-next-line-empty-p) ;; NOTE(nox): This is only true at the end, I think
                  (goto-char (point-max))
@@ -401,34 +473,47 @@ heading."
                    (while (looking-at "[[:space:]]*$")
                      (setq num-blank (1+ num-blank))
                      (beginning-of-line 0))))
-               (cond (has-other-element
+               (cond (has-contents
                       (while (< num-blank 2)
                         (insert "\n")
                         (setq num-blank (1+ num-blank))))
-                     (t
-                      (when (eq num-blank 0) (insert "\n"))))
+                     (t (when (eq num-blank 0) (insert "\n"))))
                (when (org-at-heading-p)
-                 (forward-line -1)))
-           (let ((title (if arg (read-string "Title: ")
-                          (replace-regexp-in-string (regexp-quote "$p$") page-string
-                                                    interleave-default-heading-title))))
-             (if closest-previous-element
-                 (progn
-                   (goto-char (org-element-property :end closest-previous-element))
-                   (interleave--insert-heading insertion-level))
-               (goto-char (interleave--get-properties-end ast t))
-               (outline-show-entry)
-               (interleave--insert-heading insertion-level))
-             (insert title)
-             (if (and (not (eobp)) (org-next-line-empty-p))
-                 (forward-line)
-               (insert "\n"))
-             (org-entry-put nil interleave-property-note-page page-string)))
-         (org-show-context)
-         (org-show-siblings)
-         (org-show-subtree)
-         (org-cycle-hide-drawers 'all))))))
+                 (forward-line -1))))
+         (let ((title (read-string "Title: ")))
+           (when (zerop (length title))
+             (setq title (replace-regexp-in-string
+                          (regexp-quote "$p$") (number-to-string page)
+                          interleave-default-heading-title)))
+           (if best-previous-element
+               (progn
+                 (goto-char (org-element-property :end best-previous-element))
+                 (interleave--insert-heading insertion-level))
+             (goto-char (interleave--get-properties-end ast t))
+             (interleave--insert-heading insertion-level))
+           (insert title)
+           (if (and (not (eobp)) (org-next-line-empty-p))
+               (forward-line)
+             (insert "\n"))
+           (org-entry-put nil interleave-property-note-page
+                          (format "%s" (cons page scroll-percentage)))))
+       (org-show-context)
+       (org-show-siblings)
+       (org-show-subtree)
+       (org-cycle-hide-drawers 'all))
+     (select-window window))))
 
+(defun interleave-insert-localized-note ()
+  "Insert note associated with part of a page.
+This will ask you to click where you want Interleave to scroll to
+when you sync the PDF to this note. You should click on the top
+of that part. Will always create a new note.
+
+See `interleave-insert-note' docstring for more."
+  (interactive)
+  (interleave-insert-note t (interleave--ask-scroll-percentage)))
+
+;; TODO(nox): FINISH THIS
 (defun interleave-sync-previous-page-note ()
   "Go to the page of the previous note.
 
