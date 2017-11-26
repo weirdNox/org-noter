@@ -214,7 +214,8 @@ moment."
       (org-show-entry)
       (org-narrow-to-subtree)
       (org-show-children)
-      (if (or (< old-point begin) (>= old-point end))
+      (if (or (< old-point contents-pos)
+              (and (not (eq end (point-max))) (>= old-point end)))
           (goto-char contents-pos)
         (goto-char old-point)))))
 
@@ -255,15 +256,19 @@ moment."
   (when (interleave--valid-session interleave--session)
     (interleave--page-change-handler page)))
 
-(defun interleave--read-start-page (root-prop-value)
-  (catch 'break
-    (while t
-      (let ((value (org-entry-get nil interleave-property-note-page)))
-        (when value
-          (throw 'break value))
-        (when (string= root-prop-value
-                       (org-entry-get nil interleave-property-pdf-file))
-          (throw 'break ""))))))
+(defun interleave--selected-note-page (&optional with-start-page)
+  (interleave--with-valid-session
+   (let ((root-pdf-prop-vale (interleave--session-property-text session)))
+     (interleave--page-property
+      (catch 'break
+        (while t
+          (let ((value (org-entry-get nil interleave-property-note-page))
+                (at-root (string= (org-entry-get nil interleave-property-pdf-file)
+                                  root-pdf-prop-vale)))
+            (when (and value (or (not at-root) with-start-page))
+              (throw 'break value))
+            (when at-root
+              (throw 'break "")))))))))
 
 (defun interleave--page-property (arg)
   (let* ((property (if (stringp arg) arg
@@ -541,7 +546,11 @@ more info)."
                (progn
                  (goto-char (org-element-property :end best-previous-element))
                  (interleave--insert-heading insertion-level))
-             (goto-char (interleave--get-properties-end ast t))
+             (goto-char
+              (org-element-map contents 'section
+                (lambda (section)
+                  (org-element-property :end section))
+                nil t org-element-all-elements))
              ;; NOTE(nox): This is needed to insert in the right place...
              (outline-show-entry)
              (interleave--insert-heading insertion-level))
@@ -603,12 +612,9 @@ This is in relation to the current note (where the point is now)."
   (interactive)
   (interleave--with-valid-session
    (with-selected-window (interleave--get-notes-window)
-     (let ((interleave--inhibit-page-handler t)
-           (page (interleave--page-property (org-element-at-point))))
+     (let ((page (interleave--selected-note-page)))
        (if page
-           (progn
-             (interleave--goto-page page)
-             (interleave--focus-notes-region (list previous)))
+           (interleave--goto-page page)
          (error "No note selected"))))
    (select-window (interleave--get-pdf-window))))
 
@@ -744,6 +750,8 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
                                      :property-text pdf-property :org-file-path org-file-path
                                      :pdf-file-path pdf-file-path :notes-buffer notes-buffer
                                      :pdf-buffer pdf-buffer :level level)))
+        (add-hook 'delete-frame-functions 'interleave--handle-delete-frame)
+        (push session interleave--sessions)
         (let ((windows (interleave--restore-windows session)))
           (with-selected-window (car windows)
             (setq buffer-file-name pdf-file-path)
@@ -755,28 +763,25 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
                    (doc-view-mode)
                    (advice-add 'doc-view-goto-page :after 'interleave--doc-view-advice))
                   (t (error "This PDF handler is not supported :/")))
-            (kill-local-variable 'kill-buffer-hook)
+            (interleave-pdf-mode 1)
             (setq interleave--session session)
-            (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
-            (interleave-pdf-mode 1))
+            (kill-local-variable 'kill-buffer-hook)
+            (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t))
           (with-selected-window (cdr windows)
-            (setq interleave--session session
+            (interleave-notes-mode 1)
+            (setq buffer-file-name org-file-path
+                  interleave--session session
                   fringe-indicator-alist '((truncation . nil)))
             (add-hook 'kill-buffer-hook 'interleave--handle-kill-buffer nil t)
             (add-hook 'window-scroll-functions 'interleave--set-scroll nil t)
             (interleave--set-scroll (selected-window))
-            (let ((ast (interleave--parse-root)))
+            (let ((ast (interleave--parse-root))
+                  (current-page (interleave--selected-note-page t)))
               (interleave--set-read-only ast)
-              (interleave--narrow-to-root ast))
-            (interleave-notes-mode 1)))
-        (add-hook 'delete-frame-functions 'interleave--handle-delete-frame)
-        (push session interleave--sessions)
-        (with-current-buffer (interleave--session-notes-buffer session)
-          (let* ((current-page (interleave--page-property (interleave--read-start-page
-                                                           pdf-property))))
-            (if current-page
-                (interleave--goto-page current-page)
-              (interleave--page-change-handler 1)))))))
+              (interleave--narrow-to-root ast)
+              (if current-page
+                  (interleave--goto-page current-page)
+                (interleave--page-change-handler 1))))))))
   (when (and (not (eq major-mode 'org-mode)) (interleave--valid-session interleave--session))
     (interleave--restore-windows interleave--session)
     (select-frame-set-input-focus (interleave--session-frame interleave--session))))
