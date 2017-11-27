@@ -440,20 +440,27 @@ want to kill."
     (let ((frame (interleave--session-frame session))
           (notes-buffer (interleave--session-notes-buffer session))
           (pdf-buffer (interleave--session-pdf-buffer session)))
-      (with-current-buffer notes-buffer
-        (interleave--unset-read-only (interleave--parse-root)))
-      (setq interleave--sessions (delq session interleave--sessions))
-      (when (eq (length interleave--sessions) 0)
-        (setq delete-frame-functions (delq 'interleave--handle-delete-frame
-                                           delete-frame-functions))
-        (when (featurep 'doc-view)
-          (advice-remove  'interleave--doc-view-advice 'doc-view-goto-page)))
-      (when (frame-live-p frame)
-        (delete-frame frame))
-      (when (buffer-live-p pdf-buffer)
-        (kill-buffer pdf-buffer))
-      (when (buffer-live-p notes-buffer)
-        (kill-buffer notes-buffer)))))
+      (when (or (not (buffer-modified-p notes-buffer))
+                (y-or-n-p "Notes buffer is modified. Kill it? "))
+        (setq interleave--sessions (delq session interleave--sessions))
+        (when (eq (length interleave--sessions) 0)
+          (setq delete-frame-functions (delq 'interleave--handle-delete-frame
+                                             delete-frame-functions))
+          (when (featurep 'doc-view)
+            (advice-remove  'interleave--doc-view-advice 'doc-view-goto-page)))
+        (when (frame-live-p frame)
+          (delete-frame frame))
+        (when (buffer-live-p pdf-buffer)
+          (kill-buffer pdf-buffer))
+        (when (buffer-live-p notes-buffer)
+          (let ((base-buffer (buffer-base-buffer notes-buffer))
+                (modified (buffer-modified-p notes-buffer)))
+            (with-current-buffer notes-buffer
+              (interleave--unset-read-only (interleave--parse-root))
+              (set-buffer-modified-p nil)
+              (kill-buffer notes-buffer))
+            (with-current-buffer base-buffer
+              (set-buffer-modified-p modified))))))))
 
 (defun interleave-insert-note (&optional arg scroll-percentage)
   "Insert note associated with the current page.

@@ -1,0 +1,14 @@
+* Some ideas
+- Better import utility: maybe something like ~interleave-update-documents~ which will
+  check if any document registered on the notes files is missing and mark it as such (put
+  DOCUMENT MISSING on the heading?), and import every new document from the documents
+  folder to the file, using the folder hierarchy as structure. An idea is to open each
+  file on a side buffer and ask for the respective name of the heading, to ease the
+  renaming.
+  - Should this command also import things like images and text files?
+
+- Should the package be able to annotate other types of files???
+
+- Add commands like ~interleave-rename~ and ~interleave-delete~ which work on the document
+  file instead of the heading?.. ~interleave-delete~ could delete all documents in a
+  subtree, maybe with a prefix arg?
