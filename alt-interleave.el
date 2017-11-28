@@ -369,10 +369,11 @@ moment."
        (org-element-map contents 'headline
          (lambda (headline)
            (let ((property (car (interleave--page-property headline))))
-             (if (and property (not (= page property)))
-                 notes
-               (push headline notes)
-               nil)))
+             (when property
+               (if (not (= page property))
+                   notes
+                 (push headline notes)
+                 nil))))
          nil t org-element-all-elements)
        (when notes
          (setq notes (nreverse notes))
