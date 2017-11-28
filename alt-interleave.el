@@ -122,6 +122,8 @@ moment."
       (interleave-kill-session session))))
 
 (defun interleave--parse-root (&optional buffer property-pdf-path)
+  ;; TODO(nox): Maybe create IDs in each interleave session and use that instead of using
+  ;; the property text that may be repeated... This would simplify some things
   (let* ((session interleave--session)
          (use-args (and (stringp property-pdf-path)
                         (buffer-live-p buffer)
@@ -258,17 +260,20 @@ moment."
 
 (defun interleave--selected-note-page (&optional with-start-page)
   (interleave--with-valid-session
-   (let ((root-pdf-prop-vale (interleave--session-property-text session)))
-     (interleave--page-property
-      (catch 'break
-        (while t
-          (let ((value (org-entry-get nil interleave-property-note-page))
-                (at-root (string= (org-entry-get nil interleave-property-pdf-file)
-                                  root-pdf-prop-vale)))
-            (when (and value (or (not at-root) with-start-page))
-              (throw 'break value))
-            (when at-root
-              (throw 'break "")))))))))
+   (org-with-wide-buffer
+    (let ((root-pdf-prop-vale (interleave--session-property-text session)))
+      (interleave--page-property
+       (catch 'break
+         (let ((try-next t)
+               property-value at-root)
+           (while try-next
+             (setq property-value (org-entry-get nil interleave-property-note-page)
+                   at-root (string= (org-entry-get nil interleave-property-pdf-file)
+                                    root-pdf-prop-vale))
+             (when (and property-value
+                        (or with-start-page (not at-root)))
+               (throw 'break property-value))
+             (setq try-next (org-up-heading-safe))))))))))
 
 (defun interleave--page-property (arg)
   (let* ((property (if (stringp arg) arg
@@ -339,22 +344,31 @@ moment."
 (defun interleave--focus-notes-region (notes)
   (interleave--with-valid-session
    (with-selected-window (interleave--get-notes-window)
-     (let ((begin (org-element-property :begin (car notes)))
-           (end (org-element-property :end (car (last notes))))
-           (target (interleave--get-properties-end (car notes))))
+     (save-excursion
+       (dolist (note notes)
+         (goto-char (org-element-property :begin note))
+         (org-show-context)
+         (org-show-siblings)
+         (org-show-subtree)))
+     (let* ((begin (org-element-property :begin (car notes)))
+            (end (org-element-property :end (car (last notes))))
+            (num-lines (count-lines begin end))
+            (target (interleave--get-properties-end (car notes))))
        (save-excursion
-         (goto-char target)
-         (recenter 10)
-         (unless (pos-visible-in-window-p end)
-           (goto-char end)
-           (recenter -1)))
+         (if (> num-lines (window-height))
+             (progn
+               (goto-char begin)
+               (recenter 0))
+           (unless (pos-visible-in-window-p end)
+             (goto-char end)
+             (recenter -1))
+           (unless (pos-visible-in-window-p begin)
+             (goto-char begin)
+             (recenter 0))))
        (when (or (< (point) begin)
                  (and (not (eq (point-max) end))
                       (>= (point) end)))
          (goto-char target))
-       (org-show-context)
-       (org-show-siblings)
-       (org-show-subtree)
        (org-cycle-hide-drawers 'all)))))
 
 (defun interleave--page-change-handler (&optional page-arg)
@@ -384,12 +398,18 @@ moment."
     (with-selected-frame (interleave--session-frame session)
       (delete-other-windows)
       (let ((pdf-window (selected-window))
+            (pdf-buffer (interleave--session-pdf-buffer session))
             (notes-window (if (eq interleave-split-direction 'horizontal)
                               (split-window-right)
-                            (split-window-below))))
-        (set-window-buffer pdf-window (interleave--session-pdf-buffer session))
+                            (split-window-below)))
+            (notes-buffer (interleave--session-notes-buffer session)))
+        (set-window-buffer pdf-window pdf-buffer)
         (set-window-dedicated-p pdf-window t)
-        (set-window-buffer notes-window (interleave--session-notes-buffer session))
+        (set-window-buffer notes-window notes-buffer)
+        (with-current-buffer notes-buffer
+          (interleave--narrow-to-root
+           (interleave--parse-root
+            notes-buffer (interleave--session-property-text session))))
         (cons pdf-window notes-window)))))
 
 ;; --------------------------------------------------------------------------------
@@ -752,7 +772,7 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
                                      (fullscreen . maximized))))
                 (notes-buffer (make-indirect-buffer (current-buffer) notes-buffer-name t))
                 (pdf-buffer (make-indirect-buffer orig-pdf-buffer pdf-buffer-name))
-                (pdf-mode (with-current-buffer orig-pdf-buffer major-mode))
+                (pdf-mode (buffer-local-value 'major-mode orig-pdf-buffer))
                 (level (org-element-property :level ast)))
            (make-interleave--session :frame frame :pdf-mode pdf-mode :display-name display-name
                                      :property-text pdf-property :org-file-path org-file-path
@@ -786,7 +806,6 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
             (let ((ast (interleave--parse-root))
                   (current-page (interleave--selected-note-page t)))
               (interleave--set-read-only ast)
-              (interleave--narrow-to-root ast)
               (if current-page
                   (interleave--goto-page current-page)
                 (interleave--page-change-handler 1))))))))
