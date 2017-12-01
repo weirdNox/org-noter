@@ -29,8 +29,8 @@ writing away!
      that, besides saving the page, also asks for the page position, so it scrolls there
      when syncing the note page to the PDF!
 - Easy navigation :: You may navigate your PDF as usual, seeing the notes buffer scroll
-     and show you the respective notes, or instead, you may navigate by note, to only see
-     the annotated pages.
+     and show you the respective notes, or instead, you may navigate by note, only seeing
+     annotated pages.
 - Isolated interface :: Each Interleave session has its own frame and the PDF and notes
      buffers are indirect buffers to the original ones. Killing any of these things will
      kill your Interleave session.

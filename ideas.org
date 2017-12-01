@@ -12,3 +12,8 @@
 - Add commands like ~interleave-rename~ and ~interleave-delete~ which work on the document
   file instead of the heading?.. ~interleave-delete~ could delete all documents in a
   subtree, maybe with a prefix arg?
+
+- When opening an already open session, if inside a specific note, go there!
+
+- Ability to group notes inside headings? Inserts always outside, but the user is able to
+  move them anywhere they want, still scrolling automatically and working with M-n, M-p...
