@@ -514,14 +514,16 @@ more info)."
      (org-element-map contents 'headline
        (lambda (headline)
          (let ((property-cons (interleave--page-property headline)))
-           (when property-cons
-             (if (= page (car property-cons))
-                 (progn
-                   (push headline notes)
-                   (when (<= (cdr property-cons) scroll-percentage)
-                     (setq best-previous-element headline)))
-               (when (< (car property-cons) page)
-                 (setq best-previous-element headline))))))
+           (if property-cons
+               (if (= page (car property-cons))
+                   (progn
+                     (push headline notes)
+                     (when (<= (cdr property-cons) scroll-percentage)
+                       (setq best-previous-element headline)))
+                 (when (< (car property-cons) page)
+                   (setq best-previous-element headline)))
+             (unless (interleave--page-property best-previous-element)
+               (setq best-previous-element headline)))))
        nil nil org-element-all-elements)
      (setq notes (nreverse notes))
      (with-selected-window window
