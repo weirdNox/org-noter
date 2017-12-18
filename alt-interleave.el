@@ -725,7 +725,7 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
       (error "Interleave must be issued inside a heading"))
     (let ((org-file-path (buffer-file-name))
           (pdf-property (org-entry-get nil interleave-property-pdf-file
-                                       (not (eq arg '(4)))))
+                                       (not (equal arg '(4)))))
           pdf-file-path ast session)
       (when (stringp pdf-property) (setq pdf-file-path (expand-file-name pdf-property)))
       (unless (and pdf-file-path
