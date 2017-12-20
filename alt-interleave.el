@@ -362,10 +362,10 @@ moment."
            (progn
              (goto-char begin)
              (recenter 0))
-         (cond ((<= begin window-start)
+         (cond ((< begin window-start)
                 (goto-char begin)
                 (recenter 0))
-               ((>= end window-end)
+               ((> end window-end)
                 (goto-char end)
                 (recenter (window-height)))))
        (if (or (< curr-point begin)
