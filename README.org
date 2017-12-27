@@ -1,62 +1,63 @@
-* Annotate PDFs in an Interleaved fashion!
+* Noter - A synchronized, external annotator
 After using Sebastian Christ's amazing [[https://github.com/rudolfochrist/interleave][Interleave package]] for some time, I got some ideas
-on how I could improve it, usability and feature-wise. So I created this package from
+on how I could improve upon it, usability and feature-wise. So I created this package from
 scratch with those ideas in mind!
 
-*Note*: /not every feature of the original mode is available/! You may prefer using the
+Noter's purpose is to let you create notes that are kept in sync when you scroll through
+the document, but that are external to it - the notes themselves live in an Org-mode file.
+As such, this leverages the power of [[http://orgmode.org/][Org-mode]] (the notes may have outlines, latex
+fragments, babel, etc...) while acting like notes that are made /inside/ the document.
+Also, taking notes is very simple: just press @@html:<kbd>@@i@@html:</kbd>@@ and annotate
+away!
+
+*Note*: While this is similar to ~interleave~, it is not intended to be a clone;
+therefore, /not every feature of the original mode is available/! You may prefer using the
 original, because this is a different take on the same idea. [[#diff][View some differences here.]]
 
-Also, it is not needed, but for a /much better/ experience with PDFs, try [[https://github.com/politza/pdf-tools][PDF Tools]].
-Nevertheless, this package is also compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]]. Note that /there might be
-discrepancies/ between the two, for example, when setting a localized note (it might end
-somewhat above or below the actual position if you change from one to another!).
-
-** What is this?
-This is a rewrite from scratch of Sebastian's Interleave package, which helps you annotate
-PDFs in [[http://orgmode.org/][Org mode]].
-
-The idea is that, like an interleaved textbook, this opens the PDF and the notes buffer
-side by side and, as you scroll through your PDF, it will present you the notes you have
-for each page. Taking a note is as simple as pressing @@html:<kbd>@@i@@html:</kbd>@@ and
-writing away!
+Also, while it is not needed, you may want to try [[https://github.com/politza/pdf-tools][PDF Tools]] for a /much better/
+experience with PDFs. Nevertheless, this package is also compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]]. There
+might be discrepancies /if you change between the two/, eg., when setting a localized
+note.
 
 ** Features
 - Easy to use annotation interface :: Just press @@html:<kbd>@@i@@html:</kbd>@@ in the PDF
-     buffer and write your notes!
+     buffer and annotate away!
 - Keep your notes in sync with the PDF :: When you take a note by pressing
      @@html:<kbd>@@i@@html:</kbd>@@, it saves the page where you took it so it is able to
      show you the notes while you scroll, automatically! Also, there is a new command
      that, besides saving the page, also asks for the page position, so it scrolls there
      when syncing the note page to the PDF!
 - Easy navigation :: You may navigate your PDF as usual, seeing the notes buffer scroll
-     and show you the respective notes, or instead, you may navigate by note, only seeing
-     annotated pages.
-- Isolated interface :: Each Interleave session has its own frame and the PDF and notes
+     and show you the respective notes; however, you may also navigate by notes, only
+     seeing annotated pages.
+- Isolated interface :: Each Noter session has its own frame and the PDF and notes
      buffers are indirect buffers to the original ones. Killing any of these things will
-     kill your Interleave session.
-- Simultaneous Interleave sessions :: You may open as many Interleave sessions as you
-     wish, at the same time! Every root heading interleaved will be read-only to prevent
-     you from deleting a heading from an open Interleave session.
+     terminate your Noter session.
+- Simultaneous Noter sessions :: You may open as many Noter sessions as you wish, at the
+     same time! The root heading of each document will be made read-only to prevent you
+     from deleting a heading from an open Noter session.
 
-** Installation & Usage
-For now, the installation is manual. Using =package.el=, download =alt-interleave.el=, run
-~M-x package-install-file~ and pass the file to the command. If you want to configure
-something, you must have the following in your =init.el=:
+Compatible with PDF Tools and DocView.
+
+** Installation
+I am in the process of submitting it to MELPA, but for now, the installation is manual.
+Using =package.el=, download =noter.el=, run ~M-x package-install-file~ and pass it to the
+command. If you want to configure something, you must have the following in your
+=init.el=:
 #+BEGIN_SRC emacs-lisp
   (setq package-enable-at-startup nil)
   (package-initialize)
 #+END_SRC
 
-The MELPA maintainers said this was too much of a clone and, at least, should have a
-different prefix and name; I'll think of a name and update soon.
-
+** Usage
 The usage is very simple:
-  - Just have an Org file where you want the notes to go
-  - Create a root heading to hold the notes
-  - Run ~M-x interleave~ inside!
-    On the first try, it will ask you for the path of the PDF and save it in a property.
+- Just have an Org file where you want the notes to go
+- Create a root heading to hold the notes
+- Run ~M-x noter~ inside!
+  On the first run, it will ask you for the path of the document and save it in a
+  property.
 
-This will open a new Interleave frame where you can use [[#keys][the keybindings described here]].
+This will open a new Noter frame where you can use [[#keys][the keybindings described here]].
 
 ** Keybindings @@html:<a name="keys">@@
 :PROPERTIES:
@@ -64,8 +65,8 @@ This will open a new Interleave frame where you can use [[#keys][the keybindings
 :END:
 | Key                              | Description                                 | Where?               |
 | @@html:<kbd>@@i@@html:</kbd>@@   | Insert note on this page                    | PDF buffer           |
-| @@html:<kbd>@@M-i@@html:</kbd>@@ | Insert new note localized                   | PDF buffer           |
-| @@html:<kbd>@@q@@html:</kbd>@@   | Kill Interleave session                     | PDF buffer           |
+| @@html:<kbd>@@M-i@@html:</kbd>@@ | Insert new localized note                   | PDF buffer           |
+| @@html:<kbd>@@q@@html:</kbd>@@   | Kill Noter session                          | PDF buffer           |
 | @@html:<kbd>@@M-p@@html:</kbd>@@ | Go to the page of the previous set of notes | PDF and notes buffer |
 | @@html:<kbd>@@M-.@@html:</kbd>@@ | Go to the page of the selected set of notes | PDF and notes buffer |
 | @@html:<kbd>@@M-n@@html:</kbd>@@ | Go to the page of the next set of notes     | PDF and notes buffer |
@@ -77,9 +78,10 @@ In PDF Tools, I use the hook provided to know when the current page changes
 (=pdf-view-after-change-page-hook=). In DocView, I advise =doc-view-goto-page=.
 
 You may also want to check the docstrings of the functions associated with the
-keybindings, because there is some extra functionality in some.
+keybindings, because there is some extra functionality in some. Also there other commands
+like ~noter-other-window-config~ and ~noter-set-start-page~.
 
-** Why a rewrite from scratch? Why not contribute to the existing Interleave?
+** Why a rewrite from scratch? Why not contribute to the existing Interleave package?
 Doing a refactor on a foreign codebase takes a long time because of several factors, like
 introducing the ideas to the owner (with which he may even disagree), learning its
 internals, proposing pull requests, more back and forth in code review, etc...
@@ -87,24 +89,26 @@ internals, proposing pull requests, more back and forth in code review, etc...
 Besides, I like doing things from scratch, not only because it expands my skills, but also
 because it is something I find very rewarding!
 
-*** Differences from the original Interleave @@html:<a name="diff">@@
+*** Some differences from Interleave @@html:<a name="diff">@@
 :PROPERTIES:
 :CUSTOM_ID: diff
 :END:
-There are some new features, such as each session having its own frame and the possibility
-of having several Interleave sessions simultaneously (even of the same PDF and/or from the
+Note that this list *is not* exhaustive!
+
+There are new features, such as each session having its own frame and the possibility of
+having several Noter sessions simultaneously (even of the same PDF and/or from the
 same notes file!). Aside from that, using indirect buffers is also great, because the
 narrowing is only applied in the indirect one, not on the original, so you may continue
 working on the rest of the buffer when interleaving.
 
-Also, this is as if you always used the multi-pdf mode of the original - you can't
-interleave without having a parent headline. As such, there is still no way to open the
+Also, this is as if you always used the multi-pdf mode of the original - you can't open a
+Noter session without having a parent headline. As such, there is still no way to open the
 notes from the PDF file (when I have time, maybe I'll try to implement this).
 
-If you want to be compatible with Sebastian's Interleave, *you must* change
-~interleave-property-note-page~ like this:
+For compatibility with existing notes made with Sebastian's Interleave, *you must* change
+~noter-property-note-page~ like this:
 #+BEGIN_SRC emacs-lisp
-  (setq interleave-property-note-page "INTERLEAVE_PAGE_NOTE")
+  (setq noter-property-note-page "INTERLEAVE_PAGE_NOTE")
 #+END_SRC
 
 One of the reasons of rewriting from scratch is to fix some bugs, like:
