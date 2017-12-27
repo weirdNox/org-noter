@@ -20,17 +20,17 @@ might be discrepancies /if you change between the two/, eg., when setting a loca
 note.
 
 ** Features
-- Easy to use annotation interface :: Just press @@html:<kbd>@@i@@html:</kbd>@@ in the PDF
-     buffer and annotate away!
-- Keep your notes in sync with the PDF :: When you take a note by pressing
+- Easy to use annotation interface :: Just press @@html:<kbd>@@i@@html:</kbd>@@ in the
+     document buffer and annotate away!
+- Keep your notes in sync with the document :: When you take a note by pressing
      @@html:<kbd>@@i@@html:</kbd>@@, it saves the page where you took it so it is able to
      show you the notes while you scroll, automatically! Also, there is a new command
      that, besides saving the page, also asks for the page position, so it scrolls there
-     when syncing the note page to the PDF!
-- Easy navigation :: You may navigate your PDF as usual, seeing the notes buffer scroll
-     and show you the respective notes; however, you may also navigate by notes, only
-     seeing annotated pages.
-- Isolated interface :: Each Noter session has its own frame and the PDF and notes
+     when syncing the note page to the document!
+- Easy navigation :: You may navigate your document as usual, seeing the notes buffer
+     scroll and show you the respective notes; however, you may also navigate by notes,
+     only seeing annotated pages.
+- Isolated interface :: Each Noter session has its own frame and the document and notes
      buffers are indirect buffers to the original ones. Killing any of these things will
      terminate your Noter session.
 - Simultaneous Noter sessions :: You may open as many Noter sessions as you wish, at the
@@ -63,16 +63,17 @@ This will open a new Noter frame where you can use [[#keys][the keybindings desc
 :PROPERTIES:
 :CUSTOM_ID: keys
 :END:
-| Key                              | Description                                 | Where?               |
-| @@html:<kbd>@@i@@html:</kbd>@@   | Insert note on this page                    | PDF buffer           |
-| @@html:<kbd>@@M-i@@html:</kbd>@@ | Insert new localized note                   | PDF buffer           |
-| @@html:<kbd>@@q@@html:</kbd>@@   | Kill Noter session                          | PDF buffer           |
-| @@html:<kbd>@@M-p@@html:</kbd>@@ | Go to the page of the previous set of notes | PDF and notes buffer |
-| @@html:<kbd>@@M-.@@html:</kbd>@@ | Go to the page of the selected set of notes | PDF and notes buffer |
-| @@html:<kbd>@@M-n@@html:</kbd>@@ | Go to the page of the next set of notes     | PDF and notes buffer |
+| Key                              | Description                                 | Where?                    |
+| @@html:<kbd>@@i@@html:</kbd>@@   | Insert note on this page                    | Document buffer           |
+| @@html:<kbd>@@M-i@@html:</kbd>@@ | Insert new localized note                   | Document buffer           |
+| @@html:<kbd>@@q@@html:</kbd>@@   | Kill Noter session                          | Document buffer           |
+| @@html:<kbd>@@M-p@@html:</kbd>@@ | Go to the page of the previous set of notes | Document and notes buffer |
+| @@html:<kbd>@@M-.@@html:</kbd>@@ | Go to the page of the selected set of notes | Document and notes buffer |
+| @@html:<kbd>@@M-n@@html:</kbd>@@ | Go to the page of the next set of notes     | Document and notes buffer |
 
-You can use the usual keybindings to navigate the PDF (@@html:<kbd>@@n@@html:</kbd>@@,
-@@html:<kbd>@@p@@html:</kbd>@@, @@html:<kbd>@@SPC@@html:</kbd>@@, ...).
+You can use the usual keybindings to navigate the document
+(@@html:<kbd>@@n@@html:</kbd>@@, @@html:<kbd>@@p@@html:</kbd>@@,
+@@html:<kbd>@@SPC@@html:</kbd>@@, ...).
 
 In PDF Tools, I use the hook provided to know when the current page changes
 (=pdf-view-after-change-page-hook=). In DocView, I advise =doc-view-goto-page=.
@@ -96,14 +97,14 @@ because it is something I find very rewarding!
 Note that this list *is not* exhaustive!
 
 There are new features, such as each session having its own frame and the possibility of
-having several Noter sessions simultaneously (even of the same PDF and/or from the
+having several Noter sessions simultaneously (even of the same document and/or from the
 same notes file!). Aside from that, using indirect buffers is also great, because the
 narrowing is only applied in the indirect one, not on the original, so you may continue
 working on the rest of the buffer when interleaving.
 
 Also, this is as if you always used the multi-pdf mode of the original - you can't open a
 Noter session without having a parent headline. As such, there is still no way to open the
-notes from the PDF file (when I have time, maybe I'll try to implement this).
+notes from the document file (when I have time, maybe I'll try to implement this).
 
 For compatibility with existing notes made with Sebastian's Interleave, *you must* change
 ~noter-property-note-page~ like this:

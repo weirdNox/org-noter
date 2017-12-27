@@ -50,13 +50,13 @@
   :group 'convenience
   :version "25.3.1")
 
-(defcustom noter-property-pdf-file "NOTER_PDF"
-  "Name of the property which specifies the PDF file."
+(defcustom noter-property-doc-file "NOTER_DOCUMENT"
+  "Name of the property that specifies the document."
   :group 'noter
   :type 'string)
 
 (defcustom noter-property-note-page "NOTER_PAGE"
-  "Name of the property which specifies the page of the current note."
+  "Name of the property that specifies the page of the current note."
   :group 'noter
   :type 'string)
 
@@ -75,9 +75,9 @@ moment."
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables
-(cl-defstruct noter--session frame pdf-mode display-name property-text
-              org-file-path pdf-file-path notes-buffer
-              pdf-buffer level)
+(cl-defstruct noter--session frame doc-mode display-name property-text
+              org-file-path doc-file-path notes-buffer
+              doc-buffer level)
 
 (defvar noter--sessions nil
   "List of Noter sessions.")
@@ -93,7 +93,7 @@ moment."
 (defun noter--valid-session (session)
   (if (and session
            (frame-live-p (noter--session-frame session))
-           (buffer-live-p (noter--session-pdf-buffer session))
+           (buffer-live-p (noter--session-doc-buffer session))
            (buffer-live-p (noter--session-notes-buffer session)))
       t
     (noter-kill-session session)
@@ -108,11 +108,11 @@ moment."
   (noter--with-valid-session
    (let ((buffer (current-buffer))
          (notes-buffer (noter--session-notes-buffer session))
-         (pdf-buffer (noter--session-pdf-buffer session)))
+         (doc-buffer (noter--session-doc-buffer session)))
      ;; NOTE(nox): This needs to be checked in order to prevent session killing because of
      ;; temporary buffers with the same local variables
      (when (or (eq buffer notes-buffer)
-               (eq buffer pdf-buffer))
+               (eq buffer doc-buffer))
        (noter-kill-session session)))))
 
 (defun noter--handle-delete-frame (frame)
@@ -120,18 +120,18 @@ moment."
     (when (eq (noter--session-frame session) frame)
       (noter-kill-session session))))
 
-(defun noter--parse-root (&optional buffer property-pdf-path)
+(defun noter--parse-root (&optional buffer property-doc-path)
   ;; TODO(nox): Maybe create IDs in each noter session and use that instead of using
   ;; the property text that may be repeated... This would simplify some things
   (let* ((session noter--session)
-         (use-args (and (stringp property-pdf-path)
+         (use-args (and (stringp property-doc-path)
                         (buffer-live-p buffer)
                         (with-current-buffer buffer (eq major-mode 'org-mode))))
          (notes-buffer (if use-args
                            buffer
                          (when session (noter--session-notes-buffer session))))
          (wanted-value (if use-args
-                           property-pdf-path
+                           property-doc-path
                          (when session (noter--session-property-text session))))
          element)
     (when (buffer-live-p notes-buffer)
@@ -142,14 +142,14 @@ moment."
            ;; property
            (let ((try-next t) property-value)
              (while try-next
-               (setq property-value (org-entry-get nil noter-property-pdf-file))
+               (setq property-value (org-entry-get nil noter-property-doc-file))
                (when (and property-value (string= property-value wanted-value))
                  (org-narrow-to-subtree)
                  (setq element (org-element-parse-buffer 'greater-element)))
                (setq try-next (and (not element) (org-up-heading-safe))))))
          (unless element
            ;; NOTE(nox): Could not find parent with property, do a global search
-           (let ((pos (org-find-property noter-property-pdf-file wanted-value)))
+           (let ((pos (org-find-property noter-property-doc-file wanted-value)))
              (when pos
                (goto-char pos)
                (org-narrow-to-subtree)
@@ -244,14 +244,14 @@ moment."
    (display-buffer (noter--session-notes-buffer session) nil
                    (noter--session-frame session))))
 
-(defun noter--get-pdf-window ()
+(defun noter--get-doc-window ()
   (noter--with-valid-session
-   (get-buffer-window (noter--session-pdf-buffer session)
+   (get-buffer-window (noter--session-doc-buffer session)
                       (noter--session-frame session))))
 
 (defun noter--current-page ()
   (noter--with-valid-session
-   (with-current-buffer (noter--session-pdf-buffer session)
+   (with-current-buffer (noter--session-doc-buffer session)
      (image-mode-window-get 'page))))
 
 (defun noter--doc-view-advice (page)
@@ -261,15 +261,15 @@ moment."
 (defun noter--selected-note-page (&optional with-start-page)
   (noter--with-valid-session
    (org-with-wide-buffer
-    (let ((root-pdf-prop-vale (noter--session-property-text session)))
+    (let ((root-doc-prop-vale (noter--session-property-text session)))
       (noter--page-property
        (catch 'break
          (let ((try-next t)
                property-value at-root)
            (while try-next
              (setq property-value (org-entry-get nil noter-property-note-page)
-                   at-root (string= (org-entry-get nil noter-property-pdf-file)
-                                    root-pdf-prop-vale))
+                   at-root (string= (org-entry-get nil noter-property-doc-file)
+                                    root-doc-prop-vale))
              (when (and property-value
                         (or with-start-page (not at-root)))
                (throw 'break property-value))
@@ -301,7 +301,7 @@ moment."
 
 (defun noter--ask-scroll-percentage ()
   (noter--with-valid-session
-   (let ((window (noter--get-pdf-window))
+   (let ((window (noter--get-doc-window))
          event)
      (when (window-live-p window)
        (with-selected-window window
@@ -318,7 +318,7 @@ moment."
 
 (defun noter--scroll-to-percentage (percentage)
   (noter--with-valid-session
-   (let ((window (noter--get-pdf-window)))
+   (let ((window (noter--get-doc-window)))
      (when (window-live-p window)
        (with-selected-window window
          (let* ((slice (noter--get-slice))
@@ -333,10 +333,10 @@ moment."
 
 (defun noter--goto-page (page-cons)
   (noter--with-valid-session
-   (with-selected-window (noter--get-pdf-window)
-     (cond ((eq (noter--session-pdf-mode session) 'pdf-view-mode)
+   (with-selected-window (noter--get-doc-window)
+     (cond ((eq (noter--session-doc-mode session) 'pdf-view-mode)
             (pdf-view-goto-page (car page-cons)))
-           ((eq (noter--session-pdf-mode session) 'doc-view-mode)
+           ((eq (noter--session-doc-mode session) 'doc-view-mode)
             (doc-view-goto-page (car page-cons)))
            (t (error "This mode is not supported")))
      (noter--scroll-to-percentage (cdr page-cons)))))
@@ -400,20 +400,20 @@ moment."
   (when (noter--valid-session session)
     (with-selected-frame (noter--session-frame session)
       (delete-other-windows)
-      (let ((pdf-window (selected-window))
-            (pdf-buffer (noter--session-pdf-buffer session))
+      (let ((doc-window (selected-window))
+            (doc-buffer (noter--session-doc-buffer session))
             (notes-window (if (eq noter-split-direction 'horizontal)
                               (split-window-right)
                             (split-window-below)))
             (notes-buffer (noter--session-notes-buffer session)))
-        (set-window-buffer pdf-window pdf-buffer)
-        (set-window-dedicated-p pdf-window t)
+        (set-window-buffer doc-window doc-buffer)
+        (set-window-dedicated-p doc-window t)
         (set-window-buffer notes-window notes-buffer)
         (with-current-buffer notes-buffer
           (noter--narrow-to-root
            (noter--parse-root
             notes-buffer (noter--session-property-text session))))
-        (cons pdf-window notes-window)))))
+        (cons doc-window notes-window)))))
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
@@ -447,12 +447,12 @@ want to kill."
     (if (and noter--session (not session))
         (setq session noter--session)
       (setq session nil)
-      (let (collection default pdf-display-name org-file-name display)
+      (let (collection default doc-display-name org-file-name display)
         (dolist (session noter--sessions)
-          (setq pdf-display-name (noter--session-display-name session)
+          (setq doc-display-name (noter--session-display-name session)
                 org-file-name (file-name-nondirectory
                                (noter--session-org-file-path session))
-                display (concat pdf-display-name " - " org-file-name))
+                display (concat doc-display-name " - " org-file-name))
           (when (eq session noter--session) (setq default display))
           (push (cons display session) collection))
         (setq session (cdr (assoc (completing-read "Which session? " collection nil t
@@ -461,7 +461,7 @@ want to kill."
   (when (and session (memq session noter--sessions))
     (let ((frame (noter--session-frame session))
           (notes-buffer (noter--session-notes-buffer session))
-          (pdf-buffer (noter--session-pdf-buffer session)))
+          (doc-buffer (noter--session-doc-buffer session)))
       (setq noter--sessions (delq session noter--sessions))
       (when (eq (length noter--sessions) 0)
         (setq delete-frame-functions (delq 'noter--handle-delete-frame
@@ -470,8 +470,8 @@ want to kill."
           (advice-remove  'noter--doc-view-advice 'doc-view-goto-page)))
       (when (frame-live-p frame)
         (delete-frame frame))
-      (when (buffer-live-p pdf-buffer)
-        (kill-buffer pdf-buffer))
+      (when (buffer-live-p doc-buffer)
+        (kill-buffer doc-buffer))
       (when (buffer-live-p notes-buffer)
         (let ((base-buffer (buffer-base-buffer notes-buffer))
               (modified (buffer-modified-p notes-buffer)))
@@ -601,7 +601,7 @@ more info)."
 (defun noter-insert-localized-note ()
   "Insert note associated with part of a page.
 This will ask you to click where you want Noter to scroll to when
-you sync the PDF to this note. You should click on the top of
+you sync the document to this note. You should click on the top of
 that part. Will always create a new note.
 
 See `noter-insert-note' docstring for more."
@@ -635,7 +635,7 @@ This is in relation to the current note (where the point is now)."
              (noter--goto-page (noter--page-property previous))
              (noter--focus-notes-region (list previous)))
          (error "There is no previous note")))
-     (select-window (noter--get-pdf-window)))))
+     (select-window (noter--get-doc-window)))))
 
 (defun noter-sync-page-note ()
   "Go to the page of the selected note (where the point is now)."
@@ -646,7 +646,7 @@ This is in relation to the current note (where the point is now)."
        (if page
            (noter--goto-page page)
          (error "No note selected"))))
-   (select-window (noter--get-pdf-window))))
+   (select-window (noter--get-doc-window))))
 
 (defun noter-sync-next-page-note ()
   "Go to the page of the next note.
@@ -671,10 +671,10 @@ This is in relation to the current note (where the point is now)."
            (noter--goto-page (noter--page-property next))
            (noter--focus-notes-region (list next)))
        (error "There is no next note")))
-   (select-window (noter--get-pdf-window))))
+   (select-window (noter--get-doc-window))))
 
-(define-minor-mode noter-pdf-mode
-  "Minor mode for the Noter PDF buffer."
+(define-minor-mode noter-doc-mode
+  "Minor mode for the Noter document buffer."
   :keymap `((,(kbd   "i") . noter-insert-note)
             (,(kbd "M-i") . noter-insert-localized-note)
             (,(kbd   "q") . noter-kill-session)
@@ -694,8 +694,8 @@ This is in relation to the current note (where the point is now)."
 See `noter' docstring for more info."
   (interactive "P")
   (let ((noter-split-direction (if (eq noter-split-direction 'horizontal)
-                                        'vertical
-                                      'horizontal)))
+                                   'vertical
+                                 'horizontal)))
     (noter arg)))
 
 ;;;###autoload
@@ -703,53 +703,53 @@ See `noter' docstring for more info."
   "Start Noter.
 
 This will open a session for taking your notes, with indirect
-buffers to the PDF and the notes side by side. Your current
+buffers to the document and the notes side by side. Your current
 window configuration won't be changed, because this opens in a
 new frame.
 
 You only need to run this command inside a heading (which will
-hold the notes for this PDF). If no PDF path property is found,
+hold the notes for this document). If no document path property is found,
 this command will ask you for the target file.
 
 With a prefix universal argument ARG, only check for the property
 in the current heading, don't inherit from parents.
 
-With a prefix number ARG, open the PDF without a Noter session if
-ARG >= 0, or open the folder containing the PDF when ARG < 0."
+With a prefix number ARG, open the document without a Noter session if
+ARG >= 0, or open the folder containing the document when ARG < 0."
   (interactive "P")
   (when (eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
       (error "Noter must be issued inside a heading"))
     (let ((org-file-path (buffer-file-name))
-          (pdf-property (org-entry-get nil noter-property-pdf-file
+          (doc-property (org-entry-get nil noter-property-doc-file
                                        (not (equal arg '(4)))))
-          pdf-file-path ast session)
-      (when (stringp pdf-property) (setq pdf-file-path (expand-file-name pdf-property)))
-      (unless (and pdf-file-path
-                   (not (file-directory-p pdf-file-path))
-                   (file-readable-p pdf-file-path))
-        (setq pdf-file-path (expand-file-name
+          doc-file-path ast session)
+      (when (stringp doc-property) (setq doc-file-path (expand-file-name doc-property)))
+      (unless (and doc-file-path
+                   (not (file-directory-p doc-file-path))
+                   (file-readable-p doc-file-path))
+        (setq doc-file-path (expand-file-name
                              (read-file-name
-                              "Invalid or no PDF property found. Please specify a PDF path: "
+                              "Invalid or no document property found. Please specify a document path: "
                               nil nil t)))
-        (when (or (file-directory-p pdf-file-path) (not (file-readable-p pdf-file-path)))
+        (when (or (file-directory-p doc-file-path) (not (file-readable-p doc-file-path)))
           (error "Invalid file path"))
-        (setq pdf-property (if (y-or-n-p "Do you want a relative file name? ")
-                               (file-relative-name pdf-file-path)
-                             pdf-file-path))
-        (org-entry-put nil noter-property-pdf-file pdf-property))
-      (setq ast (noter--parse-root (current-buffer) pdf-property))
+        (setq doc-property (if (y-or-n-p "Do you want a relative file name? ")
+                               (file-relative-name doc-file-path)
+                             doc-file-path))
+        (org-entry-put nil noter-property-doc-file doc-property))
+      (setq ast (noter--parse-root (current-buffer) doc-property))
       (when (catch 'should-continue
               (when (or (numberp arg) (eq arg '-))
                 (let ((number (prefix-numeric-value arg)))
                   (if (>= number 0)
-                      (find-file pdf-file-path)
-                    (find-file (file-name-directory pdf-file-path))))
+                      (find-file doc-file-path)
+                    (find-file (file-name-directory doc-file-path))))
                 (throw 'should-continue nil))
               (dolist (session noter--sessions)
                 (when (noter--valid-session session)
-                  (when (and (string= (noter--session-pdf-file-path session)
-                                      pdf-file-path)
+                  (when (and (string= (noter--session-doc-file-path session)
+                                      doc-file-path)
                              (string= (noter--session-org-file-path session)
                                       org-file-path))
                     (let ((test-ast (with-current-buffer
@@ -767,33 +767,33 @@ ARG >= 0, or open the folder containing the PDF when ARG < 0."
          (let* ((display-name (org-element-property :raw-value ast))
                 (notes-buffer-name
                  (generate-new-buffer-name (format "Noter - Notes of %s" display-name)))
-                (pdf-buffer-name
+                (doc-buffer-name
                  (generate-new-buffer-name (format "Noter - %s" display-name)))
-                (orig-pdf-buffer (find-file-noselect pdf-file-path))
+                (orig-doc-buffer (find-file-noselect doc-file-path))
                 (frame (make-frame `((name . ,(format "Emacs - Noter %s" display-name))
                                      (fullscreen . maximized))))
                 (notes-buffer (make-indirect-buffer (current-buffer) notes-buffer-name t))
-                (pdf-buffer (make-indirect-buffer orig-pdf-buffer pdf-buffer-name))
-                (pdf-mode (buffer-local-value 'major-mode orig-pdf-buffer))
+                (doc-buffer (make-indirect-buffer orig-doc-buffer doc-buffer-name))
+                (doc-mode (buffer-local-value 'major-mode orig-doc-buffer))
                 (level (org-element-property :level ast)))
-           (make-noter--session :frame frame :pdf-mode pdf-mode :display-name display-name
-                                     :property-text pdf-property :org-file-path org-file-path
-                                     :pdf-file-path pdf-file-path :notes-buffer notes-buffer
-                                     :pdf-buffer pdf-buffer :level level)))
+           (make-noter--session :frame frame :doc-mode doc-mode :display-name display-name
+                                :property-text doc-property :org-file-path org-file-path
+                                :doc-file-path doc-file-path :notes-buffer notes-buffer
+                                :doc-buffer doc-buffer :level level)))
         (add-hook 'delete-frame-functions 'noter--handle-delete-frame)
         (push session noter--sessions)
         (let ((windows (noter--restore-windows session)))
           (with-selected-window (car windows)
-            (setq buffer-file-name pdf-file-path)
-            (cond ((eq (noter--session-pdf-mode session) 'pdf-view-mode)
+            (setq buffer-file-name doc-file-path)
+            (cond ((eq (noter--session-doc-mode session) 'pdf-view-mode)
                    (pdf-view-mode)
                    (add-hook 'pdf-view-after-change-page-hook
                              'noter--page-change-handler nil t))
-                  ((eq (noter--session-pdf-mode session) 'doc-view-mode)
+                  ((eq (noter--session-doc-mode session) 'doc-view-mode)
                    (doc-view-mode)
                    (advice-add 'doc-view-goto-page :after 'noter--doc-view-advice))
-                  (t (error "This PDF handler is not supported :/")))
-            (noter-pdf-mode 1)
+                  (t (error "This document handler is not supported :/")))
+            (noter-doc-mode 1)
             (setq noter--session session)
             (kill-local-variable 'kill-buffer-hook)
             (add-hook 'kill-buffer-hook 'noter--handle-kill-buffer nil t))
