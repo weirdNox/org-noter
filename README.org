@@ -1,9 +1,9 @@
-* Noter - A synchronized, external annotator
+* Org-noter - A synchronized, Org-mode, document annotator
 After using Sebastian Christ's amazing [[https://github.com/rudolfochrist/interleave][Interleave package]] for some time, I got some ideas
 on how I could improve upon it, usability and feature-wise. So I created this package from
 scratch with those ideas in mind!
 
-Noter's purpose is to let you create notes that are kept in sync when you scroll through
+Org-Noter's purpose is to let you create notes that are kept in sync when you scroll through
 the document, but that are external to it - the notes themselves live in an Org-mode file.
 As such, this leverages the power of [[http://orgmode.org/][Org-mode]] (the notes may have outlines, latex
 fragments, babel, etc...) while acting like notes that are made /inside/ the document.
@@ -30,18 +30,18 @@ note.
 - Easy navigation :: You may navigate your document as usual, seeing the notes buffer
      scroll and show you the respective notes; however, you may also navigate by notes,
      only seeing annotated pages.
-- Isolated interface :: Each Noter session has its own frame and the document and notes
-     buffers are indirect buffers to the original ones. Killing any of these things will
-     terminate your Noter session.
-- Simultaneous Noter sessions :: You may open as many Noter sessions as you wish, at the
+- Isolated interface :: Each session has its own frame and the document and notes buffers
+     are indirect buffers to the original ones. Killing any of these things will terminate
+     your annotation session.
+- Simultaneous sessions :: You may open as many annotation sessions as you wish, at the
      same time! The root heading of each document will be made read-only to prevent you
-     from deleting a heading from an open Noter session.
+     from deleting a heading from an open session.
 
 Compatible with PDF Tools and DocView.
 
 ** Installation
 I am in the process of submitting it to MELPA, but for now, the installation is manual.
-Using =package.el=, download =noter.el=, run ~M-x package-install-file~ and pass it to the
+Using =package.el=, download =org-noter.el=, run ~M-x package-install-file~ and pass it to the
 command. If you want to configure something, you must have the following in your
 =init.el=:
 #+BEGIN_SRC emacs-lisp
@@ -53,11 +53,11 @@ command. If you want to configure something, you must have the following in your
 The usage is very simple:
 - Just have an Org file where you want the notes to go
 - Create a root heading to hold the notes
-- Run ~M-x noter~ inside!
+- Run ~M-x org-noter~ inside!
   On the first run, it will ask you for the path of the document and save it in a
   property.
 
-This will open a new Noter frame where you can use [[#keys][the keybindings described here]].
+This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
 
 ** Keybindings @@html:<a name="keys">@@
 :PROPERTIES:
@@ -66,7 +66,7 @@ This will open a new Noter frame where you can use [[#keys][the keybindings desc
 | Key                              | Description                                 | Where?                    |
 | @@html:<kbd>@@i@@html:</kbd>@@   | Insert note on this page                    | Document buffer           |
 | @@html:<kbd>@@M-i@@html:</kbd>@@ | Insert new localized note                   | Document buffer           |
-| @@html:<kbd>@@q@@html:</kbd>@@   | Kill Noter session                          | Document buffer           |
+| @@html:<kbd>@@q@@html:</kbd>@@   | Kill session                                | Document buffer           |
 | @@html:<kbd>@@M-p@@html:</kbd>@@ | Go to the page of the previous set of notes | Document and notes buffer |
 | @@html:<kbd>@@M-.@@html:</kbd>@@ | Go to the page of the selected set of notes | Document and notes buffer |
 | @@html:<kbd>@@M-n@@html:</kbd>@@ | Go to the page of the next set of notes     | Document and notes buffer |
@@ -80,7 +80,7 @@ In PDF Tools, I use the hook provided to know when the current page changes
 
 You may also want to check the docstrings of the functions associated with the
 keybindings, because there is some extra functionality in some. Also there other commands
-like ~noter-other-window-config~ and ~noter-set-start-page~.
+like ~org-noter-other-window-config~ and ~org-noter-set-start-page~.
 
 ** Why a rewrite from scratch? Why not contribute to the existing Interleave package?
 Doing a refactor on a foreign codebase takes a long time because of several factors, like
@@ -97,19 +97,19 @@ because it is something I find very rewarding!
 Note that this list *is not* exhaustive!
 
 There are new features, such as each session having its own frame and the possibility of
-having several Noter sessions simultaneously (even of the same document and/or from the
-same notes file!). Aside from that, using indirect buffers is also great, because the
-narrowing is only applied in the indirect one, not on the original, so you may continue
-working on the rest of the buffer when interleaving.
+having several sessions simultaneously (even of the same document and/or from the same
+notes file!). Aside from that, using indirect buffers is also great, because the narrowing
+is only applied in the indirect one, not on the original, so you may continue working on
+the rest of the buffer when interleaving.
 
 Also, this is as if you always used the multi-pdf mode of the original - you can't open a
-Noter session without having a parent headline. As such, there is still no way to open the
-notes from the document file (when I have time, maybe I'll try to implement this).
+session without having a parent headline. As such, there is still no way to open the notes
+from the document file (when I have time, maybe I'll try to implement this).
 
 For compatibility with existing notes made with Sebastian's Interleave, *you must* change
-~noter-property-note-page~ like this:
+~org-noter-property-note-page~ like this:
 #+BEGIN_SRC emacs-lisp
-  (setq noter-property-note-page "INTERLEAVE_PAGE_NOTE")
+  (setq org-noter-property-note-page "INTERLEAVE_PAGE_NOTE")
 #+END_SRC
 
 One of the reasons of rewriting from scratch is to fix some bugs, like:
