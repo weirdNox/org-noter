@@ -1,4 +1,4 @@
-* Org-noter - A synchronized, Org-mode, document annotator
+* Org-noter - A synchronized, Org-mode, document annotator [[https://melpa.org/#/org-noter][file:https://melpa.org/packages/org-noter-badge.svg]]
 After using Sebastian Christ's amazing [[https://github.com/rudolfochrist/interleave][Interleave package]] for some time, I got some ideas
 on how I could improve upon it, usability and feature-wise. So I created this package from
 scratch with those ideas in mind!
@@ -40,24 +40,32 @@ note.
 Compatible with PDF Tools and DocView.
 
 ** Installation
-I am in the process of submitting it to MELPA, but for now, the installation is manual.
-Using =package.el=, download =org-noter.el=, run ~M-x package-install-file~ and pass it to the
-command. If you want to configure something, you must have the following in your
-=init.el=:
-#+BEGIN_SRC emacs-lisp
-  (setq package-enable-at-startup nil)
-  (package-initialize)
-#+END_SRC
+*** MELPA
+This package is [[https://melpa.org/#/org-noter][available from MELPA]], so if you want to install it and have added MELPA to
+your package archives, you can run
+@@html:<kbd>@@M-x@@html:</kbd>@@ ~package-install~ @@html:<kbd>@@RET@@html:</kbd>@@ ~org-noter~
+
+*** Manual installation
+You can also install it manually, using =package.el=.
+1. Download =org-noter.el=
+2. Open it
+3. Run @@html:<kbd>@@M-x@@html:</kbd>@@ ~package-install-from-buffer~ @@html:<kbd>@@RET@@html:</kbd>@@
 
 ** Usage
 The usage is very simple:
 - Just have an Org file where you want the notes to go
 - Create a root heading to hold the notes
-- Run ~M-x org-noter~ inside!
+- Run @@html:<kbd>@@M-x@@html:</kbd>@@ ~org-noter~ inside!
   On the first run, it will ask you for the path of the document and save it in a
   property.
 
 This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
+
+There are some things you may change; find them through the customization interface or
+just open =org-noter.el=!
+
+** Screencast
+/Not yet available/... sorry!
 
 ** Keybindings @@html:<a name="keys">@@
 :PROPERTIES:
