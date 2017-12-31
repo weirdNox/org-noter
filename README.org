@@ -115,9 +115,10 @@ session without having a parent headline. As such, there is still no way to open
 from the document file (when I have time, maybe I'll try to implement this).
 
 For compatibility with existing notes made with Sebastian's Interleave, *you must* change
-~org-noter-property-note-page~ like this:
+the following variables like this:
 #+BEGIN_SRC emacs-lisp
-  (setq org-noter-property-note-page "INTERLEAVE_PAGE_NOTE")
+  (setq org-noter-property-doc-file "INTERLEAVE_PDF"
+        org-noter-property-note-page "INTERLEAVE_PAGE_NOTE")
 #+END_SRC
 
 One of the reasons of rewriting from scratch is to fix some bugs, like:
