@@ -60,12 +60,6 @@
   :group 'org-noter
   :type 'string)
 
-(defcustom org-noter-split-direction 'horizontal
-  "Whether the dedicated frame should be split horizontally or vertically."
-  :group 'org-noter
-  :type '(choice (const :tag "Horizontal" horizontal)
-                 (const :tag "Vertical" vertical)))
-
 (defcustom org-noter-default-heading-title "Notes for page $p$"
   "The title of the headings created by `org-noter-insert-note'.
 $p$ is replaced by the number of the page you are in at the
@@ -73,11 +67,31 @@ moment."
   :group 'org-noter
   :type 'string)
 
+(defcustom org-noter-notes-window-behavior '(start scroll)
+  "This setting specifies in what situations the notes window should be created.
+
+When the list contains:
+- `start', the window will be created when starting a `org-noter' session.
+- `scroll', it will be created when you go to a page with an associated note."
+  :group 'org-noter
+  :type '(set (const :tag "Session start" start)
+              (const :tag "Scrolling" scroll)))
+
+(defcustom org-noter-notes-window-location 'horizontal-split
+  "Whether the notes window should appear in the main frame (horizontal or vertical split) or on a separate frame.
+
+Note that this will only have effect on session startup if `start'
+is member of `org-noter-notes-window-behavior' (which see)."
+  :group 'org-noter
+  :type '(choice (const :tag "Horizontal" horizontal-split)
+                 (const :tag "Vertical" vertical-split)
+                 (const :tag "Other frame" 'other-frame)))
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables
-(cl-defstruct org-noter--session frame doc-mode display-name property-text
-              org-file-path doc-file-path notes-buffer
-              doc-buffer level)
+(cl-defstruct org-noter--session
+  frame doc-mode display-name org-file-path doc-file-path property-text
+  notes-buffer doc-buffer level window-behavior window-location)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -239,15 +253,26 @@ moment."
     (dotimes (_ number-of-times)
       (funcall changer))))
 
-(defun org-noter--get-notes-window ()
-  (org-noter--with-valid-session
-   (display-buffer (org-noter--session-notes-buffer session) nil
-                   (org-noter--session-frame session))))
-
 (defun org-noter--get-doc-window ()
   (org-noter--with-valid-session
    (get-buffer-window (org-noter--session-doc-buffer session)
                       (org-noter--session-frame session))))
+
+(defun org-noter--get-notes-window (&optional force)
+  (org-noter--with-valid-session
+   (let* ((buffer (org-noter--session-notes-buffer session))
+          (existing-window (get-buffer-window buffer t))
+          (window-location (org-noter--session-window-location session))
+          (window-behavior (org-noter--session-window-behavior session)))
+     (or existing-window
+         (when (or force (member 'scroll window-behavior))
+           (if (eq window-location 'other-frame)
+               (with-selected-frame (make-frame)
+                 (switch-to-buffer buffer)
+                 (raise-frame (selected-frame))
+                 (selected-window))
+             ;; TODO(nox): This should honor the split right/left setting...
+             (display-buffer buffer nil (org-noter--session-frame session))))))))
 
 (defun org-noter--current-page ()
   (org-noter--with-valid-session
@@ -343,36 +368,38 @@ moment."
 
 (defun org-noter--focus-notes-region (notes)
   (org-noter--with-valid-session
-   (with-selected-window (org-noter--get-notes-window)
-     (save-excursion
-       (dolist (note notes)
-         (goto-char (org-element-property :begin note))
-         (org-show-context)
-         (org-show-siblings)
-         (org-show-subtree)))
-     (let* ((begin (org-element-property :begin (car notes)))
-            (end (org-element-property :end (car (last notes))))
-            (window-start (window-start))
-            (window-end (window-end nil t))
-            (num-lines (count-lines begin end))
-            (curr-point (point))
-            (target (org-noter--get-properties-end (car notes))))
-       (if (> num-lines (window-height))
-           (progn
-             (goto-char begin)
-             (recenter 0))
-         (cond ((< begin window-start)
-                (goto-char begin)
-                (recenter 0))
-               ((> end window-end)
-                (goto-char end)
-                (recenter -2))))
-       (if (or (< curr-point begin)
-               (and (not (eq (point-max) end))
-                    (>= curr-point end)))
-           (goto-char target)
-         (goto-char curr-point))
-       (org-cycle-hide-drawers 'all)))))
+   (let ((window (org-noter--get-notes-window)))
+     (when window
+       (with-selected-window window
+           (save-excursion
+             (dolist (note notes)
+               (goto-char (org-element-property :begin note))
+               (org-show-context)
+               (org-show-siblings)
+               (org-show-subtree)))
+         (let* ((begin (org-element-property :begin (car notes)))
+                (end (org-element-property :end (car (last notes))))
+                (window-start (window-start))
+                (window-end (window-end nil t))
+                (num-lines (count-lines begin end))
+                (curr-point (point))
+                (target (org-noter--get-properties-end (car notes))))
+           (if (> num-lines (window-height))
+               (progn
+                 (goto-char begin)
+                 (recenter 0))
+             (cond ((< begin window-start)
+                    (goto-char begin)
+                    (recenter 0))
+                   ((> end window-end)
+                    (goto-char end)
+                    (recenter -2))))
+           (if (or (< curr-point begin)
+                   (and (not (eq (point-max) end))
+                        (>= curr-point end)))
+               (goto-char target)
+             (goto-char curr-point))
+           (org-cycle-hide-drawers 'all)))))))
 
 (defun org-noter--page-change-handler (&optional page-arg)
   (org-noter--with-valid-session
@@ -396,6 +423,7 @@ moment."
          (setq notes (nreverse notes))
          (org-noter--focus-notes-region notes))))))
 
+;; IMPORTANT UPDATE THIS!!!
 (defun org-noter--restore-windows (session)
   (when (org-noter--valid-session session)
     (with-selected-frame (org-noter--session-frame session)
@@ -506,7 +534,7 @@ more info)."
           (contents (when ast (org-element-contents ast)))
           (page (org-noter--current-page))
           (insertion-level (1+ (org-element-property :level ast)))
-          (window (org-noter--get-notes-window))
+          (window (org-noter--get-notes-window t))
           notes best-previous-element)
      (setq scroll-percentage (or scroll-percentage 0))
      (org-element-map contents 'headline
@@ -615,6 +643,7 @@ See `org-noter-insert-note' docstring for more."
 This is in relation to the current note (where the point is now)."
   (interactive)
   (org-noter--with-valid-session
+   ;; IMPORTANT NEED TO THINK ABOUT THIS!!!
    (with-selected-window (org-noter--get-notes-window)
      (let ((org-noter--inhibit-page-handler t)
            (contents (org-element-contents (org-noter--parse-root)))
@@ -642,6 +671,7 @@ This is in relation to the current note (where the point is now)."
   "Go to the page of the selected note (where the point is now)."
   (interactive)
   (org-noter--with-valid-session
+   ;; IMPORTANT NEED TO THINK ABOUT THIS!!!
    (with-selected-window (org-noter--get-notes-window)
      (let ((page (org-noter--selected-note-page)))
        (if page
@@ -657,6 +687,7 @@ This is in relation to the current note (where the point is now)."
   (org-noter--with-valid-session
    (let ((org-noter--inhibit-page-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
+         ;; IMPORTANT NEED TO THINK ABOUT THIS!!!
          (point (with-selected-window (org-noter--get-notes-window) (point)))
          (property-name (intern (concat ":" org-noter-property-note-page)))
          next)
@@ -778,6 +809,7 @@ when ARG < 0."
                 (doc-buffer (make-indirect-buffer orig-doc-buffer doc-buffer-name))
                 (doc-mode (buffer-local-value 'major-mode orig-doc-buffer))
                 (level (org-element-property :level ast)))
+           ;; IMPORTANT UPDATE WINDOW BEHAVIOR AND LOCATION
            (make-org-noter--session :frame frame :doc-mode doc-mode :display-name display-name
                                     :property-text doc-property :org-file-path org-file-path
                                     :doc-file-path doc-file-path :notes-buffer notes-buffer
