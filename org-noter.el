@@ -187,7 +187,7 @@ moment."
             (properties-end (org-noter--get-properties-end ast t))
             (inhibit-read-only t)
             (modified (buffer-modified-p)))
-       (add-text-properties (1- begin) begin '(read-only t))
+       (add-text-properties (max 1 (1- begin)) begin '(read-only t))
        (add-text-properties begin (1- title-begin) '(read-only t front-sticky t))
        (add-text-properties (1- title-begin) title-begin '(read-only t rear-nonsticky t))
        (add-text-properties (1- contents-begin) (1- properties-end) '(read-only t))
@@ -202,7 +202,7 @@ moment."
            (end (org-noter--get-properties-end ast t))
            (inhibit-read-only t)
            (modified (buffer-modified-p)))
-       (remove-list-of-text-properties (1- begin) end
+       (remove-list-of-text-properties (max 1 (1- begin)) end
                                        '(read-only front-sticky rear-nonsticky))
        (set-buffer-modified-p modified)))))
 
