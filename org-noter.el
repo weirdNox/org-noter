@@ -267,12 +267,38 @@ is member of `org-noter-notes-window-behavior' (which see)."
      (or existing-window
          (when (or force (member 'scroll window-behavior))
            (if (eq window-location 'other-frame)
-               (with-selected-frame (make-frame)
-                 (switch-to-buffer buffer)
-                 (raise-frame (selected-frame))
-                 (selected-window))
+               (get-buffer-window (switch-to-buffer-other-frame notes-buffer) t)
              ;; TODO(nox): This should honor the split right/left setting...
              (display-buffer buffer nil (org-noter--session-frame session))))))))
+
+(defun org-noter--restore-windows (session)
+  (when (org-noter--valid-session session)
+    (with-selected-frame (org-noter--session-frame session)
+      (delete-other-windows)
+      (let* ((doc-buffer (org-noter--session-doc-buffer session))
+             (doc-window (selected-window))
+             (notes-buffer (org-noter--session-notes-buffer session))
+             (notes-window-location (org-noter--session-window-location session))
+             (notes-window-behavior (org-noter--session-window-behavior session))
+             (notes-buffer notes-buffer)
+             notes-window)
+        (set-window-buffer doc-window doc-buffer)
+        (set-window-dedicated-p doc-window t)
+        (setq notes-window (get-buffer-window notes-window t))
+        (when (and (not notes-window) (member 'start notes-window-behavior))
+          (if (eq notes-window-location 'other-frame)
+              (switch-to-buffer-other-frame notes-buffer)
+            (set-window-buffer
+             (if (eq org-noter-split-direction 'horizontal)
+                 (split-window-right)
+               (split-window-below))
+             notes-buffer))
+          (setq notes-window (get-buffer-window notes-window t)))
+        (with-current-buffer notes-buffer
+          (org-noter--narrow-to-root
+           (org-noter--parse-root
+            notes-buffer (org-noter--session-property-text session))))
+        (cons doc-window notes-window)))))
 
 (defun org-noter--current-page ()
   (org-noter--with-valid-session
@@ -371,12 +397,12 @@ is member of `org-noter-notes-window-behavior' (which see)."
    (let ((window (org-noter--get-notes-window)))
      (when window
        (with-selected-window window
-           (save-excursion
-             (dolist (note notes)
-               (goto-char (org-element-property :begin note))
-               (org-show-context)
-               (org-show-siblings)
-               (org-show-subtree)))
+         (save-excursion
+           (dolist (note notes)
+             (goto-char (org-element-property :begin note))
+             (org-show-context)
+             (org-show-siblings)
+             (org-show-subtree)))
          (let* ((begin (org-element-property :begin (car notes)))
                 (end (org-element-property :end (car (last notes))))
                 (window-start (window-start))
@@ -410,6 +436,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
             notes)
        ;; NOTE(nox): This only considers the first group of notes from the same page that
        ;; are together in the document (no notes from other pages in between).
+       ;; TODO(nox): Should this focus another one if the point is inside those?
        (org-element-map contents 'headline
          (lambda (headline)
            (let ((property (car (org-noter--page-property headline))))
@@ -422,26 +449,6 @@ is member of `org-noter-notes-window-behavior' (which see)."
        (when notes
          (setq notes (nreverse notes))
          (org-noter--focus-notes-region notes))))))
-
-;; IMPORTANT UPDATE THIS!!!
-(defun org-noter--restore-windows (session)
-  (when (org-noter--valid-session session)
-    (with-selected-frame (org-noter--session-frame session)
-      (delete-other-windows)
-      (let ((doc-window (selected-window))
-            (doc-buffer (org-noter--session-doc-buffer session))
-            (notes-window (if (eq org-noter-split-direction 'horizontal)
-                              (split-window-right)
-                            (split-window-below)))
-            (notes-buffer (org-noter--session-notes-buffer session)))
-        (set-window-buffer doc-window doc-buffer)
-        (set-window-dedicated-p doc-window t)
-        (set-window-buffer notes-window notes-buffer)
-        (with-current-buffer notes-buffer
-          (org-noter--narrow-to-root
-           (org-noter--parse-root
-            notes-buffer (org-noter--session-property-text session))))
-        (cons doc-window notes-window)))))
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
@@ -662,6 +669,9 @@ This is in relation to the current note (where the point is now)."
          nil t org-element-all-elements)
        (if previous
            (progn
+             ;; NOTE(nox): This needs to be manual so we can focus the correct note (there
+             ;; may be several notes on this page, and the automatic page handler would
+             ;; focus the first one).
              (org-noter--goto-page (org-noter--page-property previous))
              (org-noter--focus-notes-region (list previous)))
          (error "There is no previous note")))
