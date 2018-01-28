@@ -78,9 +78,6 @@ When the list contains:
   :type '(set (const :tag "Session start" start)
               (const :tag "Scrolling" scroll)))
 
-(defconst org-noter-property-behavior "NOTER_NOTES_BEHAVIOR"
-  "Property for overriding global `org-noter-notes-window-behavior'.")
-
 (defcustom org-noter-notes-window-location 'horizontal-split
   "Whether the notes window should appear in the main frame (horizontal or vertical split) or on a separate frame.
 
@@ -91,13 +88,10 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (const :tag "Vertical" vertical-split)
                  (const :tag "Other frame" 'other-frame)))
 
-(defconst org-noter-property-location "NOTER_NOTES_LOCATION"
-  "Property for overriding global `org-noter-notes-window-location'.")
-
 ;; --------------------------------------------------------------------------------
-;; NOTE(nox): Private variables
+;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
-  frame doc-mode display-name org-file-path doc-file-path property-text
+  frame doc-mode display-name notes-file-path doc-file-path property-text
   notes-buffer doc-buffer level window-behavior window-location)
 
 (defvar org-noter--sessions nil
@@ -109,8 +103,76 @@ is member of `org-noter-notes-window-behavior' (which see)."
 (defvar org-noter--inhibit-page-handler nil
   "Prevent page change from updating point in notes.")
 
+(defconst org-noter-property-behavior "NOTER_NOTES_BEHAVIOR"
+  "Property for overriding global `org-noter-notes-window-behavior'.")
+
+(defconst org-noter-property-location "NOTER_NOTES_LOCATION"
+  "Property for overriding global `org-noter-notes-window-location'.")
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Utility functions
+(defun org-noter--create-session (ast document-property-value notes-file-path)
+  (let* ((display-name (org-element-property :raw-value ast))
+         (document (find-file-noselect document-property-value))
+
+         (document-buffer
+          (make-indirect-buffer
+           document (generate-new-buffer-name (format "org-noter - %s" display-name))))
+
+         (notes-buffer
+          (make-indirect-buffer
+           (current-buffer)
+           (generate-new-buffer-name (format "org-noter - Notes of %s" display-name)) t))
+
+         (session
+          (make-org-noter--session
+           :display-name display-name
+           :frame (make-frame `((name . ,(format "Emacs Org-noter - %s" display-name))
+                                (fullscreen . maximized)))
+           :doc-mode (buffer-local-value 'major-mode document)
+           :property-text document-property-value
+           :notes-file-path notes-file-path
+           :doc-file-path doc-file-path
+           :doc-buffer document-buffer
+           :notes-buffer notes-buffer
+           :level (org-element-property :level ast)
+           :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
+           :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location))))
+
+    (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
+    (push session org-noter--sessions)
+
+    (org-noter--setup-windows session)
+
+    (with-current-buffer document-buffer
+      (setq buffer-file-name doc-file-path)
+      (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+             (pdf-view-mode)
+             (add-hook 'pdf-view-after-change-page-hook
+                       'org-noter--page-change-handler nil t))
+            ((eq (org-noter--session-doc-mode session) 'doc-view-mode)
+             (doc-view-mode)
+             (advice-add 'doc-view-goto-page :after 'org-noter--doc-view-advice))
+            (t (error "This document handler is not supported :/")))
+      (org-noter-doc-mode 1)
+      (setq org-noter--session session)
+      (kill-local-variable 'kill-buffer-hook)
+      (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t))
+
+    (with-current-buffer notes-buffer
+      (org-noter-notes-mode 1)
+      (setq buffer-file-name notes-file-path
+            org-noter--session session
+            fringe-indicator-alist '((truncation . nil)))
+      (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t)
+      (add-hook 'window-scroll-functions 'org-noter--set-scroll nil t)
+      (let ((ast (org-noter--parse-root))
+            (current-page (org-noter--selected-note-page t)))
+        (org-noter--set-read-only ast)
+        (if current-page
+            (org-noter--goto-page current-page)
+          (org-noter--page-change-handler 1))))))
+
 (defun org-noter--valid-session (session &optional first-run)
   (if (and session
            (frame-live-p (org-noter--session-frame session))
@@ -266,7 +328,8 @@ is member of `org-noter-notes-window-behavior' (which see)."
              (doc-window (selected-window))
              (notes-buffer (org-noter--session-notes-buffer session))
              (notes-window-location (org-noter--session-window-location session))
-             (notes-window-behavior (org-noter--session-window-behavior session)))
+             (notes-window-behavior (org-noter--session-window-behavior session))
+             notes-window)
 
         (set-window-buffer doc-window doc-buffer)
         (set-window-dedicated-p doc-window t)
@@ -276,27 +339,32 @@ is member of `org-noter-notes-window-behavior' (which see)."
            (org-noter--parse-root
             notes-buffer (org-noter--session-property-text session))))
 
-        (when (and (not (get-buffer-window notes-buffer t)) (member 'start notes-window-behavior))
-          (if (eq notes-window-location 'other-frame)
-              (switch-to-buffer-other-frame notes-buffer)
-            (set-window-buffer
-             (if (eq notes-window-location 'horizontal-split)
-                 (split-window-right)
-               (split-window-below))
-             notes-buffer)))))))
+        (setq
+         notes-window
+         (or (get-buffer-window notes-buffer t)
+             (when (member 'start notes-window-behavior)
+               (if (eq notes-window-location 'other-frame)
+                   (get-buffer-window (switch-to-buffer-other-frame notes-buffer) t)
+                 (set-window-buffer
+                  (if (eq notes-window-location 'horizontal-split)
+                      (split-window-right)
+                    (split-window-below))
+                  notes-buffer)))))
+
+        (org-noter--set-scroll notes-window)))))
 
 (defun org-noter--get-doc-window ()
   (org-noter--with-valid-session
    (get-buffer-window (org-noter--session-doc-buffer session)
                       (org-noter--session-frame session))))
 
-(defun org-noter--get-notes-window (&optional force)
+(defun org-noter--get-notes-window (&optional type)
   (org-noter--with-valid-session
    (let ((buffer (org-noter--session-notes-buffer session))
          (window-location (org-noter--session-window-location session))
          (window-behavior (org-noter--session-window-behavior session)))
      (or (get-buffer-window buffer t)
-         (when (or force (member 'scroll window-behavior))
+         (when (or (eq type 'force) (memq type window-behavior))
            (if (eq window-location 'other-frame)
                (get-buffer-window (switch-to-buffer-other-frame buffer) t)
              ;; TODO(nox): This should honor the split right/down setting... But what
@@ -304,12 +372,14 @@ is member of `org-noter-notes-window-behavior' (which see)."
              ;; doing this is fine...
              (display-buffer buffer nil (org-noter--session-frame session))))))))
 
-(defmacro org-noter--with-selected-notes-window (&rest body)
+(defmacro org-noter--with-selected-notes-window (error-str &rest body)
   `(org-noter--with-valid-session
     (let ((notes-window (org-noter--get-notes-window)))
-     (when notes-window
-       (with-selected-window notes-window
-         (progn ,@body))))))
+      (if notes-window
+          (with-selected-window notes-window
+            (progn ,@body))
+        (when ,error-str
+          (user-error "%s" ,error-str))))))
 
 (defun org-noter--notes-window-behavior-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter-property-behavior)) ast))
@@ -379,77 +449,100 @@ is member of `org-noter-notes-window-behavior' (which see)."
 
 (defun org-noter--ask-scroll-percentage ()
   (org-noter--with-valid-session
-   (let ((window (org-noter--get-doc-window))
-         event)
-     (when (window-live-p window)
-       (with-selected-window window
-         (while (not (and (eq 'mouse-1 (car event))
-                          (eq window (posn-window (event-start event)))))
-           (setq event (read-event "Click where you want the start of the note to be!")))
-         (let* ((slice (org-noter--get-slice))
-                (display-height (cdr (image-display-size (image-get-display-property))))
-                (current-scroll (window-vscroll))
-                (top (+ current-scroll (cdr (posn-col-row (event-start event)))))
-                (display-percentage (/ top display-height))
-                (percentage (+ (car slice) (* (cdr slice) display-percentage))))
-           (max 0 (min 1 percentage))))))))
+   (let (event)
+     (with-selected-window (org-noter--get-doc-window)
+       (while (not (and (eq 'mouse-1 (car event))
+                        (eq window (posn-window (event-start event)))))
+         (setq event (read-event "Click where you want the start of the note to be!")))
+       (let* ((slice (org-noter--get-slice))
+              (display-height (cdr (image-display-size (image-get-display-property))))
+              (current-scroll (window-vscroll))
+              (top (+ current-scroll (cdr (posn-col-row (event-start event)))))
+              (display-percentage (/ top display-height))
+              (percentage (+ (car slice) (* (cdr slice) display-percentage))))
+         (max 0 (min 1 percentage)))))))
 
 (defun org-noter--scroll-to-percentage (percentage)
   (org-noter--with-valid-session
-   (let ((window (org-noter--get-doc-window)))
-     (when (window-live-p window)
-       (with-selected-window window
-         (let* ((slice (org-noter--get-slice))
-                (display-height (cdr (image-display-size (image-get-display-property))))
-                (current-scroll (window-vscroll))
-                (display-percentage (/ (- percentage (car slice)) (cdr slice)))
-                goal-scroll diff-scroll)
-           (setq display-percentage (min 1 (max 0 display-percentage))
-                 goal-scroll (max 0 (floor (* display-percentage display-height)))
-                 diff-scroll (- goal-scroll current-scroll))
-           (image-scroll-up diff-scroll)))))))
+   (with-selected-window (org-noter--get-doc-window)
+     (let* ((slice (org-noter--get-slice))
+            (display-height (cdr (image-display-size (image-get-display-property))))
+            (current-scroll (window-vscroll))
+            (display-percentage (/ (- percentage (car slice)) (cdr slice)))
+            goal-scroll diff-scroll)
+       (setq display-percentage (min 1 (max 0 display-percentage))
+             goal-scroll (max 0 (floor (* display-percentage display-height)))
+             diff-scroll (- goal-scroll current-scroll))
+       (image-scroll-up diff-scroll)))))
 
 (defun org-noter--goto-page (page-cons)
-  (org-noter--with-valid-session
-   (with-selected-window (org-noter--get-doc-window)
-     (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
-            (pdf-view-goto-page (car page-cons)))
-           ((eq (org-noter--session-doc-mode session) 'doc-view-mode)
-            (doc-view-goto-page (car page-cons)))
-           (t (error "This mode is not supported")))
-     (org-noter--scroll-to-percentage (cdr page-cons)))))
+  (when (consp page-cons)
+    (org-noter--with-valid-session
+     (with-selected-window (org-noter--get-doc-window)
+       (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+              (pdf-view-goto-page (car page-cons)))
+             ((eq (org-noter--session-doc-mode session) 'doc-view-mode)
+              (doc-view-goto-page (car page-cons)))
+             (t (error "This mode is not supported")))
+       (org-noter--scroll-to-percentage (cdr page-cons))))))
+
+(defun org-noter--compare-page-cons (comp p1 p2)
+  "Compare P1 and P2, page-cons.
+When COMP is '< or '>, it works as expected.
+When COMP is '>f, it will return t when P1 is a page greater than
+P2 or, when in the same page, if P1 is the First of the two."
+  (cond ((not p2)
+         t)
+        ((eq comp '<)
+         (or (< (car p1) (car p2))
+             (and (= (car p1) (car p2))
+                  (< (cdr p1) (cdr p2)))))
+        ((eq comp '>)
+         (or (> (car p1) (car p2))
+             (and (= (car p1) (car p2))
+                  (> (cdr p1) (cdr p2)))))
+        ((eq comp '>f)
+         (or (> (car p1) (car p2))
+             (and (= (car p1) (car p2))
+                  (< (cdr p1) (cdr p2)))))))
 
 (defun org-noter--focus-notes-region (notes)
-  (org-noter--with-selected-notes-window
-   (save-excursion
-     (dolist (note notes)
-       (goto-char (org-element-property :begin note))
-       (org-show-context)
-       (org-show-siblings)
-       (org-show-subtree)))
-   (let* ((begin (org-element-property :begin (car notes)))
-          (end (org-element-property :end (car (last notes))))
-          (window-start (window-start))
-          (window-end (window-end nil t))
-          (num-lines (count-lines begin end))
-          (curr-point (point))
-          (target (org-noter--get-properties-end (car notes))))
-     (if (> num-lines (window-height))
-         (progn
-           (goto-char begin)
-           (recenter 0))
-       (cond ((< begin window-start)
-              (goto-char begin)
-              (recenter 0))
-             ((> end window-end)
-              (goto-char end)
-              (recenter -2))))
-     (if (or (< curr-point begin)
-             (and (not (eq (point-max) end))
-                  (>= curr-point end)))
-         (goto-char target)
-       (goto-char curr-point))
-     (org-cycle-hide-drawers 'all))))
+  (when notes
+    (org-noter--with-selected-notes-window
+     nil
+     (save-excursion
+       (dolist (note notes)
+         (goto-char (org-element-property :begin note))
+         (org-show-context)
+         (org-show-siblings)
+         (org-show-subtree)))
+
+     (let* ((begin (org-element-property :begin (car notes)))
+            (end (org-element-property :end (car (last notes))))
+            (window-start (window-start))
+            (window-end (window-end nil t))
+            (num-lines (count-lines begin end))
+            (curr-point (point))
+            (target (org-noter--get-properties-end (car notes))))
+
+       (if (> num-lines (window-height))
+           (progn
+             (goto-char begin)
+             (recenter 0))
+         (cond ((< begin window-start)
+                (goto-char begin)
+                (recenter 0))
+               ((> end window-end)
+                (goto-char end)
+                (recenter -2))))
+
+       (if (or (< curr-point begin)
+               (and (not (eq (point-max) end))
+                    (>= curr-point end)))
+           (goto-char target)
+         (goto-char curr-point))
+
+       (org-cycle-hide-drawers 'all)))))
 
 (defun org-noter--page-change-handler (&optional page-arg)
   (org-noter--with-valid-session
@@ -470,9 +563,9 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (push headline notes)
                  nil))))
          nil t org-element-all-elements)
-       (when notes
-         (setq notes (nreverse notes))
-         (org-noter--focus-notes-region notes))))))
+
+       (org-noter--get-notes-window 'scroll)
+       (org-noter--focus-notes-region (nreverse notes))))))
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
@@ -491,6 +584,63 @@ With a prefix ARG, remove start page."
             (org-entry-delete nil org-noter-property-note-page)
           (org-entry-put nil org-noter-property-note-page (number-to-string page))))))))
 
+(defun org-noter-set-notes-window-behavior (arg)
+  "Set the notes window behaviour for the current session.
+With a prefix argument, it becomes persistent for that document.
+
+See `org-noter-notes-window-behavior' for more information."
+  (interactive "P")
+  (org-noter--with-valid-session
+   (let* ((inhibit-read-only t)
+          (ast (org-noter--parse-root))
+          (behavior-possibilities
+           '(("Default" . nil)
+             ("On start and scroll" . (start scroll))
+             ("On start" . (start))
+             ("On scroll" . (scroll))
+             ("Never" . (never))))
+          (behavior
+           (cdr (assoc (completing-read "Behavior: " behavior-possibilities nil t)
+                       behavior-possibilities))))
+     (setf (org-noter--session-window-behavior session)
+           (or behavior org-noter-notes-window-behavior))
+     (when arg
+       (with-current-buffer (org-noter--session-notes-buffer session)
+         (org-with-wide-buffer
+          (goto-char (org-element-property :begin ast))
+          (if behavior
+              (org-entry-put nil org-noter-property-behavior
+                             (format "%s" behavior))
+            (org-entry-delete nil org-noter-property-behavior))))))))
+
+(defun org-noter-set-notes-window-location (arg)
+  "Set the notes window default location for the current session.
+With a prefix argument, it becomes persistent for that document.
+
+See `org-noter-notes-window-behavior' for more information."
+  (interactive "P")
+  (org-noter--with-valid-session
+   (let* ((inhibit-read-only t)
+          (ast (org-noter--parse-root))
+          (location-possibilities
+           '(("Default" . nil)
+             ("Horizontal split" . horizontal-split)
+             ("Vertical split" . vertical-split)
+             ("Other frame" . other-frame)))
+          (location
+           (cdr (assoc (completing-read "Location: " location-possibilities nil t)
+                       location-possibilities))))
+     (setf (org-noter--session-window-location session)
+           (or location org-noter-notes-window-location))
+     (when arg
+       (with-current-buffer (org-noter--session-notes-buffer session)
+         (org-with-wide-buffer
+          (goto-char (org-element-property :begin ast))
+          (if location
+              (org-entry-put nil org-noter-property-location
+                             (format "%s" location))
+            (org-entry-delete nil org-noter-property-location))))))))
+
 (defun org-noter-kill-session (&optional session)
   "Kill an `org-noter' session.
 
@@ -507,12 +657,12 @@ want to kill."
     (if (and org-noter--session (not session))
         (setq session org-noter--session)
       (setq session nil)
-      (let (collection default doc-display-name org-file-name display)
+      (let (collection default doc-display-name notes-file-name display)
         (dolist (session org-noter--sessions)
           (setq doc-display-name (org-noter--session-display-name session)
-                org-file-name (file-name-nondirectory
-                               (org-noter--session-org-file-path session))
-                display (concat doc-display-name " - " org-file-name))
+                notes-file-name (file-name-nondirectory
+                                 (org-noter--session-notes-file-path session))
+                display (concat doc-display-name " - " notes-file-name))
           (when (eq session org-noter--session) (setq default display))
           (push (cons display session) collection))
         (setq session (cdr (assoc (completing-read "Which session? " collection nil t
@@ -565,9 +715,10 @@ more info)."
           (contents (when ast (org-element-contents ast)))
           (page (org-noter--current-page))
           (insertion-level (1+ (org-element-property :level ast)))
-          (window (org-noter--get-notes-window t))
+          (window (org-noter--get-notes-window 'force))
           notes best-previous-element)
      (setq scroll-percentage (or scroll-percentage 0))
+
      (org-element-map contents 'headline
        (lambda (headline)
          (let ((property-cons (org-noter--page-property headline)))
@@ -583,80 +734,83 @@ more info)."
                (setq best-previous-element headline)))))
        nil nil org-element-all-elements)
      (setq notes (nreverse notes))
-     (with-selected-window window
-       ;; NOTE(nox): Need to be careful changing the next part, it is a bit complicated to
-       ;; get it right...
-       (if (and notes (not arg))
-           (let ((point (point))
-                 default note has-contents num-blank collection)
-             (if (eq (length notes) 1)
-                 (setq note (car notes))
-               (dolist (iterator notes (setq collection (nreverse collection)))
-                 (let ((display (org-element-property :raw-value iterator)))
-                   (when (or (not default)
-                             (>= point (org-element-property :begin iterator)))
-                     (setq default display))
-                   (push (cons display iterator) collection)))
-               (setq note
-                     (cdr
-                      (assoc (completing-read "Insert in which note? " collection nil t nil nil
-                                              default)
-                             collection))))
-             (when note
-               (setq has-contents
-                     (org-element-map (org-element-contents note) org-element-all-elements
-                       (lambda (element)
-                         (unless (memq (org-element-type element) '(section property-drawer))
-                           t))
-                       nil t)
-                     num-blank (org-element-property :post-blank note))
-               (goto-char (org-element-property :end note))
-               ;; NOTE(nox): Org doesn't count `:post-blank' when at the end of the buffer
-               (when (org-next-line-empty-p) ;; NOTE(nox): This is only true at the end, I think
-                 (goto-char (point-max))
-                 (save-excursion
-                   (beginning-of-line)
-                   (while (looking-at "[[:space:]]*$")
-                     (setq num-blank (1+ num-blank))
-                     (beginning-of-line 0))))
-               (cond (has-contents
-                      (while (< num-blank 2)
-                        (insert "\n")
-                        (setq num-blank (1+ num-blank))))
-                     (t (when (eq num-blank 0) (insert "\n"))))
-               (when (org-at-heading-p)
-                 (forward-line -1))))
-         (let ((title (read-string "Title: ")))
-           (when (zerop (length title))
-             (setq title (replace-regexp-in-string
-                          (regexp-quote "$p$") (number-to-string page)
-                          org-noter-default-heading-title)))
-           (if best-previous-element
-               (progn
-                 (goto-char (org-element-property :end best-previous-element))
-                 (org-noter--insert-heading insertion-level))
-             (goto-char
-              (org-element-map contents 'section
-                (lambda (section)
-                  (org-element-property :end section))
-                nil t org-element-all-elements))
-             ;; NOTE(nox): This is needed to insert in the right place...
-             (outline-show-entry)
-             (org-noter--insert-heading insertion-level))
-           (insert title)
-           (end-of-line)
-           (if (and (not (eobp)) (org-next-line-empty-p))
-               (forward-line)
-             (insert "\n"))
-           (org-entry-put nil org-noter-property-note-page
-                          (format "%s" (if (zerop scroll-percentage)
-                                           page
-                                         (cons page scroll-percentage))))))
-       (org-show-context)
-       (org-show-siblings)
-       (org-show-subtree)
-       (org-cycle-hide-drawers 'all))
-     (select-window window))))
+
+     (select-frame-set-input-focus (window-frame window))
+     (select-window window)
+
+     ;; NOTE(nox): Need to be careful changing the next part, it is a bit complicated to
+     ;; get it right...
+     (if (and notes (not arg))
+         (let ((point (point))
+               default note has-contents num-blank collection)
+           (if (eq (length notes) 1)
+               (setq note (car notes))
+             (dolist (iterator notes (setq collection (nreverse collection)))
+               (let ((display (org-element-property :raw-value iterator)))
+                 (when (or (not default)
+                           (>= point (org-element-property :begin iterator)))
+                   (setq default display))
+                 (push (cons display iterator) collection)))
+             (setq note
+                   (cdr
+                    (assoc (completing-read "Insert in which note? " collection nil t nil nil
+                                            default)
+                           collection))))
+           (when note
+             (setq has-contents
+                   (org-element-map (org-element-contents note) org-element-all-elements
+                     (lambda (element)
+                       (unless (memq (org-element-type element) '(section property-drawer))
+                         t))
+                     nil t)
+                   num-blank (org-element-property :post-blank note))
+             (goto-char (org-element-property :end note))
+             ;; NOTE(nox): Org doesn't count `:post-blank' when at the end of the buffer
+             (when (org-next-line-empty-p) ;; NOTE(nox): This is only true at the end, I think
+               (goto-char (point-max))
+               (save-excursion
+                 (beginning-of-line)
+                 (while (looking-at "[[:space:]]*$")
+                   (setq num-blank (1+ num-blank))
+                   (beginning-of-line 0))))
+             (cond (has-contents
+                    (while (< num-blank 2)
+                      (insert "\n")
+                      (setq num-blank (1+ num-blank))))
+                   (t (when (eq num-blank 0) (insert "\n"))))
+             (when (org-at-heading-p)
+               (forward-line -1))))
+
+       (let ((title (read-string "Title: ")))
+         (when (zerop (length title))
+           (setq title (replace-regexp-in-string
+                        (regexp-quote "$p$") (number-to-string page)
+                        org-noter-default-heading-title)))
+         (if best-previous-element
+             (progn
+               (goto-char (org-element-property :end best-previous-element))
+               (org-noter--insert-heading insertion-level))
+           (goto-char
+            (org-element-map contents 'section
+              (lambda (section)
+                (org-element-property :end section))
+              nil t org-element-all-elements))
+           ;; NOTE(nox): This is needed to insert in the right place...
+           (outline-show-entry)
+           (org-noter--insert-heading insertion-level))
+         (insert title)
+         (end-of-line)
+         (if (and (not (eobp)) (org-next-line-empty-p))
+             (forward-line)
+           (insert "\n"))
+         (org-entry-put nil org-noter-property-note-page
+                        (format "%s" (if (zerop scroll-percentage)
+                                         page
+                                       (cons page scroll-percentage))))))
+     (org-show-context)
+     (org-show-siblings)
+     (org-show-subtree)
+     (org-cycle-hide-drawers 'all))))
 
 (defun org-noter-insert-localized-note ()
   "Insert note associated with part of a page.
@@ -668,28 +822,68 @@ See `org-noter-insert-note' docstring for more."
   (interactive)
   (org-noter-insert-note t (org-noter--ask-scroll-percentage)))
 
-;; (defun org-noter-next-page-with-notes ()
-;;   "Show next page that has notes, in relation to the current page.
-;; This will force the notes window to popup."
-;;   (interactive)
-;;   (org-noter--with-valid-session
-;;    (let ((current-page (org-noter--current-page))
-;;          (contents (org-element-contents (org-noter--parse-root)))
-;;          target-page)
-;;      (org-element-map contents 'headline
-;;        (lambda (headline)
-;;          (let ((page (car (org-noter--page-property headline))))
-;;            (when (and (> page current-page)
-;;                       (< page (or target-page most-positive-fixnum)))
-;;              (setq target-page page))))
-;;        nil t org-element-all-elements)
-;;      (org-noter--goto-page (cons page 0)))))
+(defun org-noter-sync-prev-page ()
+  "Show previous page that has notes, in relation to the current page.
+This will force the notes window to popup."
+  (interactive)
+  (org-noter--with-valid-session
+   (let ((current-page (cons (org-noter--current-page) 0))
+         (contents (org-element-contents (org-noter--parse-root)))
+         target-page)
+     (org-noter--get-notes-window 'force)
 
-(defun org-noter-sync-previous-page-note ()
+     (org-element-map contents 'headline
+       (lambda (headline)
+         (let ((page (org-noter--page-property headline)))
+           (when (and (org-noter--compare-page-cons '<  page current-page)
+                      (org-noter--compare-page-cons '>f page target-page))
+             (setq target-page page))))
+       nil nil org-element-all-elements)
+
+     (org-noter--get-notes-window 'force)
+     (select-window (org-noter--get-doc-window))
+     (if target-page
+         (org-noter--goto-page target-page)
+       (user-error "There are no more previous pages with notes")))))
+
+(defun org-noter-sync-current-page ()
+  "Show current page notes.
+This will force the notes window to popup."
+  (interactive)
+  (org-noter--with-valid-session
+   (let ((current-page (org-noter--current-page)))
+     (select-window (org-noter--get-notes-window 'force))
+     (org-noter--page-change-handler current-page))))
+
+(defun org-noter-sync-next-page ()
+  "Show next page that has notes, in relation to the current page.
+This will force the notes window to popup."
+  (interactive)
+  (org-noter--with-valid-session
+   (let ((current-page (cons (org-noter--current-page) 1))
+         (contents (org-element-contents (org-noter--parse-root)))
+         target-page)
+
+     (org-element-map contents 'headline
+       (lambda (headline)
+         (let ((page (org-noter--page-property headline)))
+           (when (and (org-noter--compare-page-cons '> page current-page)
+                      (org-noter--compare-page-cons '< page target-page))
+             (setq target-page page))))
+       nil nil org-element-all-elements)
+
+     (org-noter--get-notes-window 'force)
+     (select-window (org-noter--get-doc-window))
+     (if target-page
+         (org-noter--goto-page target-page)
+       (user-error "There are no more following pages with notes")))))
+
+(defun org-noter-sync-prev-note ()
   "Go to the page of the previous note, in relation to where the point is.
 As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
+   "No notes window exists"
    (let ((org-noter--inhibit-page-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
          previous)
@@ -715,22 +909,24 @@ As such, it will only work when the notes window exists."
        (error "There is no previous note"))))
   (select-window (org-noter--get-doc-window)))
 
-(defun org-noter-sync-page-note ()
+(defun org-noter-sync-current-note ()
   "Go the page of the selected note, in relation to where the point is.
 As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
+   "No notes window exists"
    (let ((page (org-noter--selected-note-page)))
      (if page
          (org-noter--goto-page page)
        (error "No note selected"))))
   (select-window (org-noter--get-doc-window)))
 
-(defun org-noter-sync-next-page-note ()
+(defun org-noter-sync-next-note ()
   "Go to the page of the next note, in relation to where the point is.
 As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
+   "No notes window exists"
    (let ((org-noter--inhibit-page-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
          next)
@@ -750,18 +946,24 @@ As such, it will only work when the notes window exists."
 
 (define-minor-mode org-noter-doc-mode
   "Minor mode for the document buffer."
-  :keymap `((,(kbd   "i") . org-noter-insert-note)
-            (,(kbd "M-i") . org-noter-insert-localized-note)
-            (,(kbd   "q") . org-noter-kill-session)
-            (,(kbd "M-p") . org-noter-sync-previous-page-note)
-            (,(kbd "M-.") . org-noter-sync-page-note)
-            (,(kbd "M-n") . org-noter-sync-next-page-note)))
+  :keymap `((,(kbd   "i")   . org-noter-insert-note)
+            (,(kbd "M-i")   . org-noter-insert-localized-note)
+            (,(kbd   "q")   . org-noter-kill-session)
+            (,(kbd "M-p")   . org-noter-sync-prev-page)
+            (,(kbd "M-.")   . org-noter-sync-current-page)
+            (,(kbd "M-n")   . org-noter-sync-next-page)
+            (,(kbd "C-M-p") . org-noter-sync-prev-note)
+            (,(kbd "C-M-.") . org-noter-sync-current-note)
+            (,(kbd "C-M-n") . org-noter-sync-next-note)))
 
 (define-minor-mode org-noter-notes-mode
   "Minor mode for the notes buffer."
-  :keymap `((,(kbd "M-p") . org-noter-sync-previous-page-note)
-            (,(kbd "M-.") . org-noter-sync-page-note)
-            (,(kbd "M-n") . org-noter-sync-next-page-note)))
+  :keymap `((,(kbd "M-p")   . org-noter-sync-prev-page)
+            (,(kbd "M-.")   . org-noter-sync-current-page)
+            (,(kbd "M-n")   . org-noter-sync-next-page)
+            (,(kbd "C-M-p") . org-noter-sync-prev-note)
+            (,(kbd "C-M-.") . org-noter-sync-current-note)
+            (,(kbd "C-M-n") . org-noter-sync-next-note)))
 
 ;;;###autoload
 (defun org-noter (arg)
@@ -786,25 +988,38 @@ when ARG < 0."
   (when (eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
       (error "`org-noter' must be issued inside a heading"))
-    (let ((org-file-path (buffer-file-name))
-          (doc-property (org-entry-get nil org-noter-property-doc-file
-                                       (not (equal arg '(4)))))
-          doc-file-path ast session)
-      (when (stringp doc-property) (setq doc-file-path (expand-file-name doc-property)))
-      (unless (and doc-file-path
-                   (not (file-directory-p doc-file-path))
-                   (file-readable-p doc-file-path))
+
+    (let* ((notes-file-path (buffer-file-name))
+
+           (document-property
+            (org-entry-get nil org-noter-property-doc-file
+                           (not (equal arg '(4)))))
+
+           (expanded-document-path
+            (when (stringp document-property)
+              (setq doc-file-path (expand-file-name document-property))))
+
+           ast session)
+
+      (unless (and expanded-document-path
+                   (not (file-directory-p expanded-document-path))
+                   (file-readable-p expanded-document-path))
+
         (setq doc-file-path (expand-file-name
                              (read-file-name
                               "Invalid or no document property found. Please specify a document path: "
                               nil nil t)))
-        (when (or (file-directory-p doc-file-path) (not (file-readable-p doc-file-path)))
-          (error "Invalid file path"))
-        (setq doc-property (if (y-or-n-p "Do you want a relative file name? ")
-                               (file-relative-name doc-file-path)
-                             doc-file-path))
-        (org-entry-put nil org-noter-property-doc-file doc-property))
-      (setq ast (org-noter--parse-root (current-buffer) doc-property))
+        (when (or (file-directory-p doc-file-path)
+                  (not (file-readable-p doc-file-path)))
+          (user-error "Invalid file path"))
+
+        (setq document-property (if (y-or-n-p "Do you want a relative file name? ")
+                                    (file-relative-name doc-file-path)
+                                  doc-file-path))
+        (org-entry-put nil org-noter-property-doc-file document-property))
+
+      (setq ast (org-noter--parse-root (current-buffer) document-property))
+
       (when (catch 'should-continue
               (when (or (numberp arg) (eq arg '-))
                 (let ((number (prefix-numeric-value arg)))
@@ -812,76 +1027,26 @@ when ARG < 0."
                       (find-file doc-file-path)
                     (find-file (file-name-directory doc-file-path))))
                 (throw 'should-continue nil))
+
+              ;; NOTE(nox): Test for existing sessions
               (dolist (session org-noter--sessions)
                 (when (org-noter--valid-session session)
                   (when (and (string= (org-noter--session-doc-file-path session)
                                       doc-file-path)
-                             (string= (org-noter--session-org-file-path session)
-                                      org-file-path))
+                             (string= (org-noter--session-notes-file-path session)
+                                      notes-file-path))
                     (let ((test-ast (with-current-buffer
                                         (org-noter--session-notes-buffer session)
                                       (org-noter--parse-root))))
                       (when (eq (org-element-property :begin ast)
                                 (org-element-property :begin test-ast))
-                        ;; NOTE(nox): This is an existing session!
                         (org-noter--setup-windows session)
                         (select-frame-set-input-focus (org-noter--session-frame session))
                         (throw 'should-continue nil))))))
               t)
-        (let* ((display-name (org-element-property :raw-value ast))
-               (notes-buffer-name
-                (generate-new-buffer-name (format "org-noter - Notes of %s" display-name)))
-               (doc-buffer-name
-                (generate-new-buffer-name (format "org-noter - %s" display-name)))
-               (orig-doc-buffer (find-file-noselect doc-file-path))
-               (frame (make-frame `((name . ,(format "Emacs Org-noter - %s" display-name))
-                                    (fullscreen . maximized))))
-               (notes-buffer (make-indirect-buffer (current-buffer) notes-buffer-name t))
-               (doc-buffer (make-indirect-buffer orig-doc-buffer doc-buffer-name))
-               (doc-mode (buffer-local-value 'major-mode orig-doc-buffer))
-               (level (org-element-property :level ast))
-               (window-behavior (or (org-noter--notes-window-behavior-property ast)
-                                    org-noter-notes-window-behavior))
-               (window-location (or (org-noter--notes-window-location-property ast)
-                                    org-noter-notes-window-location)))
-          (setq
-           session
-           (make-org-noter--session :frame frame :doc-mode doc-mode :display-name display-name
-                                    :property-text doc-property :org-file-path org-file-path
-                                    :doc-file-path doc-file-path :notes-buffer notes-buffer
-                                    :doc-buffer doc-buffer :level level
-                                    :window-behavior window-behavior :window-location window-location)))
-        (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
-        (push session org-noter--sessions)
-        (org-noter--setup-windows session)
-        (with-current-buffer (org-noter--session-doc-buffer session)
-          (setq buffer-file-name doc-file-path)
-          (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
-                 (pdf-view-mode)
-                 (add-hook 'pdf-view-after-change-page-hook
-                           'org-noter--page-change-handler nil t))
-                ((eq (org-noter--session-doc-mode session) 'doc-view-mode)
-                 (doc-view-mode)
-                 (advice-add 'doc-view-goto-page :after 'org-noter--doc-view-advice))
-                (t (error "This document handler is not supported :/")))
-          (org-noter-doc-mode 1)
-          (setq org-noter--session session)
-          (kill-local-variable 'kill-buffer-hook)
-          (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t))
-        (with-current-buffer (org-noter--session-notes-buffer session)
-          (org-noter-notes-mode 1)
-          (setq buffer-file-name org-file-path
-                org-noter--session session
-                fringe-indicator-alist '((truncation . nil)))
-          (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t)
-          (add-hook 'window-scroll-functions 'org-noter--set-scroll nil t)
-          (org-noter--set-scroll (get-buffer-window (org-noter--session-notes-buffer session)))
-          (let ((ast (org-noter--parse-root))
-                (current-page (org-noter--selected-note-page t)))
-            (org-noter--set-read-only ast)
-            (if current-page
-                (org-noter--goto-page current-page)
-              (org-noter--page-change-handler 1)))))))
+
+        (org-noter--create-session ast document-property notes-file-path))))
+
   (when (and (not (eq major-mode 'org-mode)) (org-noter--valid-session org-noter--session))
     (org-noter--setup-windows org-noter--session)
     (select-frame-set-input-focus (org-noter--session-frame org-noter--session))))

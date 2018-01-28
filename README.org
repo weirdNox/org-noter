@@ -61,8 +61,17 @@ The usage is very simple:
 
 This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
 
+** Customization
 There are some things you may change; find them through the customization interface or
-just open =org-noter.el=!
+just open =org-noter.el=! For some customizations, there are also overrides to the global
+settings, that you may set in each document.
+
+Some customizations:
+- You may set a start page for a document, by using ~org-noter-set-start-page~
+- With ~org-noter-set-notes-window-behavior~, you may change when the notes window pops up
+  for the session. With a prefix argument, it becomes persistent for that document.
+- With ~org-noter-set-notes-window-location~, you may change where the notes window pops
+  up for the session. With a prefix argument, it becomes persistent for that document.
 
 ** Screencast
 /Not yet available/... sorry!
@@ -71,24 +80,36 @@ just open =org-noter.el=!
 :PROPERTIES:
 :CUSTOM_ID: keys
 :END:
-| Key                              | Description                                 | Where?                    |
-| @@html:<kbd>@@i@@html:</kbd>@@   | Insert note on this page                    | Document buffer           |
-| @@html:<kbd>@@M-i@@html:</kbd>@@ | Insert new localized note                   | Document buffer           |
-| @@html:<kbd>@@q@@html:</kbd>@@   | Kill session                                | Document buffer           |
-| @@html:<kbd>@@M-p@@html:</kbd>@@ | Go to the page of the previous set of notes | Document and notes buffer |
-| @@html:<kbd>@@M-.@@html:</kbd>@@ | Go to the page of the selected set of notes | Document and notes buffer |
-| @@html:<kbd>@@M-n@@html:</kbd>@@ | Go to the page of the next set of notes     | Document and notes buffer |
+| Key                                | Description               | Where?                    |
+| @@html:<kbd>@@i@@html:</kbd>@@     | Insert note on this page  | Document buffer           |
+| @@html:<kbd>@@M-i@@html:</kbd>@@   | Insert new localized note | Document buffer           |
+| @@html:<kbd>@@q@@html:</kbd>@@     | Kill session              | Document buffer           |
+| @@html:<kbd>@@M-p@@html:</kbd>@@   | Sync previous page        | Document and notes buffer |
+| @@html:<kbd>@@M-.@@html:</kbd>@@   | Sync current page         | Document and notes buffer |
+| @@html:<kbd>@@M-n@@html:</kbd>@@   | Sync next page            | Document and notes buffer |
+| @@html:<kbd>@@C-M-p@@html:</kbd>@@ | Sync previous notes       | Document and notes buffer |
+| @@html:<kbd>@@C-M-.@@html:</kbd>@@ | Sync selected notes       | Document and notes buffer |
+| @@html:<kbd>@@C-M-n@@html:</kbd>@@ | Sync next notes           | Document and notes buffer |
 
 You can use the usual keybindings to navigate the document
 (@@html:<kbd>@@n@@html:</kbd>@@, @@html:<kbd>@@p@@html:</kbd>@@,
 @@html:<kbd>@@SPC@@html:</kbd>@@, ...).
 
+There are two types of sync commands:
+- To sync a page, means it will find the [previous|current|next] page and show the
+  corresponding notes for that page; as such, it will always pop up the notes buffer, if
+  it does not exist. This type of command is in relation to the current page in the
+  document.
+
+- To sync the notes, means it will find the [previous|current|next] notes and go to the
+  corresponding page on the document. So, you need to have the notes window open, because
+  this type of commands is in relation to the selected notes (ie, where the cursor is).
+
 In PDF Tools, I use the hook provided to know when the current page changes
 (=pdf-view-after-change-page-hook=). In DocView, I advise =doc-view-goto-page=.
 
 You may also want to check the docstrings of the functions associated with the
-keybindings, because there is some extra functionality in some. Also there other commands
-like ~org-noter-other-window-config~ and ~org-noter-set-start-page~.
+keybindings, because there is some extra functionality in some.
 
 ** Why a rewrite from scratch? Why not contribute to the existing Interleave package?
 Doing a refactor on a foreign codebase takes a long time because of several factors, like
