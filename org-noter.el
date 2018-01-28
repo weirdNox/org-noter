@@ -356,7 +356,13 @@ is member of `org-noter-notes-window-behavior' (which see)."
          (or (get-buffer-window notes-buffer t)
              (when (member 'start notes-window-behavior)
                (if (eq notes-window-location 'other-frame)
-                   (get-buffer-window (switch-to-buffer-other-frame notes-buffer) t)
+                   (let ((restore-frame (selected-frame))
+                         window)
+                     (switch-to-buffer-other-frame buffer)
+                     (setq window (get-buffer-window buffer t))
+                     (x-focus-frame restore-frame)
+                     (raise-frame (window-frame window))
+                     window)
                  (set-window-buffer
                   (if (eq notes-window-location 'horizontal-split)
                       (split-window-right)
@@ -378,7 +384,13 @@ is member of `org-noter-notes-window-behavior' (which see)."
      (or (get-buffer-window buffer t)
          (when (or (eq type 'force) (memq type window-behavior))
            (if (eq window-location 'other-frame)
-               (get-buffer-window (switch-to-buffer-other-frame buffer) t)
+               (let ((restore-frame (selected-frame))
+                     window)
+                 (switch-to-buffer-other-frame buffer)
+                 (setq window (get-buffer-window buffer t))
+                 (x-focus-frame restore-frame)
+                 (raise-frame (window-frame window))
+                 window)
              ;; TODO(nox): This should honor the split right/down setting... But what
              ;; should it do when there is another window besides the PDF? Maybe just
              ;; doing this is fine...
@@ -576,8 +588,9 @@ P2 or, when in the same page, if P1 is the First of the two."
                  nil))))
          nil t org-element-all-elements)
 
-       (org-noter--get-notes-window 'scroll)
-       (org-noter--focus-notes-region (nreverse notes))))))
+       (when notes
+         (org-noter--get-notes-window 'scroll)
+         (org-noter--focus-notes-region (nreverse notes)))))))
 
 (defun org-noter--modeline-text ()
   (org-noter--with-valid-session
@@ -878,8 +891,10 @@ This will force the notes window to popup."
 This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
-   (let ((current-page (org-noter--current-page)))
-     (select-window (org-noter--get-notes-window 'force))
+   (let ((window (org-noter--get-notes-window 'force))
+         (current-page (org-noter--current-page)))
+     (select-frame-set-input-focus (window-frame window))
+     (select-window window)
      (org-noter--page-change-handler current-page))))
 
 (defun org-noter-sync-next-page ()
@@ -946,7 +961,9 @@ As such, it will only work when the notes window exists."
      (if page
          (org-noter--goto-page page)
        (error "No note selected"))))
-  (select-window (org-noter--get-doc-window)))
+  (let ((window (org-noter--get-doc-window)))
+    (select-frame-set-input-focus (window-frame window))
+    (select-window window)))
 
 (defun org-noter-sync-next-note ()
   "Go to the page of the next note, in relation to where the point is.
