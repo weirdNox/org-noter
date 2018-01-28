@@ -88,6 +88,18 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (const :tag "Vertical" vertical-split)
                  (const :tag "Other frame" 'other-frame)))
 
+(defface org-noter-no-notes-exist-face
+  '((t
+     :foreground "chocolate"
+     :weight bold))
+  "Face for modeline note count, when 0.")
+
+(defface org-noter-notes-exist-face
+  '((t
+     :foreground "SpringGreen"
+     :weight bold))
+  "Face for modeline note count, when not 0.")
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
@@ -117,12 +129,12 @@ is member of `org-noter-notes-window-behavior' (which see)."
 
          (document-buffer
           (make-indirect-buffer
-           document (generate-new-buffer-name (format "org-noter - %s" display-name))))
+           document (generate-new-buffer-name display-name)))
 
          (notes-buffer
           (make-indirect-buffer
            (current-buffer)
-           (generate-new-buffer-name (format "org-noter - Notes of %s" display-name)) t))
+           (generate-new-buffer-name (concat "Notes of " display-name)) t))
 
          (session
           (make-org-noter--session
@@ -567,6 +579,21 @@ P2 or, when in the same page, if P1 is the First of the two."
        (org-noter--get-notes-window 'scroll)
        (org-noter--focus-notes-region (nreverse notes))))))
 
+(defun org-noter--modeline-text ()
+  (org-noter--with-valid-session
+   (let ((contents (org-element-contents (org-noter--parse-root)))
+         (current-page (org-noter--current-page))
+         (number-of-notes 0))
+     (org-element-map contents 'headline
+       (lambda (headline)
+         (let ((page (car (org-noter--page-property headline))))
+           (when (and page (= page current-page))
+             (setq number-of-notes (1+ number-of-notes)))))
+       nil nil org-element-all-elements)
+     (cond ((= number-of-notes 0) (propertize " 0 notes" 'face 'org-noter-no-notes-exist-face))
+           ((= number-of-notes 1) (propertize " 1 note" 'face 'org-noter-notes-exist-face))
+           (t (propertize (format " %d notes" number-of-notes) 'face 'org-noter-notes-exist-face))))))
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
 (defun org-noter-set-start-page (arg)
@@ -954,7 +981,13 @@ As such, it will only work when the notes window exists."
             (,(kbd "M-n")   . org-noter-sync-next-page)
             (,(kbd "C-M-p") . org-noter-sync-prev-note)
             (,(kbd "C-M-.") . org-noter-sync-current-note)
-            (,(kbd "C-M-n") . org-noter-sync-next-note)))
+            (,(kbd "C-M-n") . org-noter-sync-next-note))
+
+  (let ((mode-line-segment '(:eval (org-noter--modeline-text))))
+    (if org-noter-doc-mode
+        (push mode-line-segment mode-line-format)
+      (setq mode-line-format (delete mode-line-segment mode-line-format)))))
+
 
 (define-minor-mode org-noter-notes-mode
   "Minor mode for the notes buffer."
