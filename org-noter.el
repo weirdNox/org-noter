@@ -88,6 +88,11 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (const :tag "Vertical" vertical-split)
                  (const :tag "Other frame" 'other-frame)))
 
+(defcustom org-noter-auto-save-last-page nil
+  "When non-nil, save the last visited page automatically; when starting a new session, go to that page."
+  :group 'org-noter
+  :type 'boolean)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -104,7 +109,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
   frame doc-mode display-name notes-file-path doc-file-path property-text
-  notes-buffer doc-buffer level window-behavior window-location)
+  notes-buffer doc-buffer level window-behavior window-location auto-save-last-page)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -120,6 +125,9 @@ is member of `org-noter-notes-window-behavior' (which see)."
 
 (defconst org-noter-property-location "NOTER_NOTES_LOCATION"
   "Property for overriding global `org-noter-notes-window-location'.")
+
+(defconst org-noter-property-auto-save-last-page "NOTER_AUTO_SAVE_LAST_PAGE"
+  "Property for overriding global `org-noter-auto-save-last-page'.")
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Utility functions
@@ -149,7 +157,8 @@ is member of `org-noter-notes-window-behavior' (which see)."
            :notes-buffer notes-buffer
            :level (org-element-property :level ast)
            :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
-           :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location))))
+           :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location)
+           :auto-save-last-page (or (org-noter--auto-save-page-property ast) org-noter-auto-save-last-page))))
 
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
     (push session org-noter--sessions)
@@ -421,6 +430,13 @@ is member of `org-noter-notes-window-behavior' (which see)."
       (when (memq value '(horizontal-split vertical-split other-frame))
         value))))
 
+(defun org-noter--auto-save-page-property (ast)
+  (let ((property (org-element-property (intern (concat ":" org-noter-property-auto-save-last-page)) ast))
+        value)
+    (when (and (stringp property) (> (length property) 0))
+      (when (intern property)
+        t))))
+
 (defun org-noter--current-page ()
   (org-noter--with-valid-session
    (with-current-buffer (org-noter--session-doc-buffer session)
@@ -590,7 +606,10 @@ P2 or, when in the same page, if P1 is the First of the two."
 
        (when notes
          (org-noter--get-notes-window 'scroll)
-         (org-noter--focus-notes-region (nreverse notes)))))))
+         (org-noter--focus-notes-region (nreverse notes)))))
+
+   (when (org-noter--session-auto-save-last-page session)
+     (org-noter-set-start-page nil))))
 
 (defun org-noter--modeline-text ()
   (org-noter--with-valid-session
@@ -624,9 +643,29 @@ With a prefix ARG, remove start page."
             (org-entry-delete nil org-noter-property-note-page)
           (org-entry-put nil org-noter-property-note-page (number-to-string page))))))))
 
+(defun org-noter-set-auto-save-last-page (arg)
+  "This toggles saving the last visited page for this document.
+With a prefix ARG, delete the current setting and use the default."
+  (interactive "P")
+  (org-noter--with-valid-session
+   (let ((inhibit-read-only t)
+         (ast (org-noter--parse-root))
+         (new-setting (if arg
+                          org-noter-auto-save-last-page
+                        (not (org-noter--session-auto-save-last-page session)))))
+     (setf (org-noter--session-auto-save-last-page session)
+           new-setting)
+     (with-current-buffer (org-noter--session-notes-buffer session)
+       (org-with-wide-buffer
+        (goto-char (org-element-property :begin ast))
+        (if arg
+            (org-entry-delete nil org-noter-property-auto-save-last-page)
+          (org-entry-put nil org-noter-property-auto-save-last-page (format "%s" new-setting)))
+        (unless new-setting (org-entry-delete nil org-noter-property-note-page)))))))
+
 (defun org-noter-set-notes-window-behavior (arg)
   "Set the notes window behaviour for the current session.
-With a prefix argument, it becomes persistent for that document.
+With a prefix ARG, it becomes persistent for that document.
 
 See `org-noter-notes-window-behavior' for more information."
   (interactive "P")
@@ -655,7 +694,7 @@ See `org-noter-notes-window-behavior' for more information."
 
 (defun org-noter-set-notes-window-location (arg)
   "Set the notes window default location for the current session.
-With a prefix argument, it becomes persistent for that document.
+With a prefix ARG, it becomes persistent for that document.
 
 See `org-noter-notes-window-behavior' for more information."
   (interactive "P")

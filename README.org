@@ -36,6 +36,9 @@ note.
 - Simultaneous sessions :: You may open as many annotation sessions as you wish, at the
      same time! The root heading of each document will be made read-only to prevent you
      from deleting a heading from an open session.
+- Resume annotating from where you left :: When ~org-noter-auto-save-last-page~ is
+     non-nil, it will save the last page you visited and pick it up when you start another
+     session! You may also set this setting per-document, [[#custom][read more here]].
 
 Compatible with PDF Tools and DocView.
 
@@ -61,15 +64,21 @@ The usage is very simple:
 
 This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
 
-** Customization
+** Customization @@html:<a name="custom">@@
 There are some things you may change; find them through the customization interface or
 just open =org-noter.el=! For some customizations, there are also overrides to the global
 settings, that you may set in each document.
 
-Some customizations:
-- You may set a start page for a document, by using ~org-noter-set-start-page~
+Some customizations with an utility command:
+- You may set a start page for a document, by using ~org-noter-set-start-page~.
+
+- If, instead, you want to automatically resume from where you left, use
+  ~org-noter-set-auto-save-last-page~. With a prefix argument, it removes the local
+  setting and uses the default.
+
 - With ~org-noter-set-notes-window-behavior~, you may change when the notes window pops up
   for the session. With a prefix argument, it becomes persistent for that document.
+
 - With ~org-noter-set-notes-window-location~, you may change where the notes window pops
   up for the session. With a prefix argument, it becomes persistent for that document.
 
