@@ -747,21 +747,32 @@ want to kill."
         (setq session (cdr (assoc (completing-read "Which session? " collection nil t
                                                    nil nil default)
                                   collection))))))
+
   (when (and session (memq session org-noter--sessions))
     (let ((frame (org-noter--session-frame session))
           (notes-buffer (org-noter--session-notes-buffer session))
           (doc-buffer (org-noter--session-doc-buffer session)))
       (setq org-noter--sessions (delq session org-noter--sessions))
+
       (when (eq (length org-noter--sessions) 0)
         (setq delete-frame-functions (delq 'org-noter--handle-delete-frame
                                            delete-frame-functions))
         (when (featurep 'doc-view)
           (advice-remove  'org-noter--doc-view-advice 'doc-view-goto-page)))
+
       (when (frame-live-p frame)
         (delete-frame frame))
+
       (when (buffer-live-p doc-buffer)
         (kill-buffer doc-buffer))
+
       (when (buffer-live-p notes-buffer)
+        (dolist (window (get-buffer-window-list notes-buffer nil t))
+          (with-selected-frame (window-frame window)
+            (if (= (count-windows) 1)
+                (delete-frame)
+              (delete-window window))))
+
         (let ((base-buffer (buffer-base-buffer notes-buffer))
               (modified (buffer-modified-p notes-buffer)))
           (with-current-buffer notes-buffer
