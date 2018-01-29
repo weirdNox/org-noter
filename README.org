@@ -22,23 +22,28 @@ note.
 ** Features
 - Easy to use annotation interface :: Just press @@html:<kbd>@@i@@html:</kbd>@@ in the
      document buffer and annotate away!
+
 - Keep your notes in sync with the document :: When you take a note by pressing
      @@html:<kbd>@@i@@html:</kbd>@@, it saves the page where you took it so it is able to
      show you the notes while you scroll, automatically! Also, there is a new command
      that, besides saving the page, also asks for the page position, so it scrolls there
      when syncing the note page to the document!
+
 - Easy navigation :: You may navigate your document as usual, seeing the notes buffer
      scroll and show you the respective notes; however, you may also navigate by notes,
      only seeing annotated pages.
+
 - Isolated interface :: Each session has its own frame and the document and notes buffers
      are indirect buffers to the original ones. Killing any of these things will terminate
      your annotation session.
+
 - Simultaneous sessions :: You may open as many annotation sessions as you wish, at the
      same time! The root heading of each document will be made read-only to prevent you
      from deleting a heading from an open session.
+
 - Resume annotating from where you left :: When ~org-noter-auto-save-last-page~ is
      non-nil, it will save the last page you visited and pick it up when you start another
-     session! You may also set this setting per-document, [[#custom][read more here]].
+     session! You may also set this per-document, [[#custom][read more here]].
 
 Compatible with PDF Tools and DocView.
 
