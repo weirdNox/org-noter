@@ -1,7 +1,4 @@
 * Some ideas
-- Ability to group notes inside headings? Inserts always outside, but the user is able to
-  move them anywhere they want, still scrolling automatically and working with M-n, M-p...
-
 - Import utility:  have a folder  associated with a notes  file that holds  all documents;
   then, maybe something like ~org-noter-update-documents~ which will check if any document
   already  on the  notes  file is  missing  and mark  it  as such  (put  *MISSING* on  the
