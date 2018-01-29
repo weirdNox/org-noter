@@ -120,13 +120,13 @@ is member of `org-noter-notes-window-behavior' (which see)."
 (defvar org-noter--inhibit-page-handler nil
   "Prevent page change from updating point in notes.")
 
-(defconst org-noter-property-behavior "NOTER_NOTES_BEHAVIOR"
+(defconst org-noter--property-behavior "NOTER_NOTES_BEHAVIOR"
   "Property for overriding global `org-noter-notes-window-behavior'.")
 
-(defconst org-noter-property-location "NOTER_NOTES_LOCATION"
+(defconst org-noter--property-location "NOTER_NOTES_LOCATION"
   "Property for overriding global `org-noter-notes-window-location'.")
 
-(defconst org-noter-property-auto-save-last-page "NOTER_AUTO_SAVE_LAST_PAGE"
+(defconst org-noter--property-auto-save-last-page "NOTER_AUTO_SAVE_LAST_PAGE"
   "Property for overriding global `org-noter-auto-save-last-page'.")
 
 ;; --------------------------------------------------------------------------------
@@ -415,7 +415,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
           (user-error "%s" ,error-str))))))
 
 (defun org-noter--notes-window-behavior-property (ast)
-  (let ((property (org-element-property (intern (concat ":" org-noter-property-behavior)) ast))
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-behavior)) ast))
         value)
     (when (and (stringp property) (> (length property) 0))
       (setq value (car (read-from-string property)))
@@ -423,7 +423,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
         value))))
 
 (defun org-noter--notes-window-location-property (ast)
-  (let ((property (org-element-property (intern (concat ":" org-noter-property-location)) ast))
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-location)) ast))
         value)
     (when (and (stringp property) (> (length property) 0))
       (setq value (intern property))
@@ -431,7 +431,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
         value))))
 
 (defun org-noter--auto-save-page-property (ast)
-  (let ((property (org-element-property (intern (concat ":" org-noter-property-auto-save-last-page)) ast))
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-page)) ast))
         value)
     (when (and (stringp property) (> (length property) 0))
       (when (intern property)
@@ -489,8 +489,9 @@ is member of `org-noter-notes-window-behavior' (which see)."
 
 (defun org-noter--ask-scroll-percentage ()
   (org-noter--with-valid-session
-   (let (event)
-     (with-selected-window (org-noter--get-doc-window)
+   (let ((window (org-noter--get-doc-window))
+         event)
+     (with-selected-window window
        (while (not (and (eq 'mouse-1 (car event))
                         (eq window (posn-window (event-start event)))))
          (setq event (read-event "Click where you want the start of the note to be!")))
@@ -661,8 +662,8 @@ With a prefix ARG, delete the current setting and use the default."
        (org-with-wide-buffer
         (goto-char (org-element-property :begin ast))
         (if arg
-            (org-entry-delete nil org-noter-property-auto-save-last-page)
-          (org-entry-put nil org-noter-property-auto-save-last-page (format "%s" new-setting)))
+            (org-entry-delete nil org-noter--property-auto-save-last-page)
+          (org-entry-put nil org-noter--property-auto-save-last-page (format "%s" new-setting)))
         (unless new-setting (org-entry-delete nil org-noter-property-note-page)))))))
 
 (defun org-noter-set-notes-window-behavior (arg)
@@ -690,9 +691,9 @@ See `org-noter-notes-window-behavior' for more information."
          (org-with-wide-buffer
           (goto-char (org-element-property :begin ast))
           (if behavior
-              (org-entry-put nil org-noter-property-behavior
+              (org-entry-put nil org-noter--property-behavior
                              (format "%s" behavior))
-            (org-entry-delete nil org-noter-property-behavior))))))))
+            (org-entry-delete nil org-noter--property-behavior))))))))
 
 (defun org-noter-set-notes-window-location (arg)
   "Set the notes window default location for the current session.
@@ -718,9 +719,9 @@ See `org-noter-notes-window-behavior' for more information."
          (org-with-wide-buffer
           (goto-char (org-element-property :begin ast))
           (if location
-              (org-entry-put nil org-noter-property-location
+              (org-entry-put nil org-noter--property-location
                              (format "%s" location))
-            (org-entry-delete nil org-noter-property-location))))))))
+            (org-entry-delete nil org-noter--property-location))))))))
 
 (defun org-noter-kill-session (&optional session)
   "Kill an `org-noter' session.
