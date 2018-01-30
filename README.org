@@ -45,9 +45,11 @@ note.
      non-nil, it will save the last page you visited and pick it up when you start another
      session! You may also set this per-document, [[#custom][read more here]].
 
-- Organized notes :: Your notes don't need to be all at the same level. You may create
-     headlines with different notes inside! Also, this always creates notes in order, but
-     you may move them as you wish.
+- Keep your notes organized :: You may arrange your notes however you want; you may even
+     group them together inside headings!
+
+Many of these features are demonstrated in the screencast, so take a look if you are
+confused!
 
 Compatible with PDF Tools and DocView.
 
