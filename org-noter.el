@@ -428,8 +428,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
         value))))
 
 (defun org-noter--auto-save-page-property (ast)
-  (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-page)) ast))
-        value)
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-page)) ast)))
     (when (and (stringp property) (> (length property) 0))
       (when (intern property)
         t))))
@@ -443,23 +442,6 @@ is member of `org-noter-notes-window-behavior' (which see)."
   (org-noter--with-valid-session
    (org-noter--page-change-handler page)))
 
-(defun org-noter--selected-note-page (&optional with-start-page)
-  (org-noter--with-valid-session
-   (org-with-wide-buffer
-    (let ((root-doc-prop-vale (org-noter--session-property-text session)))
-      (org-noter--page-property
-       (catch 'break
-         (let ((try-next t)
-               property-value at-root)
-           (while try-next
-             (setq property-value (org-entry-get nil org-noter-property-note-page)
-                   at-root (string= (org-entry-get nil org-noter-property-doc-file)
-                                    root-doc-prop-vale))
-             (when (and property-value
-                        (or with-start-page (not at-root)))
-               (throw 'break property-value))
-             (setq try-next (org-up-heading-safe))))))))))
-
 (defun org-noter--page-property (arg)
   (let* ((property (if (stringp arg) arg
                      (org-element-property (intern (concat ":" org-noter-property-note-page))
@@ -472,6 +454,34 @@ is member of `org-noter-notes-window-behavior' (which see)."
             ((integerp value)
              (cons (max 1 value) 0))
             (t nil)))))
+
+(defun org-noter--get-containing-heading (&optional include-root)
+  "Get smallest containing heading that encloses the point and has page property.
+If the point isn't inside any heading with page property, return the outer heading."
+  (org-noter--with-valid-session
+   (unless (org-before-first-heading-p)
+     (org-with-wide-buffer
+      (org-back-to-heading)
+      (let ((root-doc-prop (org-noter--session-property-text session))
+            previous)
+        (catch 'break
+          (while t
+            (let ((prop (org-noter--page-property
+                         (org-entry-get nil org-noter-property-note-page)))
+                  (at-root (string= (org-entry-get nil org-noter-property-doc-file)
+                                    root-doc-prop))
+                  (heading (org-element-at-point)))
+              (when (and prop (or include-root (not at-root)))
+                (throw 'break heading))
+
+              (when (or at-root (not (org-up-heading-safe)))
+                (throw 'break (if include-root heading previous)))
+
+              (setq previous heading)))))))))
+
+(defun org-noter--selected-note-page (&optional with-start-page)
+  (org-noter--with-valid-session
+   (org-noter--page-property (org-noter--get-containing-heading with-start-page))))
 
 (defun org-noter--get-slice ()
   (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
@@ -526,7 +536,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
 
 (defun org-noter--compare-page-cons (comp p1 p2)
   "Compare P1 and P2, page-cons.
-When COMP is '< or '>, it works as expected.
+When COMP is '<, '<= or '>, it works as expected.
 When COMP is '>f, it will return t when P1 is a page greater than
 P2 or, when in the same page, if P1 is the _f_irst of the two."
   (cond ((not p1) nil)
@@ -1021,28 +1031,18 @@ As such, it will only work when the notes window exists."
    "No notes window exists"
    (let ((org-noter--inhibit-page-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
-         previous maybe-previous)
-
-     (org-element-map contents 'headline
-       (lambda (headline)
-         (let ((begin (org-element-property :begin headline))
-               (end (org-element-property :end headline)))
-           (if (< (point) begin)
-               t
-             (when (org-noter--page-property headline)
-               (if (or (< (point) end)
-                       (eq (point-max) end))
-                   (progn
-                     ;; NOTE(nox): We are inside this one, but we may be inside a nested
-                     ;; note. This _may be_ the one we want previous
-                     (setq previous (or maybe-previous
-                                        previous)
-                           maybe-previous headline))
-                 ;; NOTE(nox): This is definitely previous, so ignore maybe-previous
-                 (setq previous headline
-                       maybe-previous nil))
-               nil))))
-       nil t org-noter--note-search-no-recurse)
+         (current-begin
+          (org-element-property :begin (org-noter--get-containing-heading)))
+         previous)
+     (when current-begin
+       (org-element-map contents 'headline
+         (lambda (headline)
+           (when (org-noter--page-property headline)
+             (if (= current-begin (org-element-property :begin headline))
+                 t
+               (setq previous headline)
+               nil)))
+         nil t org-noter--note-search-no-recurse))
 
      (if previous
          (progn
@@ -1077,7 +1077,6 @@ As such, it will only work when the notes window exists."
    (let ((org-noter--inhibit-page-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
          next)
-
      (org-element-map contents 'headline
        (lambda (headline)
          (when (and
@@ -1154,7 +1153,7 @@ when ARG < 0."
             (when (stringp document-property)
               (setq doc-file-path (expand-file-name document-property))))
 
-           ast session)
+           ast)
 
       (unless (and expanded-document-path
                    (not (file-directory-p expanded-document-path))
