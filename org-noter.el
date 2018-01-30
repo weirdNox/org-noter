@@ -109,7 +109,8 @@ is member of `org-noter-notes-window-behavior' (which see)."
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
   frame doc-mode display-name notes-file-path doc-file-path property-text
-  notes-buffer doc-buffer level window-behavior window-location auto-save-last-page)
+  notes-buffer doc-buffer level window-behavior window-location auto-save-last-page
+  initialized)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -166,8 +167,6 @@ is member of `org-noter-notes-window-behavior' (which see)."
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
     (push session org-noter--sessions)
 
-    (org-noter--setup-windows session)
-
     (with-current-buffer document-buffer
       (setq buffer-file-name doc-file-path)
       (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
@@ -195,13 +194,16 @@ is member of `org-noter-notes-window-behavior' (which see)."
         (org-noter--set-read-only ast)
         (if current-page
             (org-noter--goto-page current-page)
-          (org-noter--page-change-handler 1))))))
+          (org-noter--page-change-handler 1))))
 
-(defun org-noter--valid-session (session &optional first-run)
+    (org-noter--setup-windows session)
+    (setf (org-noter--session-initialized session) t)))
+
+(defun org-noter--valid-session (session)
   (if (and session
            (frame-live-p (org-noter--session-frame session))
            (buffer-live-p (org-noter--session-doc-buffer session))
-           (or first-run
+           (or (not (org-noter--session-initialized session))
                (get-buffer-window (org-noter--session-doc-buffer session)
                                   (org-noter--session-frame session)))
            (buffer-live-p (org-noter--session-notes-buffer session)))
@@ -339,7 +341,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
 
 (defun org-noter--setup-windows (session)
   "Setup windows when starting session, respecting user configuration."
-  (when (org-noter--valid-session session t)
+  (when (org-noter--valid-session session)
     (with-selected-frame (org-noter--session-frame session)
       (delete-other-windows)
       (let* ((doc-buffer (org-noter--session-doc-buffer session))
@@ -347,7 +349,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
              (notes-buffer (org-noter--session-notes-buffer session))
              (notes-window-location (org-noter--session-window-location session))
              (notes-window-behavior (org-noter--session-window-behavior session))
-             notes-window)
+             (notes-window (get-buffer-window notes-buffer t)))
 
         (set-window-buffer doc-window doc-buffer)
         (set-window-dedicated-p doc-window t)
@@ -357,23 +359,18 @@ is member of `org-noter-notes-window-behavior' (which see)."
            (org-noter--parse-root
             notes-buffer (org-noter--session-property-text session))))
 
-        (setq
-         notes-window
-         (or (get-buffer-window notes-buffer t)
-             (when (member 'start notes-window-behavior)
-               (if (eq notes-window-location 'other-frame)
-                   (let ((restore-frame (selected-frame))
-                         window)
-                     (switch-to-buffer-other-frame buffer)
-                     (setq window (get-buffer-window buffer t))
-                     (x-focus-frame restore-frame)
-                     (raise-frame (window-frame window))
-                     window)
-                 (set-window-buffer
-                  (if (eq notes-window-location 'horizontal-split)
-                      (split-window-right)
-                    (split-window-below))
-                  notes-buffer)))))
+        (when (and (not notes-window) (member 'start notes-window-behavior))
+          (if (eq notes-window-location 'other-frame)
+              (let ((restore-frame (selected-frame)))
+                (switch-to-buffer-other-frame notes-buffer)
+                (setq notes-window (get-buffer-window notes-buffer t))
+                (x-focus-frame restore-frame)
+                (raise-frame (window-frame notes-window)))
+
+            (setq notes-window (if (eq notes-window-location 'horizontal-split)
+                                   (split-window-right)
+                                 (split-window-below)))
+            (set-window-buffer notes-window notes-buffer)))
 
         (org-noter--set-scroll notes-window)))))
 
@@ -440,8 +437,8 @@ is member of `org-noter-notes-window-behavior' (which see)."
      (image-mode-window-get 'page))))
 
 (defun org-noter--doc-view-advice (page)
-  (when (org-noter--valid-session org-noter--session)
-    (org-noter--page-change-handler page)))
+  (org-noter--with-valid-session
+   (org-noter--page-change-handler page)))
 
 (defun org-noter--selected-note-page (&optional with-start-page)
   (org-noter--with-valid-session
