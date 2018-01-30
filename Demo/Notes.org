@@ -1,0 +1,87 @@
+* Demo
+:PROPERTIES:
+:NOTER_DOCUMENT: Demo.pdf
+:END:
+Notice how the other heading *is not visible* anymore? Opening a session narrows the
+buffer to show only what matters.
+
+** Notes on page 2
+:PROPERTIES:
+:NOTER_PAGE: 2
+:END:
+This *automatically* becomes focused when you scroll to the associated page.
+
+** More notes on page 2
+:PROPERTIES:
+:NOTER_PAGE: 2
+:END:
+This one also becomes visible. Notice the *note counter* on mode-line of the document.
+
+** This note is localized
+:PROPERTIES:
+:NOTER_PAGE: (3 . 0.42222228571428577)
+:END:
+When scrolling through  the document, this works  the same as other notes.  However, it is
+useful when you  are using *note sync  commands*, which go through every  note. When using
+those commands to sync this note, the document view *is scrolled* to the point selected on
+the document.
+
+** All sessions are independent, and use indirect buffers
+:PROPERTIES:
+:NOTER_PAGE: 4
+:END:
+You may have *multiple Org-noter sessions* open at the same time, while always keeping the
+initial notes buffer intact, even though it narrows the indirect buffers!
+
+Each session has:
+- A dedicated frame
+- An indirect buffer for the document
+- An indirect buffer for the notes
+
+(You can change the behavior and location of the notes window btw!)
+
+** Group of notes
+*** Notes on page 5
+:PROPERTIES:
+:NOTER_PAGE: 5
+:END:
+This note is grouped with another one, and with things like this, you may organize notes
+however you want.
+*** Notes on page 6
+:PROPERTIES:
+:NOTER_PAGE: 6
+:END:
+Keep them tidy! Just so you know, even notes associated with pages may hold other notes
+inside.
+* Another demo
+:PROPERTIES:
+:NOTER_DOCUMENT: Demo.pdf
+:END:
+** Notes on page 1
+:PROPERTIES:
+:NOTER_PAGE: 1
+:END:
+** Create a session here!!
+:PROPERTIES:
+:NOTER_PAGE: 2
+:END:
+The session was created on *page 2*, where this note is!
+
+Besides, there is a command to enable auto-save and *resume where you left*, and another
+to set a different *start page* for the sessions.
+
+** Isolated
+:PROPERTIES:
+:NOTER_PAGE: 3
+:END:
+This is the same document, but as we are using indirect buffers, we may scroll and zoom
+differently!
+** Don't forget...
+:PROPERTIES:
+:NOTER_PAGE: 4
+:END:
+This is Org-mode!! You can use everything it provides, like inline $\LaTeX$ equations and
+babel!
+
+Besides, and a great selling point, everything lives on a separate Org notes file,
+searchable, taggable, however you want!

@@ -92,7 +92,10 @@ Some customizations with an utility command:
   up for the session. With a prefix argument, it becomes persistent for that document.
 
 ** Screencast
-/Not yet available/... sorry!
+[[https://www.youtube.com/watch?v=Un0ZRXTzufo][Watch the screencast here!]]
+
+The files used to make this screencast are shipped with the package, so you can try it
+even without creating the notes.
 
 ** Keybindings @@html:<a name="keys">@@
 :PROPERTIES:

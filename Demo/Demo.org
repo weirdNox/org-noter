@@ -1,0 +1,116 @@
+#+TITLE: Org-noter Demonstration
+#+DATE:
+#+AUTHOR:
+#+OPTIONS: toc:nil
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{titlesec}
+#+LATEX_HEADER: \setlength{\parindent}{15pt}
+#+LATEX_HEADER: \newcommand{\sectionbreak}{\clearpage}
+
+Hopefully this will give you some insight on how ~org-noter~ works! Bear with me!
+
+* Lorem ipsum? Great.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis nibh in mauris
+eleifend maximus. Aenean luctus malesuada nisl, ac interdum nisl semper at. Vestibulum
+consequat egestas tempus. Etiam in diam at odio egestas rhoncus eu eu ipsum. Ut sit amet
+porta lacus, sed mattis ante. Curabitur vehicula nulla ut hendrerit feugiat. Donec ac nunc
+dictum, porttitor nisi sed, consectetur enim. Vestibulum pellentesque erat mauris, at
+euismod enim euismod id. Maecenas efficitur luctus ex non scelerisque. Nulla leo ante,
+semper sit amet gravida id, eleifend sed orci. Pellentesque in risus quis nisi elementum
+efficitur.
+
+Nunc venenatis nunc vel dolor sollicitudin, sit amet sagittis ex molestie. Vestibulum at
+ante orci. Nunc scelerisque sit amet sem ac tincidunt. Aliquam scelerisque ipsum turpis,
+semper malesuada tellus pharetra dictum. Proin convallis tortor vitae massa maximus
+semper. Mauris in pretium purus. Duis sed ligula ipsum.
+
+Nulla ac massa sapien. Vivamus semper diam velit. Integer a rhoncus turpis. Suspendisse
+molestie pellentesque pharetra. Suspendisse dignissim tristique libero, ac bibendum nunc.
+Etiam congue nulla sed eros luctus, nec gravida enim blandit. Sed tincidunt tempor ante
+non aliquet. Praesent posuere quis augue nec elementum. Interdum et malesuada fames ac
+ante ipsum primis in faucibus. Etiam lectus urna, malesuada sed mollis vel, commodo in
+ante. Integer id nulla dignissim, ornare diam in, egestas arcu. Etiam quis nunc vel quam
+placerat bibendum. Integer vehicula porta mi, ut dapibus mauris. Nullam tortor mi,
+malesuada nec purus vitae, ultrices euismod neque.
+
+* And more!
+Aenean semper, nibh vel consectetur hendrerit, augue urna tempor neque, rutrum maximus
+velit ex id metus. Ut in tellus arcu. Vestibulum viverra dictum erat eu commodo. Morbi
+dignissim feugiat ornare. In volutpat, dui ac placerat porta, arcu odio vehicula risus, et
+pharetra diam massa a metus. Sed rutrum tristique volutpat. Donec vel auctor nibh, vitae
+finibus massa. Nulla pellentesque sapien non urna cursus, sodales finibus nisi sagittis.
+Duis eget dictum nisl. Vestibulum scelerisque, turpis vel varius interdum, tortor augue
+scelerisque erat, vel facilisis libero massa quis eros. In ultrices hendrerit semper.
+Donec pharetra non dolor ut iaculis. Sed suscipit, elit id porttitor fringilla, quam eros
+viverra ipsum, vitae imperdiet nunc tortor et mi. Etiam condimentum interdum quam, ac
+tempus massa mollis eget. Vestibulum sed nisl sit amet est commodo dapibus ac ac dolor.
+
+Suspendisse rutrum iaculis congue. Quisque nec bibendum mauris, nec porttitor ex. Cras
+ultrices tincidunt sem, eu ultricies nulla. Aliquam nec ex ac ipsum cursus posuere et
+gravida lorem. Fusce at orci a augue placerat dignissim. Aliquam eu leo in odio aliquam
+suscipit. Suspendisse rhoncus erat id enim dictum aliquet. Aliquam vel sem at risus
+fringilla molestie vel id justo. Donec vel venenatis augue. Aliquam ac ligula quis magna
+congue eleifend et ut justo. Nulla justo quam, malesuada in dapibus nec, dignissim non
+nunc. Nunc blandit, metus et varius bibendum, dui ligula pretium urna, eget tristique nibh
+sapien ut orci. Mauris scelerisque commodo risus non pharetra. Proin malesuada augue
+tellus, ac laoreet massa vestibulum vitae. Donec sit amet nulla quis turpis viverra
+facilisis. Suspendisse quis imperdiet arcu.
+
+* You know what follows...
+Suspendisse faucibus feugiat dignissim. Praesent tempus, dui id scelerisque placerat, est
+lorem feugiat massa, luctus faucibus est arcu a velit. Mauris elementum id urna sit amet
+laoreet. Cras maximus, sapien id porta sollicitudin, ligula orci auctor ex, ac luctus
+purus risus quis leo. Sed interdum ut tortor a elementum. Aliquam erat volutpat. Morbi
+accumsan imperdiet massa vel sodales. Donec ac auctor metus.
+
+Pellentesque posuere dui ac eleifend luctus. Morbi et vestibulum odio, eu porta ex.
+Vestibulum fermentum risus quis tellus tempor ultrices. Nam eu quam sem. Nam at interdum
+nunc. Cras eros augue, malesuada ac enim non, elementum cursus tellus. Integer nec nulla
+odio. Suspendisse volutpat nibh nec ultricies mollis. Praesent ut enim vel nisl mollis
+ultricies et vitae nisi. Vivamus vel tincidunt justo. Proin quis orci eget velit commodo
+ultricies. Suspendisse cursus ullamcorper dolor, ut pretium tellus pulvinar sit amet.
+Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis
+egestas. Cras leo quam, ornare eu erat eu, vehicula aliquam nulla.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc et orci imperdiet nulla
+gravida venenatis. In sit amet neque purus. Sed aliquam feugiat enim. Sed eget congue
+tellus. Quisque eleifend ipsum at fringilla ultricies. Aliquam non justo ac purus accumsan
+elementum. Duis ullamcorper nulla nec arcu feugiat vestibulum. Nam id eleifend lorem.
+Vivamus consectetur ultricies tempor. Donec vel scelerisque odio, ac consectetur enim.
+
+Mauris elementum facilisis massa a elementum. Donec auctor dui sit amet eros pulvinar
+sollicitudin. Nullam auctor sagittis purus sagittis semper. Etiam blandit magna vel auctor
+semper. Vivamus blandit pretium orci, non fringilla ex facilisis a. Praesent sed ex risus.
+Donec cursus felis eu justo pretium vehicula. Sed et posuere velit. Ut volutpat tempus
+lacus, nec accumsan massa viverra vitae. Maecenas a dui purus. Nunc suscipit ut ligula vel
+sodales. Integer vitae fermentum velit, sed mattis risus. Lorem ipsum dolor sit amet,
+consectetur adipiscing elit. Morbi eu arcu tincidunt arcu pellentesque eleifend. Aenean
+non sem scelerisque, aliquam velit non, posuere ex.
+
+Mauris sit amet nisi erat. Praesent porta nisl pretium turpis finibus, vitae aliquet sem
+sodales. Fusce vel eros turpis. Proin cursus condimentum blandit. Vestibulum ante ipsum
+primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aenean pretium diam
+odio, non tempor urna consectetur at. Cras vehicula enim erat, a rhoncus magna auctor ut.
+Etiam risus metus, vulputate posuere finibus id, congue vitae dolor. Suspendisse quis urna
+quis nisi ultrices condimentum. Quisque consequat semper ex a maximus. Donec euismod
+rhoncus felis, vehicula laoreet mi. Pellentesque cursus lacus diam, sit amet volutpat
+tortor viverra sed. Nam vulputate luctus pharetra. Donec lobortis, ante non vulputate
+semper, eros turpis pretium nulla, quis tincidunt leo lorem non odio. Suspendisse urna
+ligula, euismod ac maximus pellentesque, varius at lectus. Pellentesque interdum tempor
+justo porta gravida.
+
+* You won't believe what comes next!..
+Pellentesque posuere dui ac eleifend luctus. Morbi et vestibulum odio, eu porta ex.
+Vestibulum fermentum risus quis tellus tempor ultrices. Nam eu quam sem. Nam at interdum
+nunc. Cras eros augue, malesuada ac enim non, elementum cursus tellus. Integer nec nulla
+odio. Suspendisse volutpat nibh nec ultricies mollis. Praesent ut enim vel nisl mollis
+ultricies et vitae nisi. Vivamus vel tincidunt justo. Proin quis orci eget velit commodo
+ultricies. Suspendisse cursus ullamcorper dolor, ut pretium tellus pulvinar sit amet.
+Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis
+egestas. Cras leo quam, ornare eu erat eu, vehicula aliquam nulla.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc et orci imperdiet nulla
+gravida venenatis. In sit amet neque purus. Sed aliquam feugiat enim. Sed eget congue
+tellus. Quisque eleifend ipsum at fringilla ultricies. Aliquam non justo ac purus accumsan
+elementum. Duis ullamcorper nulla nec arcu feugiat vestibulum. Nam id eleifend lorem.
+Vivamus consectetur ultricies tempor. Donec vel scelerisque odio, ac consectetur enim.
