@@ -163,10 +163,13 @@ When nil, it will use the selected frame if it does not belong to any other sess
          (frame-name (format "Emacs Org-noter - %s" display-name))
 
          (document (find-file-noselect document-property-value))
+         (major-mode (buffer-local-value 'major-mode document))
          (document-buffer
-          (make-indirect-buffer
-           document
-           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)) t))
+          (if (eq major-mode 'nov-mode)
+              document
+            (make-indirect-buffer
+             document
+             (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)) t)))
 
          (notes-buffer
           (make-indirect-buffer
@@ -185,7 +188,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
                (make-frame `((name . ,frame-name) (fullscreen . maximized)))
              (set-frame-parameter nil 'name frame-name)
              (selected-frame))
-           :doc-mode (buffer-local-value 'major-mode document)
+           :doc-mode major-mode
            :property-text document-property-value
            :notes-file-path notes-file-path
            :doc-buffer document-buffer
@@ -214,6 +217,12 @@ When nil, it will use the selected frame if it does not belong to any other sess
        ((eq (org-noter--session-doc-mode session) 'doc-view-mode)
         (doc-view-mode)
         (advice-add 'doc-view-goto-page :after 'org-noter--doc-view-advice))
+
+       ;; NOTE(nox): Nov.el
+       ((eq (org-noter--session-doc-mode session) 'nov-mode)
+        (rename-buffer document-buffer-name)
+        (advice-add 'nov-render-document :after 'org-noter--nov-render-advice)
+        (add-hook 'window-scroll-functions 'org-noter--nov-scroll nil t))
 
        (t (error "This document handler is not supported :/")))
 
@@ -476,6 +485,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
         t))))
 
 (defun org-noter--current-page ()
+  ;; TODO(nox): This needs Nov.el support
   (org-noter--with-valid-session
    (with-current-buffer (org-noter--session-doc-buffer session)
      (image-mode-window-get 'page))))
@@ -483,6 +493,14 @@ When nil, it will use the selected frame if it does not belong to any other sess
 (defun org-noter--doc-view-advice (page)
   (org-noter--with-valid-session
    (org-noter--page-change-handler page)))
+
+(defun org-noter--nov-render-advice ()
+  (org-noter--with-valid-session
+   (org-noter--page-change-handler nov-documents-index)))
+
+(defun org-noter--nov-scroll (window start)
+  (let ((end (window-end window t)))
+    (message "%d %d" start end)))
 
 (defun org-noter--page-property (arg)
   (let* ((property (if (stringp arg) arg
@@ -536,6 +554,7 @@ If the point isn't inside any heading with page property, return the outer headi
     (cons slice-top slice-height)))
 
 (defun org-noter--ask-scroll-percentage ()
+  ;; TODO(nox): This needs Nov.el support
   (org-noter--with-valid-session
    (let ((window (org-noter--get-doc-window))
          event)
@@ -552,6 +571,7 @@ If the point isn't inside any heading with page property, return the outer headi
          (max 0 (min 1 percentage)))))))
 
 (defun org-noter--scroll-to-percentage (percentage)
+  ;; TODO(nox): This needs Nov.el support
   (org-noter--with-valid-session
    (with-selected-window (org-noter--get-doc-window)
      (let* ((slice (org-noter--get-slice))
@@ -565,6 +585,7 @@ If the point isn't inside any heading with page property, return the outer headi
        (image-scroll-up diff-scroll)))))
 
 (defun org-noter--goto-page (page-cons)
+  ;; TODO(nox): This needs Nov.el support
   (when (consp page-cons)
     (org-noter--with-valid-session
      (with-selected-window (org-noter--get-doc-window)
@@ -644,7 +665,7 @@ If it has, it will be the `:end' of the last element without that page property.
            nil nil org-element-all-elements)))
 
      (let* ((begin (org-element-property :begin (car notes)))
-            (end (org-noter--get-this-note-end (car (last notes))))
+            (end (org-element-property :end(org-noter--get-this-note-last-element (car (last notes)))))
             (window-start (window-start))
             (window-end (window-end nil t))
             (num-lines (count-lines begin end))
@@ -671,6 +692,7 @@ If it has, it will be the `:end' of the last element without that page property.
        (org-cycle-hide-drawers 'all)))))
 
 (defun org-noter--page-change-handler (&optional page-arg)
+  ;; TODO(nox): This needs Nov.el support
   (org-noter--with-valid-session
    (unless org-noter--inhibit-page-handler
      (let* ((ast (org-noter--parse-root))
@@ -698,6 +720,7 @@ If it has, it will be the `:end' of the last element without that page property.
      (org-noter-set-start-page nil))))
 
 (defun org-noter--modeline-text ()
+  ;; TODO(nox): This needs Nov.el support
   (org-noter--with-valid-session
    (let ((contents (org-element-contents (org-noter--parse-root)))
          (current-page (org-noter--current-page))
@@ -717,6 +740,7 @@ If it has, it will be the `:end' of the last element without that page property.
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
 (defun org-noter-set-start-page (arg)
+  ;; TODO(nox): This needs Nov.el support
   "Set current page the one to show when starting a new session.
 With a prefix ARG, remove start page."
   (interactive "P")
@@ -949,6 +973,7 @@ Only available with PDF Tools."
          (t (error "This command is only supported on PDF Tools.")))))
 
 (defun org-noter-insert-note (&optional arg scroll-percentage)
+  ;; TODO(nox): This needs Nov.el support
   "Insert note associated with the current page.
 
 If:
@@ -1090,6 +1115,7 @@ See `org-noter-insert-note' docstring for more."
   (org-noter-insert-note t (org-noter--ask-scroll-percentage)))
 
 (defun org-noter-sync-prev-page ()
+  ;; TODO(nox): This needs Nov.el support
   "Show previous page that has notes, in relation to the current page.
 This will force the notes window to popup."
   (interactive)
@@ -1114,6 +1140,7 @@ This will force the notes window to popup."
        (user-error "There are no more previous pages with notes")))))
 
 (defun org-noter-sync-current-page ()
+  ;; TODO(nox): This needs Nov.el support
   "Show current page notes.
 This will force the notes window to popup."
   (interactive)
@@ -1125,6 +1152,7 @@ This will force the notes window to popup."
      (org-noter--page-change-handler current-page))))
 
 (defun org-noter-sync-next-page ()
+  ;; TODO(nox): This needs Nov.el support
   "Show next page that has notes, in relation to the current page.
 This will force the notes window to popup."
   (interactive)
