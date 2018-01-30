@@ -162,7 +162,9 @@ is member of `org-noter-notes-window-behavior' (which see)."
            :level (org-element-property :level ast)
            :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
            :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location)
-           :auto-save-last-page (or (org-noter--auto-save-page-property ast) org-noter-auto-save-last-page))))
+           :auto-save-last-page (or (org-noter--auto-save-page-property ast) org-noter-auto-save-last-page)))
+
+         current-page)
 
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
     (push session org-noter--sessions)
@@ -189,15 +191,16 @@ is member of `org-noter-notes-window-behavior' (which see)."
             fringe-indicator-alist '((truncation . nil)))
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t)
       (add-hook 'window-scroll-functions 'org-noter--set-scroll nil t)
-      (let ((ast (org-noter--parse-root))
-            (current-page (org-noter--selected-note-page t)))
-        (org-noter--set-read-only ast)
-        (if current-page
-            (org-noter--goto-page current-page)
-          (org-noter--page-change-handler 1))))
+      (org-noter--set-read-only (org-noter--parse-root))
+      (setq current-page (org-noter--selected-note-page t)))
 
     (org-noter--setup-windows session)
-    (setf (org-noter--session-initialized session) t)))
+    (setf (org-noter--session-initialized session) t)
+
+    (with-current-buffer document-buffer
+      (if current-page
+          (org-noter--goto-page current-page)
+        (org-noter--page-change-handler 1)))))
 
 (defun org-noter--valid-session (session)
   (if (and session
