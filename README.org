@@ -75,29 +75,39 @@ The usage is very simple:
 
 This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
 
-** Customization @@html:<a name="custom">@@
-There are some things you may change; find them through the customization interface or
-just open =org-noter.el=! For some customizations, there are also overrides to the global
-settings, that you may set in each document.
-
-Some customizations with an utility command:
-- You may set a start page for a document, by using ~org-noter-set-start-page~.
-
-- If, instead, you want to automatically resume from where you left, use
-  ~org-noter-set-auto-save-last-page~. With a prefix argument, it removes the local
-  setting and uses the default.
-
-- With ~org-noter-set-notes-window-behavior~, you may change when the notes window pops up
-  for the session. With a prefix argument, it becomes persistent for that document.
-
-- With ~org-noter-set-notes-window-location~, you may change where the notes window pops
-  up for the session. With a prefix argument, it becomes persistent for that document.
-
 ** Screencast
 [[https://www.youtube.com/watch?v=Un0ZRXTzufo][Watch the screencast here!]]
 
 The files used to make this screencast are shipped with the package, so you can try it
 even without creating the notes.
+
+** Customization @@html:<a name="custom">@@
+There are two kinds of customizations you may do:
+1. There are global settings, affecting every session
+2. There are also settings specific to a document, which override the global settings
+
+The global settings are changed with either the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html#Easy-Customization][customization interface from emacs]] or
+directly in your init file. To find which settings are available, you may use the
+customization interface or you may just read =org-noter.el=.
+
+The best way to set document-specific settings is by using the utility commands provided
+(list below). In order to use them, you need an open a session, so they will change the
+settings for that session only or permanently. You could also change the properties on the
+headline directly, but you'd have to know which are available and what is the settings
+format.
+
+List of utility commands:
+- You may set a start page for the document, by using ~org-noter-set-start-page~.
+
+- If, instead, you want to automatically resume from where you left, use
+  ~org-noter-set-auto-save-last-page~. With a prefix argument, it removes the local
+  setting and uses the default.
+
+- With ~org-noter-set-notes-window-behavior~, you may change /when/ the notes window pops
+  up for the session. With a prefix argument, it becomes persistent for that document.
+
+- With ~org-noter-set-notes-window-location~, you may change /where/ the notes window pops
+  up for the session. With a prefix argument, it becomes persistent for that document.
 
 ** Keybindings @@html:<a name="keys">@@
 :PROPERTIES:
