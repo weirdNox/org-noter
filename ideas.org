@@ -12,5 +12,3 @@
 - Add commands like ~org-noter-rename~ and ~org-noter-delete~ which work on the document
   file instead of the heading?.. ~org-noter-delete~ could delete all documents in a
   subtree, maybe with a prefix arg?
-
-- When opening an already open session, if inside a specific note, go there!

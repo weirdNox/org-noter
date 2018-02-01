@@ -206,10 +206,10 @@ is member of `org-noter-notes-window-behavior' (which see)."
   (if (and session
            (frame-live-p (org-noter--session-frame session))
            (buffer-live-p (org-noter--session-doc-buffer session))
+           (buffer-live-p (org-noter--session-notes-buffer session))
            (or (not (org-noter--session-initialized session))
                (get-buffer-window (org-noter--session-doc-buffer session)
-                                  (org-noter--session-frame session)))
-           (buffer-live-p (org-noter--session-notes-buffer session)))
+                                  (org-noter--session-frame session))))
       t
     (org-noter-kill-session session)
     nil))
@@ -241,7 +241,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
   (let* ((session org-noter--session)
          (use-args (and (stringp property-doc-path)
                         (buffer-live-p buffer)
-                        (with-current-buffer buffer (eq major-mode 'org-mode))))
+                        (eq (buffer-local-value 'major-mode buffer) 'org-mode)))
          (notes-buffer (if use-args
                            buffer
                          (when session (org-noter--session-notes-buffer session))))
@@ -466,8 +466,7 @@ If the point isn't inside any heading with page property, return the outer headi
               (setq previous heading)))))))))
 
 (defun org-noter--selected-note-page (&optional with-start-page)
-  (org-noter--with-valid-session
-   (org-noter--page-property (org-noter--get-containing-heading with-start-page))))
+  (org-noter--page-property (org-noter--get-containing-heading with-start-page)))
 
 (defun org-noter--get-slice ()
   (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
@@ -1181,19 +1180,26 @@ when ARG < 0."
                 (throw 'should-continue nil))
 
               ;; NOTE(nox): Test for existing sessions
-              (dolist (session org-noter--sessions)
-                (when (org-noter--valid-session session)
-                  (when (and (string= (org-noter--session-doc-file-path session)
-                                      doc-file-path)
-                             (string= (org-noter--session-notes-file-path session)
-                                      notes-file-path))
-                    (let ((test-ast (with-current-buffer
-                                        (org-noter--session-notes-buffer session)
-                                      (org-noter--parse-root))))
+              (dolist (test-session org-noter--sessions)
+                (when (org-noter--valid-session test-session)
+                  (let ((test-buffer (org-noter--session-notes-buffer test-session))
+                        (test-notes-file (org-noter--session-notes-file-path test-session))
+                        (test-property (org-noter--session-property-text test-session))
+                        test-ast)
+                    (when (and (string= test-notes-file notes-file-path)
+                               (string= test-property document-property))
+                      (setq test-ast (org-noter--parse-root test-buffer test-property))
                       (when (eq (org-element-property :begin ast)
                                 (org-element-property :begin test-ast))
-                        (org-noter--setup-windows session)
-                        (select-frame-set-input-focus (org-noter--session-frame session))
+
+                        (let* ((org-noter--session test-session)
+                               (point (point))
+                               (page (org-noter--selected-note-page)))
+                          (org-noter--setup-windows test-session)
+
+                          (when page (org-noter--goto-page page))
+
+                          (select-frame-set-input-focus (org-noter--session-frame test-session)))
                         (throw 'should-continue nil))))))
               t)
 
