@@ -342,6 +342,33 @@ is member of `org-noter-notes-window-behavior' (which see)."
       (org-narrow-to-subtree)
       (org-show-children))))
 
+(defun org-noter--get-doc-window ()
+  (org-noter--with-valid-session
+   (get-buffer-window (org-noter--session-doc-buffer session)
+                      (org-noter--session-frame session))))
+
+(defun org-noter--get-notes-window (&optional type)
+  (org-noter--with-valid-session
+   (let ((notes-buffer (org-noter--session-notes-buffer session))
+         (window-location (org-noter--session-window-location session))
+         (window-behavior (org-noter--session-window-behavior session))
+         notes-window)
+     (or (get-buffer-window notes-buffer t)
+         (when (or (eq type 'force) (memq type window-behavior))
+           (if (eq window-location 'other-frame)
+               (let ((restore-frame (selected-frame)))
+                 (switch-to-buffer-other-frame notes-buffer)
+                 (setq notes-window (get-buffer-window notes-buffer t))
+                 (x-focus-frame restore-frame)
+                 (raise-frame (window-frame notes-window)))
+
+             (with-selected-window (org-noter--get-doc-window)
+               (setq notes-window (if (eq window-location 'horizontal-split)
+                                      (split-window-right)
+                                    (split-window-below)))
+               (set-window-buffer notes-window notes-buffer)))
+           notes-window)))))
+
 (defun org-noter--setup-windows (session)
   "Setup windows when starting session, respecting user configuration."
   (when (org-noter--valid-session session)
@@ -350,57 +377,16 @@ is member of `org-noter-notes-window-behavior' (which see)."
       (let* ((doc-buffer (org-noter--session-doc-buffer session))
              (doc-window (selected-window))
              (notes-buffer (org-noter--session-notes-buffer session))
-             (notes-window-location (org-noter--session-window-location session))
-             (notes-window-behavior (org-noter--session-window-behavior session))
-             (notes-window (get-buffer-window notes-buffer t)))
+             notes-window)
 
         (set-window-buffer doc-window doc-buffer)
         (set-window-dedicated-p doc-window t)
 
         (with-current-buffer notes-buffer
-          (org-noter--narrow-to-root
-           (org-noter--parse-root
-            notes-buffer (org-noter--session-property-text session))))
-
-        (when (and (not notes-window) (member 'start notes-window-behavior))
-          (if (eq notes-window-location 'other-frame)
-              (let ((restore-frame (selected-frame)))
-                (switch-to-buffer-other-frame notes-buffer)
-                (setq notes-window (get-buffer-window notes-buffer t))
-                (x-focus-frame restore-frame)
-                (raise-frame (window-frame notes-window)))
-
-            (setq notes-window (if (eq notes-window-location 'horizontal-split)
-                                   (split-window-right)
-                                 (split-window-below)))
-            (set-window-buffer notes-window notes-buffer)))
-
-        (org-noter--set-scroll notes-window)))))
-
-(defun org-noter--get-doc-window ()
-  (org-noter--with-valid-session
-   (get-buffer-window (org-noter--session-doc-buffer session)
-                      (org-noter--session-frame session))))
-
-(defun org-noter--get-notes-window (&optional type)
-  (org-noter--with-valid-session
-   (let ((buffer (org-noter--session-notes-buffer session))
-         (window-location (org-noter--session-window-location session))
-         (window-behavior (org-noter--session-window-behavior session)))
-     (or (get-buffer-window buffer t)
-         (when (or (eq type 'force) (memq type window-behavior))
-           (if (eq window-location 'other-frame)
-               (let ((restore-frame (selected-frame))
-                     window)
-                 (switch-to-buffer-other-frame buffer)
-                 (setq window (get-buffer-window buffer t))
-                 (x-focus-frame restore-frame)
-                 (raise-frame (window-frame window))
-                 window)
-             ;; TODO(nox): This should honor the split right/down setting... But what
-             ;; should it do when there is another window besides the PDF? Maybe just
-             ;; doing this is fine...
-             (display-buffer buffer nil (org-noter--session-frame session))))))))
+          (org-noter--narrow-to-root (org-noter--parse-root
+                                      notes-buffer (org-noter--session-property-text session)))
+          (setq notes-window (org-noter--get-notes-window 'start))
+          (org-noter--set-scroll notes-window))))))
 
 (defmacro org-noter--with-selected-notes-window (error-str &rest body)
   `(org-noter--with-valid-session
@@ -750,11 +736,23 @@ See `org-noter-notes-window-behavior' for more information."
              ("Other frame" . other-frame)))
           (location
            (cdr (assoc (completing-read "Location: " location-possibilities nil t)
-                       location-possibilities))))
+                       location-possibilities)))
+          (notes-buffer (org-noter--session-notes-buffer session)))
+
      (setf (org-noter--session-window-location session)
            (or location org-noter-notes-window-location))
+
+     (let (exists)
+       (dolist (window (get-buffer-window-list notes-buffer nil t))
+         (setq exists t)
+         (with-selected-frame (window-frame window)
+           (if (= (count-windows) 1)
+               (delete-frame)
+             (delete-window window))))
+       (when exists (org-noter--get-notes-window 'force)))
+
      (when arg
-       (with-current-buffer (org-noter--session-notes-buffer session)
+       (with-current-buffer notes-buffer
          (org-with-wide-buffer
           (goto-char (org-element-property :begin ast))
           (if location
