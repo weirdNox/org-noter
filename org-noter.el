@@ -62,8 +62,8 @@
   :type 'string)
 
 (defcustom org-noter-default-heading-title "Notes for page $p$"
-  "The title of the headings created by `org-noter-insert-note'.
-$p$ is replaced by the number of the page you are in at the
+  "The default title for headings created with `org-noter-insert-note'.
+$p$ is replaced with the number of the page you are in at the
 moment."
   :group 'org-noter
   :type 'string)
@@ -79,7 +79,7 @@ When the list contains:
               (const :tag "Scrolling" scroll)))
 
 (defcustom org-noter-notes-window-location 'horizontal-split
-  "Whether the notes window should appear in the main frame (horizontal or vertical split) or on a separate frame.
+  "Whether the notes should appear in the main frame (horizontal or vertical split) or in a separate frame.
 
 Note that this will only have effect on session startup if `start'
 is member of `org-noter-notes-window-behavior' (which see)."

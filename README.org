@@ -83,31 +83,30 @@ even without creating the notes.
 
 ** Customization @@html:<a name="custom">@@
 There are two kinds of customizations you may do:
-1. There are global settings, affecting every session
-2. There are also settings specific to a document, which override the global settings
+1. Global settings, affecting every session
+2. Document-specific settings, which override the global settings
 
-The global settings are changed with either the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html#Easy-Customization][customization interface from emacs]] or
+The global settings are changed with either the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html#Easy-Customization][customization interface from Emacs]] or
 directly in your init file. To find which settings are available, you may use the
 customization interface or you may just read =org-noter.el=.
 
 The best way to set document-specific settings is by using the utility commands provided
-(list below). In order to use them, you need an open a session, so they will change the
-settings for that session only or permanently. You could also change the properties on the
-headline directly, but you'd have to know which are available and what is the settings
-format.
+(list below). In order to use them, you need an open a session. The commands may change
+the settings for that session only (not surviving restarts), or for every session with
+that document.
 
 List of utility commands:
-- You may set a start page for the document, by using ~org-noter-set-start-page~.
+- You may set a start page for this document, by using ~org-noter-set-start-page~.
 
 - If, instead, you want to automatically resume from where you left, use
   ~org-noter-set-auto-save-last-page~. With a prefix argument, it removes the local
   setting and uses the default.
 
 - With ~org-noter-set-notes-window-behavior~, you may change /when/ the notes window pops
-  up for the session. With a prefix argument, it becomes persistent for that document.
+  up for this session. With a prefix argument, it becomes persistent for this document.
 
 - With ~org-noter-set-notes-window-location~, you may change /where/ the notes window pops
-  up for the session. With a prefix argument, it becomes persistent for that document.
+  up for this session. With a prefix argument, it becomes persistent for this document.
 
 ** Keybindings @@html:<a name="keys">@@
 :PROPERTIES:
