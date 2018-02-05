@@ -368,10 +368,18 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (raise-frame (window-frame notes-window)))
 
              (with-selected-window (org-noter--get-doc-window)
-               (setq notes-window (if (eq window-location 'horizontal-split)
-                                      (split-window-right)
-                                    (split-window-below)))
-               (set-window-buffer notes-window notes-buffer)))
+               (let ((horizontal (eq window-location 'horizontal-split)))
+                 (setq
+                  notes-window
+                  (if (window-combined-p nil horizontal)
+                      ;; NOTE(nox): Reuse already existent window
+                      (or (window-next-sibling) (window-prev-sibling))
+
+                    (if horizontal
+                        (split-window-right)
+                      (split-window-below))))))
+
+             (set-window-buffer notes-window notes-buffer))
            notes-window)))))
 
 (defun org-noter--setup-windows (session)
