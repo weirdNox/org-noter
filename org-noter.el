@@ -41,6 +41,7 @@
 
 (declare-function pdf-view-mode "ext:pdf-view")
 (declare-function pdf-view-goto-page "ext:pdf-view")
+(declare-function pdf-info-outline "ext:pdf-info")
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-mode-window-get "image-mode")
 
@@ -396,8 +397,8 @@ is member of `org-noter-notes-window-behavior' (which see)."
         (set-window-dedicated-p doc-window t)
 
         (with-current-buffer notes-buffer
-          (org-noter--narrow-to-root (org-noter--parse-root
-                                      notes-buffer (org-noter--session-property-text session)))
+          (org-noter--narrow-to-root
+           (org-noter--parse-root notes-buffer (org-noter--session-property-text session)))
           (setq notes-window (org-noter--get-notes-window 'start))
           (org-noter--set-scroll notes-window))))))
 
@@ -833,6 +834,43 @@ want to kill."
             (kill-buffer notes-buffer))
           (with-current-buffer base-buffer
             (set-buffer-modified-p modified)))))))
+
+(defun org-noter-create-skeleton ()
+  "Create notes skeleton with PDF outline.
+Only available with PDF Tools."
+  (interactive)
+  (org-noter--with-valid-session
+   (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+          (let* ((ast (org-noter--parse-root))
+                 (level (org-element-property :level ast))
+                 (outline (pdf-info-outline)))
+            (with-current-buffer (org-noter--session-notes-buffer session)
+              (widen)
+              (save-excursion
+                (goto-char (org-element-property :end ast))
+                (dolist (item outline)
+                  (let ((type  (alist-get 'type item))
+                        (page  (alist-get 'page item))
+                        (depth (alist-get 'depth item))
+                        (title (alist-get 'title item))
+                        (top   (alist-get 'top item)))
+                    (when (and (eq type 'goto-dest)
+                               (> page 0))
+                      (org-noter--insert-heading (+ level depth))
+                      (insert title)
+                      (if (and (not (eobp)) (org-next-line-empty-p))
+                          (forward-line)
+                        (insert "\n"))
+                      (org-entry-put nil org-noter-property-note-page
+                                     (format "%s" (if (zerop top)
+                                                      page
+                                                    (cons page top)))))))
+                (setq ast (org-noter--parse-root))
+                (org-noter--narrow-to-root ast)
+                (goto-char (org-element-property :begin ast)))
+                (outline-hide-subtree)
+                (org-show-children 2))))
+         (t (error "This command is only supported on PDF Tools.")))))
 
 (defun org-noter-insert-note (&optional arg scroll-percentage)
   "Insert note associated with the current page.
