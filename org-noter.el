@@ -109,8 +109,8 @@ is member of `org-noter-notes-window-behavior' (which see)."
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
-  frame doc-mode display-name notes-file-path doc-file-path property-text
-  notes-buffer doc-buffer level window-behavior window-location auto-save-last-page
+  frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path
+  doc-file-path property-text level window-behavior window-location auto-save-last-page
   initialized)
 
 (defvar org-noter--sessions nil
@@ -168,7 +168,8 @@ is member of `org-noter-notes-window-behavior' (which see)."
            :level (org-element-property :level ast)
            :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
            :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location)
-           :auto-save-last-page (or (org-noter--auto-save-page-property ast) org-noter-auto-save-last-page)))
+           :auto-save-last-page (or (org-noter--auto-save-page-property ast) org-noter-auto-save-last-page)
+           :modified-tick -1))
 
          current-page)
 
@@ -244,38 +245,43 @@ is member of `org-noter-notes-window-behavior' (which see)."
 (defun org-noter--parse-root (&optional buffer property-doc-path)
   ;; TODO(nox): Maybe create IDs in each noter session and use that instead of using
   ;; the property text that may be repeated... This would simplify some things
-  (let* ((session org-noter--session)
-         (use-args (and (stringp property-doc-path)
-                        (buffer-live-p buffer)
+  (let* ((session (when (org-noter--valid-session org-noter--session) org-noter--session))
+         (use-args (and (stringp property-doc-path) (buffer-live-p buffer)
                         (eq (buffer-local-value 'major-mode buffer) 'org-mode)))
-         (notes-buffer (if use-args
-                           buffer
-                         (when session (org-noter--session-notes-buffer session))))
-         (wanted-value (if use-args
-                           property-doc-path
-                         (when session (org-noter--session-property-text session))))
-         element)
-    (when (buffer-live-p notes-buffer)
+         (notes-buffer (when use-args buffer))
+         (wanted-prop (when use-args property-doc-path))
+         ast)
+    ;; NOTE(nox): Try to use a cached AST
+    (when (and (not use-args) session)
+      (setq notes-buffer (org-noter--session-notes-buffer session)
+            wanted-prop (org-noter--session-property-text session))
+      (when (= (buffer-chars-modified-tick (org-noter--session-notes-buffer session))
+               (org-noter--session-modified-tick session))
+        (setq ast (org-noter--session-ast session))))
+
+    (when (and (not ast) (buffer-live-p notes-buffer))
       (with-current-buffer notes-buffer
         (org-with-wide-buffer
-         (unless (org-before-first-heading-p)
-           ;; NOTE(nox): Start by trying to find a parent heading with the specified
-           ;; property
-           (let ((try-next t) property-value)
-             (while try-next
-               (setq property-value (org-entry-get nil org-noter-property-doc-file))
-               (when (and property-value (string= property-value wanted-value))
-                 (org-narrow-to-subtree)
-                 (setq element (org-element-parse-buffer 'greater-element)))
-               (setq try-next (and (not element) (org-up-heading-safe))))))
-         (unless element
-           ;; NOTE(nox): Could not find parent with property, do a global search
-           (let ((pos (org-find-property org-noter-property-doc-file wanted-value)))
-             (when pos
-               (goto-char pos)
-               (org-narrow-to-subtree)
-               (setq element (org-element-parse-buffer 'greater-element)))))
-         (car (org-element-contents element)))))))
+         (when
+             (or
+              ;; NOTE(nox): Start by trying to find a parent heading with the specified
+              ;; property
+              (catch 'break
+                (while t
+                  (when (string= wanted-prop
+                                 (org-entry-get nil org-noter-property-doc-file))
+                    (org-back-to-heading t)
+                    (throw 'break t))
+                  (unless (org-up-heading-safe) (throw 'break nil))))
+              ;; NOTE(nox): Could not find parent with property, do a global search
+              (let ((pos (org-find-property org-noter-property-doc-file wanted-prop)))
+                (when pos (goto-char pos))))
+           (org-narrow-to-subtree)
+           (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
+           (when session
+             (setf (org-noter--session-ast session) ast
+                   (org-noter--session-modified-tick session) (buffer-chars-modified-tick)))))))
+    ast))
 
 (defun org-noter--get-properties-end (ast &optional force-trim)
   (when ast
@@ -867,9 +873,9 @@ Only available with PDF Tools."
                                                     (cons page top)))))))
                 (setq ast (org-noter--parse-root))
                 (org-noter--narrow-to-root ast)
-                (goto-char (org-element-property :begin ast)))
+                (goto-char (org-element-property :begin ast))
                 (outline-hide-subtree)
-                (org-show-children 2))))
+                (org-show-children 2)))))
          (t (error "This command is only supported on PDF Tools.")))))
 
 (defun org-noter-insert-note (&optional arg scroll-percentage)
@@ -1243,7 +1249,6 @@ when ARG < 0."
                                 (org-element-property :begin test-ast))
 
                         (let* ((org-noter--session test-session)
-                               (point (point))
                                (page (org-noter--selected-note-page)))
                           (org-noter--setup-windows test-session)
 
