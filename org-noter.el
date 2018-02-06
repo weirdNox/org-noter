@@ -94,6 +94,10 @@ is member of `org-noter-notes-window-behavior' (which see)."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-hide-other nil
+  "When non-nil, hide all headings not related to the command
+  used, like notes from different pages when scrolling.")
+
 (defcustom org-noter-always-create-frame t
   "When non-nil, org-noter will always create a new frame for the session.
 When nil, it will use the selected frame if it does not belong to any other session.")
@@ -114,7 +118,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
   frame doc-buffer base-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path doc-file-path
-  property-text level window-behavior window-location auto-save-last-page initialized)
+  property-text level window-behavior window-location auto-save-last-page hide-other initialized)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -133,6 +137,9 @@ When nil, it will use the selected frame if it does not belong to any other sess
 
 (defconst org-noter--property-auto-save-last-page "NOTER_AUTO_SAVE_LAST_PAGE"
   "Property for overriding global `org-noter-auto-save-last-page'.")
+
+(defconst org-noter--property-hide-other "NOTER_HIDE_OTHER"
+  "Property for overriding global `org-noter-hide-other'.")
 
 (defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
   "List of elements that shouldn't be recursed into when searching for notes.")
@@ -182,6 +189,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
            :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
            :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location)
            :auto-save-last-page (or (org-noter--auto-save-page-property ast) org-noter-auto-save-last-page)
+           :hide-other (or (org-noter--hide-other-property ast) org-noter-hide-other)
            :modified-tick -1))
 
          current-page)
@@ -452,6 +460,12 @@ When nil, it will use the selected frame if it does not belong to any other sess
       (when (intern property)
         t))))
 
+(defun org-noter--hide-other-property (ast)
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-hide-other)) ast)))
+    (when (and (stringp property) (> (length property) 0))
+      (when (intern property)
+        t))))
+
 (defun org-noter--current-page ()
   (org-noter--with-valid-session
    (with-current-buffer (org-noter--session-doc-buffer session)
@@ -608,12 +622,17 @@ If it has, it will be the `:end' of the last element without that page property.
   (when notes
     (org-noter--with-selected-notes-window
      nil
+     (when (org-noter--session-hide-other session) (org-overview))
      (save-excursion
        (dolist (note notes)
          (goto-char (org-element-property :begin note))
-         (org-show-context)
-         (org-show-siblings)
-         (org-show-subtree)))
+         (org-show-entry) (org-show-children) (org-show-set-visibility t)
+         (org-element-map (org-element-contents note) 'headline
+           (lambda (headline)
+             (unless (org-noter--page-property headline)
+               (goto-char (org-element-property :begin headline))
+               (org-show-entry) (org-show-children)))
+           nil nil org-element-all-elements)))
 
      (let* ((begin (org-element-property :begin (car notes)))
             (end (org-noter--get-this-note-end (car (last notes))))
@@ -722,6 +741,30 @@ With a prefix ARG, delete the current setting and use the default."
             (org-entry-delete nil org-noter--property-auto-save-last-page)
           (org-entry-put nil org-noter--property-auto-save-last-page (format "%s" new-setting)))
         (unless new-setting (org-entry-delete nil org-noter-property-note-page)))))))
+
+(defun org-noter-set-hide-other (arg)
+  "This toggles hiding other headings for the current session.
+- With a prefix \\[universal-argument], set the current setting permanently for this document.
+- With a prefix \\[universal-argument] \\[universal-argument], remove the setting and use the default."
+  (interactive "P")
+  (org-noter--with-valid-session
+   (let* ((inhibit-read-only t)
+          (ast (org-noter--parse-root))
+          (persistent
+           (cond ((equal arg '(4)) 'write)
+                 ((equal arg '(16)) 'remove)))
+          (new-setting
+           (cond ((eq persistent 'write) (org-noter--session-hide-other session))
+                 ((eq persistent 'remove) org-noter-hide-other)
+                 ('other-cases (not (org-noter--session-hide-other session))))))
+     (setf (org-noter--session-hide-other session) new-setting)
+     (when persistent
+       (with-current-buffer (org-noter--session-notes-buffer session)
+         (org-with-wide-buffer
+          (goto-char (org-element-property :begin ast))
+          (if (eq persistent 'write)
+              (org-entry-put nil org-noter--property-hide-other (format "%s" new-setting))
+            (org-entry-delete nil org-noter--property-hide-other))))))))
 
 (defun org-noter-set-notes-window-behavior (arg)
   "Set the notes window behaviour for the current session.

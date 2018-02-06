@@ -109,6 +109,10 @@ List of utility commands:
 - With ~org-noter-set-notes-window-location~, you may change /where/ the notes window pops
   up for this session. With a prefix argument, it becomes persistent for this document.
 
+- ~org-noter-set-hide-other~ will toggle whether or not it should hide headings not
+  related to the executed action for this session. Check the docstring for more
+  information.
+
 ** Keybindings and commands @@html:<a name="keys">@@
 :PROPERTIES:
 :CUSTOM_ID: keys
