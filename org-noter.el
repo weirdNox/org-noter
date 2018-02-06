@@ -223,16 +223,16 @@ When nil, it will use the selected frame if it does not belong to any other sess
         (org-noter--page-change-handler 1)))))
 
 (defun org-noter--valid-session (session)
-  (if (and session
-           (frame-live-p (org-noter--session-frame session))
-           (buffer-live-p (org-noter--session-doc-buffer session))
-           (buffer-live-p (org-noter--session-notes-buffer session))
-           (or (not (org-noter--session-initialized session))
-               (get-buffer-window (org-noter--session-doc-buffer session)
-                                  (org-noter--session-frame session))))
-      t
-    (org-noter-kill-session session)
-    nil))
+  (when session
+    (if (and (frame-live-p (org-noter--session-frame session))
+             (buffer-live-p (org-noter--session-doc-buffer session))
+             (buffer-live-p (org-noter--session-notes-buffer session))
+             (or (not (org-noter--session-initialized session))
+                 (get-buffer-window (org-noter--session-doc-buffer session)
+                                    (org-noter--session-frame session))))
+        t
+      (org-noter-kill-session session)
+      nil)))
 
 (defmacro org-noter--with-valid-session (&rest body)
   `(let ((session org-noter--session))
@@ -821,12 +821,12 @@ want to kill."
                                   collection))))))
 
   (when (and session (memq session org-noter--sessions))
+    (setq org-noter--sessions (delq session org-noter--sessions))
     (let ((ast (org-noter--parse-root))
           (frame (org-noter--session-frame session))
           (base-buffer (org-noter--session-base-buffer session))
           (notes-buffer (org-noter--session-notes-buffer session))
           (doc-buffer (org-noter--session-doc-buffer session)))
-      (setq org-noter--sessions (delq session org-noter--sessions))
 
       (when (eq (length org-noter--sessions) 0)
         (setq delete-frame-functions (delq 'org-noter--handle-delete-frame
