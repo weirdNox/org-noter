@@ -117,7 +117,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
-  frame doc-buffer base-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path doc-file-path
+  frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path doc-file-path
   property-text level window-behavior window-location auto-save-last-page hide-other initialized)
 
 (defvar org-noter--sessions nil
@@ -156,14 +156,12 @@ When nil, it will use the selected frame if it does not belong to any other sess
          (document (find-file-noselect document-property-value))
          (document-buffer
           (make-indirect-buffer
-           document (generate-new-buffer-name (concat
-                                               (unless raw-value-not-empty "Org-noter: ")
-                                               display-name))))
+           document
+           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)) t))
 
-         (base-buffer (or (buffer-base-buffer) (current-buffer)))
          (notes-buffer
           (make-indirect-buffer
-           base-buffer
+           (or (buffer-base-buffer) (current-buffer))
            (generate-new-buffer-name (concat "Notes of " display-name)) t))
 
          (session
@@ -183,7 +181,6 @@ When nil, it will use the selected frame if it does not belong to any other sess
            :notes-file-path notes-file-path
            :doc-file-path doc-file-path
            :doc-buffer document-buffer
-           :base-buffer base-buffer
            :notes-buffer notes-buffer
            :level (org-element-property :level ast)
            :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
@@ -199,17 +196,22 @@ When nil, it will use the selected frame if it does not belong to any other sess
 
     (with-current-buffer document-buffer
       (setq buffer-file-name doc-file-path)
-      (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
-             (pdf-view-mode)
-             (add-hook 'pdf-view-after-change-page-hook
-                       'org-noter--page-change-handler nil t))
-            ((eq (org-noter--session-doc-mode session) 'doc-view-mode)
-             (doc-view-mode)
-             (advice-add 'doc-view-goto-page :after 'org-noter--doc-view-advice))
-            (t (error "This document handler is not supported :/")))
+
+      (cond
+       ;; NOTE(nox): PDF Tools
+       ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+        (pdf-view-mode)
+        (add-hook 'pdf-view-after-change-page-hook 'org-noter--page-change-handler nil t))
+
+       ;; NOTE(nox): DocView
+       ((eq (org-noter--session-doc-mode session) 'doc-view-mode)
+        (doc-view-mode)
+        (advice-add 'doc-view-goto-page :after 'org-noter--doc-view-advice))
+
+       (t (error "This document handler is not supported :/")))
+
       (org-noter-doc-mode 1)
       (setq org-noter--session session)
-      (kill-local-variable 'kill-buffer-hook)
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t))
 
     (with-current-buffer notes-buffer
@@ -865,36 +867,35 @@ want to kill."
 
   (when (and session (memq session org-noter--sessions))
     (setq org-noter--sessions (delq session org-noter--sessions))
-    (let ((ast (org-noter--parse-root))
-          (frame (org-noter--session-frame session))
-          (base-buffer (org-noter--session-base-buffer session))
-          (notes-buffer (org-noter--session-notes-buffer session))
-          (doc-buffer (org-noter--session-doc-buffer session)))
+    (when (eq (length org-noter--sessions) 0)
+      (remove-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
+      (when (featurep 'doc-view) (advice-remove  'org-noter--doc-view-advice 'doc-view-goto-page)))
 
-      (when (eq (length org-noter--sessions) 0)
-        (setq delete-frame-functions (delq 'org-noter--handle-delete-frame
-                                           delete-frame-functions))
-        (when (featurep 'doc-view)
-          (advice-remove  'org-noter--doc-view-advice 'doc-view-goto-page)))
+    (let* ((ast (org-noter--parse-root))
+           (frame (org-noter--session-frame session))
+           (notes-buffer (org-noter--session-notes-buffer session))
+           (base-buffer (buffer-base-buffer notes-buffer))
+           (notes-modified (buffer-modified-p base-buffer))
+           (doc-buffer (org-noter--session-doc-buffer session)))
 
-      (when (buffer-live-p base-buffer)
-        (let ((modified (buffer-modified-p base-buffer)))
-          (when (buffer-live-p notes-buffer)
-            (dolist (window (get-buffer-window-list notes-buffer nil t))
-              (with-selected-frame (window-frame window)
-                (if (= (count-windows) 1)
-                    (delete-frame)
-                  (delete-window window))))
+      (dolist (window (get-buffer-window-list notes-buffer nil t))
+        (with-selected-frame (window-frame window)
+          (if (= (count-windows) 1)
+              (delete-frame)
+            (delete-window window))))
 
-            (with-current-buffer notes-buffer (set-buffer-modified-p nil))
-            (kill-buffer notes-buffer))
+      (with-current-buffer notes-buffer
+        (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
+        (restore-buffer-modified-p nil))
+      (kill-buffer notes-buffer)
 
-          (with-current-buffer base-buffer
-            (org-noter--unset-read-only ast)
-            (set-buffer-modified-p modified))))
+      (with-current-buffer base-buffer
+        (org-noter--unset-read-only ast)
+        (set-buffer-modified-p notes-modified))
 
-      (when (buffer-live-p doc-buffer)
-        (kill-buffer doc-buffer))
+      (with-current-buffer doc-buffer
+        (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t))
+      (kill-buffer doc-buffer)
 
       (when (frame-live-p frame)
         (if (= (length (frames-on-display-list)) 1)
