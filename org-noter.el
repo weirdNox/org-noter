@@ -99,23 +99,29 @@ is member of `org-noter-notes-window-behavior' (which see)."
 
 (defcustom org-noter-hide-other nil
   "When non-nil, hide all headings not related to the command
-  used, like notes from different pages when scrolling.")
+  used, like notes from different pages when scrolling."
+  :group 'org-noter
+  :type 'boolean)
 
 (defcustom org-noter-always-create-frame t
   "When non-nil, org-noter will always create a new frame for the session.
-When nil, it will use the selected frame if it does not belong to any other session.")
+When nil, it will use the selected frame if it does not belong to any other session."
+  :group 'org-noter
+  :type 'boolean)
 
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
      :weight bold))
-  "Face for modeline note count, when 0.")
+  "Face for modeline note count, when 0."
+  :group 'org-noter)
 
 (defface org-noter-notes-exist-face
   '((t
      :foreground "SpringGreen"
      :weight bold))
-  "Face for modeline note count, when not 0.")
+  "Face for modeline note count, when not 0."
+  :group 'org-noter)
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables or constants
