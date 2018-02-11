@@ -43,7 +43,10 @@
 (declare-function pdf-view-goto-page "ext:pdf-view")
 (declare-function pdf-info-outline "ext:pdf-info")
 (declare-function doc-view-goto-page "doc-view")
+(declare-function image-display-size "image-mode")
+(declare-function image-get-display-property "image-mode")
 (declare-function image-mode-window-get "image-mode")
+(declare-function image-scroll-up "image-mode")
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User variables
@@ -117,8 +120,8 @@ When nil, it will use the selected frame if it does not belong to any other sess
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
-  frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path doc-file-path
-  property-text level window-behavior window-location auto-save-last-page hide-other initialized)
+  frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path property-text
+  level window-behavior window-location auto-save-last-page hide-other initialized)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -179,7 +182,6 @@ When nil, it will use the selected frame if it does not belong to any other sess
            :doc-mode (buffer-local-value 'major-mode document)
            :property-text document-property-value
            :notes-file-path notes-file-path
-           :doc-file-path doc-file-path
            :doc-buffer document-buffer
            :notes-buffer notes-buffer
            :level (org-element-property :level ast)
@@ -195,8 +197,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
     (push session org-noter--sessions)
 
     (with-current-buffer document-buffer
-      (setq buffer-file-name doc-file-path)
-
+      (setq buffer-file-name (expand-file-name document-property-value))
       (cond
        ;; NOTE(nox): PDF Tools
        ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
@@ -1261,41 +1262,29 @@ when ARG < 0."
       (error "`org-noter' must be issued inside a heading"))
 
     (let* ((notes-file-path (buffer-file-name))
-
-           (document-property
-            (org-entry-get nil org-noter-property-doc-file
-                           (not (equal arg '(4)))))
-
-           (expanded-document-path
-            (when (stringp document-property)
-              (setq doc-file-path (expand-file-name document-property))))
-
+           (document-property (org-entry-get nil org-noter-property-doc-file (not (equal arg '(4)))))
+           (document-path (when (stringp document-property) (expand-file-name document-property)))
            ast)
 
-      (unless (and expanded-document-path
-                   (not (file-directory-p expanded-document-path))
-                   (file-readable-p expanded-document-path))
-        (setq doc-file-path (expand-file-name
+      (unless (and document-path (not (file-directory-p document-path)) (file-readable-p document-path))
+        (setq document-path (expand-file-name
                              (read-file-name
                               "Invalid or no document property found. Please specify a document path: "
                               nil nil t)))
-        (when (or (file-directory-p doc-file-path)
-                  (not (file-readable-p doc-file-path)))
+        (when (or (file-directory-p document-path) (not (file-readable-p document-path)))
           (user-error "Invalid file path"))
 
         (setq document-property (if (y-or-n-p "Do you want a relative file name? ")
-                                    (file-relative-name doc-file-path)
-                                  doc-file-path))
+                                    (file-relative-name document-path)
+                                  document-path))
         (org-entry-put nil org-noter-property-doc-file document-property))
 
       (setq ast (org-noter--parse-root (current-buffer) document-property))
-
       (when (catch 'should-continue
               (when (or (numberp arg) (eq arg '-))
-                (let ((number (prefix-numeric-value arg)))
-                  (if (>= number 0)
-                      (find-file doc-file-path)
-                    (find-file (file-name-directory doc-file-path))))
+                (if (>= (prefix-numeric-value arg) 0)
+                    (find-file document-path)
+                  (find-file (file-name-directory document-path)))
                 (throw 'should-continue nil))
 
               ;; NOTE(nox): Test for existing sessions
@@ -1320,7 +1309,6 @@ when ARG < 0."
                           (select-frame-set-input-focus (org-noter--session-frame test-session)))
                         (throw 'should-continue nil))))))
               t)
-
         (org-noter--create-session ast document-property notes-file-path))))
 
   (when (and (not (eq major-mode 'org-mode)) (org-noter--valid-session org-noter--session))
