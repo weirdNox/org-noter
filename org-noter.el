@@ -70,8 +70,8 @@ The default value is still NOTER_PAGE for backwards compatibility."
 
 (defcustom org-noter-default-heading-title "Notes for page $p$"
   "The default title for headings created with `org-noter-insert-note'.
-$p$ is replaced with the number of the page you are in at the
-moment."
+$p$ is replaced with the number of the page or chapter you are in
+at the moment."
   :group 'org-noter
   :type 'string)
 
@@ -80,7 +80,7 @@ moment."
 
 When the list contains:
 - `start', the window will be created when starting a `org-noter' session.
-- `scroll', it will be created when you go to a page with an associated note."
+- `scroll', it will be created when you go to a location with an associated note."
   :group 'org-noter
   :type '(set (const :tag "Session start" start)
               (const :tag "Scrolling" scroll)))
@@ -95,14 +95,14 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (const :tag "Vertical" vertical-split)
                  (const :tag "Other frame" 'other-frame)))
 
-(defcustom org-noter-auto-save-last-page nil
-  "When non-nil, save the last visited page automatically; when starting a new session, go to that page."
+(defcustom org-noter-auto-save-last-location nil
+  "When non-nil, save the last visited location automatically; when starting a new session, go to that location."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-hide-other nil
   "When non-nil, hide all headings not related to the command
-  used, like notes from different pages when scrolling."
+  used, like notes from different locations when scrolling."
   :group 'org-noter
   :type 'boolean)
 
@@ -130,7 +130,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
   frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path property-text
-  level num-notes-in-view window-behavior window-location auto-save-last-page hide-other initialized)
+  level num-notes-in-view window-behavior window-location auto-save-last-location hide-other initialized)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -139,7 +139,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
   "Session associated with the current buffer.")
 
 (defvar org-noter--inhibit-location-change-handler nil
-  "Prevent page change from updating point in notes.")
+  "Prevent location change from updating point in notes.")
 
 (defvar-local org-noter--nov-timer nil
   "Timer for synchronizing notes after scrolling.")
@@ -150,8 +150,8 @@ When nil, it will use the selected frame if it does not belong to any other sess
 (defconst org-noter--property-location "NOTER_NOTES_LOCATION"
   "Property for overriding global `org-noter-notes-window-location'.")
 
-(defconst org-noter--property-auto-save-last-page "NOTER_AUTO_SAVE_LAST_PAGE"
-  "Property for overriding global `org-noter-auto-save-last-page'.")
+(defconst org-noter--property-auto-save-last-location "NOTER_AUTO_SAVE_LAST_LOCATION"
+  "Property for overriding global `org-noter-auto-save-last-location'.")
 
 (defconst org-noter--property-hide-other "NOTER_HIDE_OTHER"
   "Property for overriding global `org-noter-hide-other'.")
@@ -174,7 +174,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
          (document-buffer-name
           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
          (document-buffer
-          (if (eq major-mode 'nov-mode)
+          (if (eq document-major-mode 'nov-mode)
               document
             (make-indirect-buffer document document-buffer-name t)))
 
@@ -203,11 +203,12 @@ When nil, it will use the selected frame if it does not belong to any other sess
            :level (org-element-property :level ast)
            :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
            :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location)
-           :auto-save-last-page (or (org-noter--auto-save-page-property ast) org-noter-auto-save-last-page)
+           :auto-save-last-location (or (org-noter--auto-save-location-property ast)
+                                        org-noter-auto-save-last-location)
            :hide-other (or (org-noter--hide-other-property ast) org-noter-hide-other)
            :modified-tick -1))
 
-         selected-page)
+         target-location)
 
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
     (push session org-noter--sessions)
@@ -229,7 +230,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
        ;; NOTE(nox): Nov.el
        ((eq document-major-mode 'nov-mode)
         (rename-buffer document-buffer-name)
-        (advice-add 'nov-render-document :after 'org-noter--location-change-advice)
+        (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
         (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t))
 
        (t (error "This document handler is not supported :/")))
@@ -246,15 +247,19 @@ When nil, it will use the selected frame if it does not belong to any other sess
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t)
       (add-hook 'window-scroll-functions 'org-noter--set-notes-scroll nil t)
       (org-noter--set-read-only (org-noter--parse-root))
-      (setq selected-page (org-noter--location-property (org-noter--get-containing-heading t))))
+      (setq target-location (org-noter--location-property (org-noter--get-containing-heading t))))
 
     (org-noter--setup-windows session)
     (setf (org-noter--session-initialized session) t)
 
-    (with-current-buffer document-buffer
-      (if selected-page
-          (org-noter--doc-goto-location selected-page)
-        (org-noter--doc-location-change-handler)))))
+    ;; NOTE(nox): This timer is for preventing reflowing too soon.
+    (run-with-idle-timer
+     0.05 nil
+     (lambda ()
+       (with-current-buffer document-buffer
+         (if target-location
+             (org-noter--doc-goto-location target-location)
+           (org-noter--doc-location-change-handler)))))))
 
 (defun org-noter--valid-session (session)
   (when session
@@ -481,8 +486,8 @@ When nil, it will use the selected frame if it does not belong to any other sess
       (when (memq value '(horizontal-split vertical-split other-frame))
         value))))
 
-(defun org-noter--auto-save-page-property (ast)
-  (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-page)) ast)))
+(defun org-noter--auto-save-location-property (ast)
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-location)) ast)))
     (when (and (stringp property) (> (length property) 0))
       (when (intern property)
         t))))
@@ -514,7 +519,8 @@ When nil, it will use the selected frame if it does not belong to any other sess
 
 (defun org-noter--nov-scroll-handler (&rest _)
   (when org-noter--nov-timer (cancel-timer org-noter--nov-timer))
-  (setq org-noter--nov-timer (run-with-timer 0.5 nil 'org-noter--doc-location-change-handler)))
+  (unless org-noter--inhibit-location-change-handler
+    (setq org-noter--nov-timer (run-with-timer 0.25 nil 'org-noter--doc-location-change-handler))))
 
 (defun org-noter--location-property (arg)
   (let* ((property
@@ -542,8 +548,8 @@ When nil, it will use the selected frame if it does not belong to any other sess
      (format "%s" to-print))))
 
 (defun org-noter--get-containing-heading (&optional include-root)
-  "Get smallest containing heading that encloses the point and has page property.
-If the point isn't inside any heading with page property, return the outer heading."
+  "Get smallest containing heading that encloses the point and has location property.
+If the point isn't inside any heading with location property, return the outer heading."
   (org-noter--with-valid-session
    (unless (org-before-first-heading-p)
      (org-with-wide-buffer
@@ -625,7 +631,10 @@ If the point isn't inside any heading with page property, return the outer headi
          (setq nov-documents-index (car location-cons))
          (nov-render-document)
          (goto-char (cdr location-cons))
-         (recenter)))))))
+         (recenter))))
+     ;; NOTE(nox): This needs to be here, because it would be issued anyway after
+     ;; everything and would run org-noter--nov-scroll-handler.
+     (redisplay))))
 
 (defun org-noter--compare-location-cons (comp p1 p2)
   "Compare P1 and P2, which are location cons.
@@ -679,8 +688,8 @@ P2 or, when in the same page, if P1 is the _f_irst of the two."
         note)))
 
 (defun org-noter--get-this-note-end (note)
-  "If this notes has no children headings with page properties, then this is the same as `:end'.
-If it has, it will be the `:end' of the last element without that page property."
+  "If this notes has no children headings with location properties, then this is the same as `:end'.
+If it has, it will be the `:end' of the last element without that location property."
   (org-element-property :end (org-noter--get-this-note-last-element note)))
 
 (defun org-noter--focus-notes-region (note-groups)
@@ -755,8 +764,8 @@ a continuous group of notes."
                (vector 'paged (car (org-noter--doc-approx-location))))
 
               ((eq mode 'nov-mode)
-               (vector 'nov (cons nov-documents-index (window-start))
-                       (cons nov-documents-index (window-end nil t))))))
+               (vector 'nov (org-noter--doc-approx-location (window-start))
+                       (org-noter--doc-approx-location (window-end nil t))))))
             result group)
        (org-element-map contents 'headline
          (lambda (headline)
@@ -775,15 +784,15 @@ a continuous group of notes."
        (nreverse result)))))
 
 (defun org-noter--doc-location-change-handler ()
-  (unless org-noter--inhibit-location-change-handler
-    (org-noter--with-valid-session
-     (let ((notes (org-noter--get-notes-for-current-view)))
+  (org-noter--with-valid-session
+   (let ((notes (org-noter--get-notes-for-current-view)))
+     (unless org-noter--inhibit-location-change-handler
        (force-mode-line-update t)
        (when notes
          (org-noter--get-notes-window 'scroll)
          (org-noter--focus-notes-region notes)))
 
-     (when (org-noter--session-auto-save-last-page session) (org-noter-set-start-page nil)))))
+     (when (org-noter--session-auto-save-last-location session) (org-noter-set-start-location nil)))))
 
 (defun org-noter--mode-line-text ()
   (org-noter--with-valid-session
@@ -794,9 +803,9 @@ a continuous group of notes."
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
-(defun org-noter-set-start-page (arg)
-  "Set current page the one to show when starting a new session.
-With a prefix ARG, remove start page."
+(defun org-noter-set-start-location (arg)
+  "When opening a session with this document, go to the current location.
+With a prefix ARG, remove start location."
   (interactive "P")
   (org-noter--with-valid-session
    (let ((inhibit-read-only t)
@@ -810,24 +819,24 @@ With a prefix ARG, remove start page."
           (org-entry-put nil org-noter-property-note-location
                          (org-noter--pretty-print-location location-cons))))))))
 
-(defun org-noter-set-auto-save-last-page (arg)
-  "This toggles saving the last visited page for this document.
+(defun org-noter-set-auto-save-last-location (arg)
+  "This toggles saving the last visited location for this document.
 With a prefix ARG, delete the current setting and use the default."
   (interactive "P")
   (org-noter--with-valid-session
    (let ((inhibit-read-only t)
          (ast (org-noter--parse-root))
          (new-setting (if arg
-                          org-noter-auto-save-last-page
-                        (not (org-noter--session-auto-save-last-page session)))))
-     (setf (org-noter--session-auto-save-last-page session)
+                          org-noter-auto-save-last-location
+                        (not (org-noter--session-auto-save-last-location session)))))
+     (setf (org-noter--session-auto-save-last-location session)
            new-setting)
      (with-current-buffer (org-noter--session-notes-buffer session)
        (org-with-wide-buffer
         (goto-char (org-element-property :begin ast))
         (if arg
-            (org-entry-delete nil org-noter--property-auto-save-last-page)
-          (org-entry-put nil org-noter--property-auto-save-last-page (format "%s" new-setting)))
+            (org-entry-delete nil org-noter--property-auto-save-last-location)
+          (org-entry-put nil org-noter--property-auto-save-last-location (format "%s" new-setting)))
         (unless new-setting (org-entry-delete nil org-noter-property-note-location)))))))
 
 (defun org-noter-set-hide-other (arg)
@@ -957,7 +966,7 @@ want to kill."
     (when (eq (length org-noter--sessions) 0)
       (remove-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
       (advice-remove 'doc-view-goto-page 'org-noter--location-change-advice)
-      (advice-remove 'nov-render-document 'org-noter--location-change-advice))
+      (advice-remove 'nov-render-document 'org-noter--nov-scroll-handler))
 
     (let* ((ast (org-noter--parse-root))
            (frame (org-noter--session-frame session))
@@ -1028,21 +1037,21 @@ Only available with PDF Tools."
          (t (error "This command is only supported on PDF Tools.")))))
 
 (defun org-noter-insert-note (&optional arg precise-location)
-  "Insert note associated with the current page.
+  "Insert note associated with the current location.
 
 If:
-  - There are no notes for this page yet, this will insert a new
+  - There are no notes for this locaiton yet, this will insert a new
     subheading inside the root heading.
-  - There is only one note for this page, it will insert there
-  - If there are multiple notes for this page, it will ask you in
+  - There is only one note for this location, it will insert there
+  - If there are multiple notes for this location, it will ask you in
     which one to write
 
 When inserting a new note, it will ask you for a title; if you
 want the default title, input an empty string.
 
 If you want to force the creation of a separate note, use a
-prefix ARG. PRECISE-LOCATION makes the new note associated with
-that part of the page (see `org-noter-insert-precise-note' for
+prefix ARG. PRECISE-LOCATION makes the new note associated with a
+more specific location (see `org-noter-insert-precise-note' for
 more info)."
   (interactive "P")
   (org-noter--with-valid-session
@@ -1156,7 +1165,7 @@ more info)."
          (select-window (get-buffer-window (org-noter--session-doc-buffer session))))))))
 
 (defun org-noter-insert-precise-note ()
-  "Insert note associated with part of a page.
+  "Insert note associated with a specific location.
 This will ask you to click where you want to scroll to when you
 sync the document to this note. You should click on the top of
 that part. Will always create a new note.
@@ -1177,10 +1186,10 @@ This will force the notes window to popup."
 
      (org-element-map contents 'headline
        (lambda (headline)
-         (let ((page (org-noter--location-property headline)))
-           (when (and (org-noter--compare-location-cons '<  page location-cons)
-                      (org-noter--compare-location-cons '>f page target-location))
-             (setq target-location page))))
+         (let ((location (org-noter--location-property headline)))
+           (when (and (org-noter--compare-location-cons '<  location location-cons)
+                      (org-noter--compare-location-cons '>f location target-location))
+             (setq target-location location))))
        nil nil org-noter--note-search-no-recurse)
 
      (org-noter--get-notes-window 'force)
@@ -1200,7 +1209,7 @@ This will force the notes window to popup."
      (org-noter--doc-location-change-handler))))
 
 (defun org-noter-sync-next-page-or-chapter ()
-  "Show next page that has notes, in relation to the current page.
+  "Show next page or chapter that has notes, in relation to the current page or chapter.
 This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
@@ -1210,10 +1219,10 @@ This will force the notes window to popup."
 
      (org-element-map contents 'headline
        (lambda (headline)
-         (let ((page (org-noter--location-property headline)))
-           (when (and (org-noter--compare-location-cons '> page location-cons)
-                      (org-noter--compare-location-cons '< page target-location))
-             (setq target-location page))))
+         (let ((location (org-noter--location-property headline)))
+           (when (and (org-noter--compare-location-cons '> location location-cons)
+                      (org-noter--compare-location-cons '< location target-location))
+             (setq target-location location))))
        nil nil org-noter--note-search-no-recurse)
 
      (org-noter--get-notes-window 'force)
@@ -1223,7 +1232,7 @@ This will force the notes window to popup."
        (user-error "There are no more following pages or chapters with notes")))))
 
 (defun org-noter-sync-prev-note ()
-  "Go to the page of the previous note, in relation to where the point is.
+  "Go to the location of the previous note, in relation to where the point is.
 As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
@@ -1245,30 +1254,28 @@ As such, it will only work when the notes window exists."
 
      (if previous
          (progn
-           ;; NOTE(nox): This needs to be manual so we can focus the correct note (there
-           ;; may be several notes on this page, and the automatic page handler would
-           ;; focus the first one).
+           ;; NOTE(nox): This needs to be manual so we can focus the correct note
            (org-noter--doc-goto-location (org-noter--location-property previous))
            (org-noter--focus-notes-region (list (list previous))))
        (error "There is no previous note"))))
   (select-window (org-noter--get-doc-window)))
 
 (defun org-noter-sync-current-note ()
-  "Go the page of the selected note, in relation to where the point is.
+  "Go the location of the selected note, in relation to where the point is.
 As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
    "No notes window exists"
-   (let ((page (org-noter--location-property (org-noter--get-containing-heading))))
-     (if page
-         (org-noter--doc-goto-location page)
+   (let ((location (org-noter--location-property (org-noter--get-containing-heading))))
+     (if location
+         (org-noter--doc-goto-location location)
        (error "No note selected"))))
   (let ((window (org-noter--get-doc-window)))
     (select-frame-set-input-focus (window-frame window))
     (select-window window)))
 
 (defun org-noter-sync-next-note ()
-  "Go to the page of the next note, in relation to where the point is.
+  "Go to the location of the next note, in relation to where the point is.
 As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
@@ -1381,10 +1388,10 @@ when ARG < 0."
                                 (org-element-property :begin test-ast))
 
                         (let* ((org-noter--session test-session)
-                               (page (org-noter--location-property (org-noter--get-containing-heading))))
+                               (location (org-noter--location-property (org-noter--get-containing-heading))))
                           (org-noter--setup-windows test-session)
 
-                          (when page (org-noter--doc-goto-location page))
+                          (when location (org-noter--doc-goto-location location))
 
                           (select-frame-set-input-focus (org-noter--session-frame test-session)))
                         (throw 'should-continue nil))))))

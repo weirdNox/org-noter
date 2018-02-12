@@ -27,14 +27,12 @@ great.
      document buffer and annotate away!
 
 - Keep your notes in sync with the document :: When you take a note by pressing
-     @@html:<kbd>@@i@@html:</kbd>@@, it saves the page where you took it so it is able to
-     show you the notes while you scroll, automatically! Also, there is a new command
-     that, besides saving the page, also asks for the page position, so it scrolls there
-     when syncing the note page to the document!
+     @@html:<kbd>@@i@@html:</kbd>@@, it saves the location where you took it so it is able
+     to show you the notes while you scroll, automatically!
 
 - Easy navigation :: You may navigate your document as usual, seeing the notes buffer
      scroll and show you the respective notes; however, you may also navigate by notes,
-     only seeing annotated pages.
+     only seeing annotated pages/chapters.
 
 - Isolated interface :: Each session has its own frame and the document and notes buffers
      are indirect buffers to the original ones. Killing any of these things will terminate
@@ -44,9 +42,9 @@ great.
      same time! The root heading of each document will be made read-only to prevent you
      from deleting a heading from an open session.
 
-- Resume annotating from where you left :: When ~org-noter-auto-save-last-page~ is
-     non-nil, it will save the last page you visited and pick it up when you start another
-     session! You may also set this per-document, [[#custom][read more here]].
+- Resume annotating from where you left :: When ~org-noter-auto-save-last-location~ is
+     non-nil, it will save the last location you visited and pick it up when you start
+     another session! You may also set this per-document, [[#custom][read more here]].
 
 - Keep your notes organized :: You may arrange your notes however you want; you may even
      group them together inside headings!
@@ -97,10 +95,10 @@ the settings for that session only (not surviving restarts), or for every sessio
 that document.
 
 List of utility commands:
-- You may set a start page for this document, by using ~org-noter-set-start-page~.
+- You may set a start location for this document, by using ~org-noter-set-start-location~.
 
 - If, instead, you want to automatically resume from where you left, use
-  ~org-noter-set-auto-save-last-page~. With a prefix argument, it removes the local
+  ~org-noter-set-auto-save-last-location~. With a prefix argument, it removes the local
   setting and uses the default.
 
 - With ~org-noter-set-notes-window-behavior~, you may change /when/ the notes window pops
@@ -117,30 +115,31 @@ List of utility commands:
 :PROPERTIES:
 :CUSTOM_ID: keys
 :END:
-| Key                                | Description               | Where?                    |
-| @@html:<kbd>@@i@@html:</kbd>@@     | Insert note on this page  | Document buffer           |
-| @@html:<kbd>@@M-i@@html:</kbd>@@   | Insert new localized note | Document buffer           |
-| @@html:<kbd>@@q@@html:</kbd>@@     | Kill session              | Document buffer           |
-| @@html:<kbd>@@M-p@@html:</kbd>@@   | Sync previous page        | Document and notes buffer |
-| @@html:<kbd>@@M-.@@html:</kbd>@@   | Sync current page         | Document and notes buffer |
-| @@html:<kbd>@@M-n@@html:</kbd>@@   | Sync next page            | Document and notes buffer |
-| @@html:<kbd>@@C-M-p@@html:</kbd>@@ | Sync previous notes       | Document and notes buffer |
-| @@html:<kbd>@@C-M-.@@html:</kbd>@@ | Sync selected notes       | Document and notes buffer |
-| @@html:<kbd>@@C-M-n@@html:</kbd>@@ | Sync next notes           | Document and notes buffer |
+| Key                                | Description                | Where?                    |
+| @@html:<kbd>@@i@@html:</kbd>@@     | Insert note                | Document buffer           |
+| @@html:<kbd>@@M-i@@html:</kbd>@@   | Insert precise note        | Document buffer           |
+| @@html:<kbd>@@q@@html:</kbd>@@     | Kill session               | Document buffer           |
+| @@html:<kbd>@@M-p@@html:</kbd>@@   | Sync previous page/chapter | Document and notes buffer |
+| @@html:<kbd>@@M-.@@html:</kbd>@@   | Sync current page/chapter  | Document and notes buffer |
+| @@html:<kbd>@@M-n@@html:</kbd>@@   | Sync next page/chapter     | Document and notes buffer |
+| @@html:<kbd>@@C-M-p@@html:</kbd>@@ | Sync previous notes        | Document and notes buffer |
+| @@html:<kbd>@@C-M-.@@html:</kbd>@@ | Sync selected notes        | Document and notes buffer |
+| @@html:<kbd>@@C-M-n@@html:</kbd>@@ | Sync next notes            | Document and notes buffer |
 
 You can use the usual keybindings to navigate the document
 (@@html:<kbd>@@n@@html:</kbd>@@, @@html:<kbd>@@p@@html:</kbd>@@,
 @@html:<kbd>@@SPC@@html:</kbd>@@, ...).
 
 There are two types of sync commands:
-- To sync a page, means it will find the [previous|current|next] page and show the
-  corresponding notes for that page; as such, it will always pop up the notes buffer, if
-  it does not exist. This type of command is in relation to the current page in the
-  document.
+- To sync a page/chapter, means it will find the [previous|current|next] page/chapter and
+  show the corresponding notes for that page/chapter; as such, it will always pop up the
+  notes buffer, if it does not exist. This type of command is in relation to the current
+  page/chapter in the document.
 
 - To sync the notes, means it will find the [previous|current|next] notes and go to the
-  corresponding page on the document. So, you need to have the notes window open, because
-  this type of commands is in relation to the selected notes (ie, where the cursor is).
+  corresponding location on the document. So, you need to have the notes window open,
+  because this type of commands is in relation to the selected notes (ie, where the cursor
+  is).
 
 When using PDF Tools, the command =org-noter-create-skeleton= imports the PDF outline as
 notes, and it may be used, for example, as a starting point.
@@ -176,7 +175,7 @@ For compatibility with existing notes made with Sebastian's Interleave, *you mus
 the following variables like this:
 #+BEGIN_SRC emacs-lisp
   (setq org-noter-property-doc-file "INTERLEAVE_PDF"
-        org-noter-property-note-page "INTERLEAVE_PAGE_NOTE")
+        org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
 #+END_SRC
 
 One of the reasons of rewriting from scratch is to fix some bugs, like:
