@@ -112,6 +112,9 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-separate-notes-from-heading nil
+  "When non-nil, add an empty line between each note's heading and content.")
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -1108,7 +1111,10 @@ more info)."
                              (unless (memq (org-element-type element) '(section property-drawer))
                                t))
                            nil t))
-                        (post-blank (org-element-property :post-blank chosen-element)))
+                        (post-blank (org-element-property :post-blank chosen-element))
+                        (target-post-blank (if has-content
+                                               2
+                                             (if org-noter-separate-notes-from-heading 2 1))))
                    (goto-char (org-element-property :end chosen-element))
                    ;; NOTE(nox): Org doesn't count `:post-blank' when at the end of the buffer
                    (when (org-next-line-empty-p) ;; This is only true at the end, I think
@@ -1119,16 +1125,15 @@ more info)."
                          (setq post-blank (1+ post-blank))
                          (beginning-of-line 0))))
 
-                   (cond (has-content
-                          (while (< post-blank 2)
-                            (insert "\n")
-                            (setq post-blank (1+ post-blank))))
-                         (t (when (eq post-blank 0) (insert "\n"))))
+                   (while (< post-blank target-post-blank)
+                     (insert "\n")
+                     (setq post-blank (1+ post-blank)))
 
                    (when (org-at-heading-p)
                      (forward-line -1)))))
 
-           (let ((title (read-string "Title: ")))
+           (let ((title (read-string "Title: "))
+                 (post-blank (if org-noter-separate-notes-from-heading 2 1)))
              (when (zerop (length title))
                (setq title (replace-regexp-in-string
                             (regexp-quote "$p$") (number-to-string (car location-cons))
@@ -1147,9 +1152,10 @@ more info)."
                (org-noter--insert-heading (1+ (org-element-property :level ast))))
              (insert title)
              (end-of-line)
-             (if (and (not (eobp)) (org-next-line-empty-p))
-                 (forward-line)
-               (insert "\n"))
+             (dotimes (i post-blank)
+               (if (and (not (eobp)) (org-next-line-empty-p))
+                   (forward-line)
+                 (insert "\n")))
              (org-entry-put nil org-noter-property-note-location
                             (org-noter--pretty-print-location location-cons))
              (setf (org-noter--session-num-notes-in-view session)
