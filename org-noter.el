@@ -113,7 +113,9 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :type 'boolean)
 
 (defcustom org-noter-separate-notes-from-heading nil
-  "When non-nil, add an empty line between each note's heading and content.")
+  "When non-nil, add an empty line between each note's heading and content."
+  :group 'org-noter
+  :type 'boolean)
 
 (defface org-noter-no-notes-exist-face
   '((t
