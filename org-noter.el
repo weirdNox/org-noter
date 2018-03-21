@@ -1406,7 +1406,22 @@ when ARG < 0."
               t)
         (org-noter--create-session ast document-property notes-file-path))))
 
-  (when (and (not (eq major-mode 'org-mode)) (org-noter--valid-session org-noter--session))
+    (when (eq major-mode 'pdf-view-mode)
+    (setq pdfs-org-counterpart (concat (file-name-sans-extension buffer-file-name) ".org"))
+    (setq defaultname (file-name-sans-extension (buffer-name)))
+    (unless (file-exists-p pdfs-org-counterpart)
+      (progn
+	(let ((newheader (read-string "Header: " defaultname nil defaultname )))
+	  (setq orgnoter-init-string (concat "* " newheader "
+:PROPERTIES:
+:NOTER_DOCUMENT: " buffer-file-name "
+:END:"))
+	  (write-region orgnoter-init-string nil pdfs-org-counterpart))))
+    (delete-other-windows)
+    (find-file pdfs-org-counterpart)
+    (org-noter pdfs-org-counterpart))
+  
+  (when (and (not (eq major-mode 'org-mode)) (not (eq major-mode 'pdf-view-mode)) (org-noter--valid-session org-noter--session))
     (org-noter--setup-windows org-noter--session)
     (select-frame-set-input-focus (org-noter--session-frame org-noter--session))))
 
