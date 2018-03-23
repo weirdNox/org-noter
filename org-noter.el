@@ -117,6 +117,11 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-default-notes-file-names '("Notes.org")
+  "List of possible names for the default notes file, in increasing order of priority."
+  :group 'org-noter
+  :type 'list)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -145,6 +150,9 @@ When nil, it will use the selected frame if it does not belong to any other sess
 
 (defvar org-noter--inhibit-location-change-handler nil
   "Prevent location change from updating point in notes.")
+
+(defvar org-noter--start-location-override nil
+  "Used to open the session from the document in the right page.")
 
 (defvar-local org-noter--nov-timer nil
   "Timer for synchronizing notes after scrolling.")
@@ -213,7 +221,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
            :hide-other (or (org-noter--hide-other-property ast) org-noter-hide-other)
            :modified-tick -1))
 
-         target-location)
+         (target-location org-noter--start-location-override))
 
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
     (push session org-noter--sessions)
@@ -252,7 +260,8 @@ When nil, it will use the selected frame if it does not belong to any other sess
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t)
       (add-hook 'window-scroll-functions 'org-noter--set-notes-scroll nil t)
       (org-noter--set-read-only (org-noter--parse-root))
-      (setq target-location (org-noter--location-property (org-noter--get-containing-heading t))))
+      (unless target-location
+        (setq target-location (org-noter--location-property (org-noter--get-containing-heading t)))))
 
     (org-noter--setup-windows session)
     (setf (org-noter--session-initialized session) t)
@@ -504,20 +513,22 @@ When nil, it will use the selected frame if it does not belong to any other sess
         t))))
 
 (defun org-noter--doc-approx-location (&optional precise-location)
-  (org-noter--with-valid-session
-   (with-current-buffer (org-noter--session-doc-buffer session)
-     (cond
-      ((memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
-       (cons (image-mode-window-get 'page)
-             (if (numberp precise-location) precise-location 0)))
+  (let ((window (if (org-noter--valid-session org-noter--session)
+                    (org-noter--get-doc-window)
+                  (selected-window))))
+    (assert window)
+    (with-selected-window window
+      (cond
+       ((memq major-mode '(doc-view-mode pdf-view-mode))
+        (cons (image-mode-window-get 'page)
+              (if (numberp precise-location) precise-location 0)))
 
-      ((eq (org-noter--session-doc-mode session) 'nov-mode)
-       (let ((doc-window (org-noter--get-doc-window)))
-         (cons nov-documents-index
-               (cond
-                ((numberp precise-location) precise-location)
-                ((eq precise-location 'infer) (/ (+ (window-start doc-window) (window-end doc-window t)) 2))
-                (t 1)))))))))
+       ((eq major-mode 'nov-mode)
+        (cons nov-documents-index
+              (cond
+               ((numberp precise-location) precise-location)
+               ((eq precise-location 'infer) (/ (+ (window-start) (window-end nil t)) 2))
+               (t 1))))))))
 
 (defun org-noter--location-change-advice (&rest _)
   (org-noter--with-valid-session (org-noter--doc-location-change-handler)))
@@ -801,7 +812,7 @@ a continuous group of notes."
 
 (defun org-noter--mode-line-text ()
   (org-noter--with-valid-session
-   (let* ((number-of-notes (org-noter--session-num-notes-in-view session)))
+   (let* ((number-of-notes (or (org-noter--session-num-notes-in-view session) 0)))
      (cond ((= number-of-notes 0) (propertize " 0 notes" 'face 'org-noter-no-notes-exist-face))
            ((= number-of-notes 1) (propertize " 1 note" 'face 'org-noter-notes-exist-face))
            (t (propertize (format " %d notes" number-of-notes) 'face 'org-noter-notes-exist-face))))))
@@ -1333,9 +1344,14 @@ As such, it will only work when the notes window exists."
             (,(kbd "C-M-n") . org-noter-sync-next-note)))
 
 ;;;###autoload
-(defun org-noter (arg)
+(defun org-noter (&optional arg)
   "Start `org-noter' session.
 
+There are two modes of operation: you may either run this command
+inside a heading in an Org notes file, or you may run this
+command in a document (PDF, EPUB, ...).
+
+- When opening inside a heading ------------------------------
 This will open a session for taking your notes, with indirect
 buffers to the document and the notes side by side. Your current
 window configuration won't be changed, because this opens in a
@@ -1350,7 +1366,20 @@ in the current heading, don't inherit from parents.
 
 With a prefix number ARG, only open the document like `find-file'
 would if ARG >= 0, or open the folder containing the document
-when ARG < 0."
+when ARG < 0.
+
+- When opening inside a document -----------------------------
+This will try to find a notes file in any of the parent folders.
+The names it will search for are defined in `org-noter-default-notes-file-names'.
+It will also try to find a notes file with the same name as the
+document, giving it the maximum priority.
+
+When it doesn't find anything, it will interactively ask you what
+you want it to do. The target notes file must be in a parent
+folder (direct or otherwise) of the document.
+
+You may pass a prefix ARG in order to make it let you choose the
+notes file, even if it finds one."
   (interactive "P")
   (when (eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
@@ -1406,24 +1435,76 @@ when ARG < 0."
               t)
         (org-noter--create-session ast document-property notes-file-path))))
 
-    (when (eq major-mode 'pdf-view-mode)
-    (setq pdfs-org-counterpart (concat (file-name-sans-extension buffer-file-name) ".org"))
-    (setq defaultname (file-name-sans-extension (buffer-name)))
-    (unless (file-exists-p pdfs-org-counterpart)
-      (progn
-	(let ((newheader (read-string "Header: " defaultname nil defaultname )))
-	  (setq orgnoter-init-string (concat "* " newheader "
-:PROPERTIES:
-:NOTER_DOCUMENT: " buffer-file-name "
-:END:"))
-	  (write-region orgnoter-init-string nil pdfs-org-counterpart))))
-    (delete-other-windows)
-    (find-file pdfs-org-counterpart)
-    (org-noter pdfs-org-counterpart))
-  
-  (when (and (not (eq major-mode 'org-mode)) (not (eq major-mode 'pdf-view-mode)) (org-noter--valid-session org-noter--session))
-    (org-noter--setup-windows org-noter--session)
-    (select-frame-set-input-focus (org-noter--session-frame org-noter--session))))
+  (when (memq major-mode '(doc-view-mode pdf-view-mode nov-mode))
+    (if (org-noter--valid-session org-noter--session)
+        (progn (org-noter--setup-windows org-noter--session)
+               (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
+
+      (let* ((document-name buffer-file-name)
+             (document-non-directory (file-name-nondirectory document-name))
+             (document-directory (file-name-directory document-name))
+             (document-base (file-name-base document-name))
+             (document-location (org-noter--doc-approx-location 'infer))
+             (search-names (append org-noter-default-notes-file-names (list (concat document-base ".org"))))
+             notes-files-with-heading
+             notes-files)
+        (dolist (name search-names)
+          (let ((directory (locate-dominating-file default-directory name))
+                file)
+            (when directory
+              (setq file (expand-file-name name directory))
+              (push file notes-files)
+              (with-temp-buffer
+                (insert-file-contents file)
+                (catch 'break
+                  (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
+                    (when (string= (expand-file-name (match-string 3) directory) document-name)
+                      (push file notes-files-with-heading)
+                      (throw 'break t))))))))
+
+        (when (or arg (not notes-files-with-heading))
+          (when (or arg (not notes-files))
+            (let* ((notes-file-name (completing-read "What name do you want the notes to have? "
+                                                     search-names nil t))
+                   (directory (locate-dominating-file default-directory notes-file-name))
+                   target)
+              (while (not directory)
+                (setq directory
+                      (expand-file-name (read-directory-name "Where do you want to save the notes file? "
+                                                             nil nil t)))
+                (unless (string-match-p (regexp-quote directory) document-directory)
+                  (setq directory nil)))
+              (setq target (expand-file-name notes-file-name directory)
+                    notes-files (list target))
+              (unless (file-exists-p target) (write-region "" nil target))))
+
+          (when (> (length notes-files) 1)
+            (setq notes-files (list (completing-read "In which notes file should we create the heading? "
+                                                     notes-files nil t))))
+
+          (if (member (car notes-files) notes-files-with-heading)
+              ;; NOTE(nox): This is needed in order to override with the arg
+              (setq notes-files-with-heading notes-files)
+            (with-temp-file (car notes-files)
+              (insert-file-contents (car notes-files))
+              (goto-char (point-max))
+              (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
+                      "* " document-base)
+              (org-entry-put nil org-noter-property-doc-file
+                             (file-relative-name document-name (file-name-directory (car notes-files)))))
+            (setq notes-files-with-heading notes-files)))
+
+        (with-current-buffer (find-file-noselect (car notes-files-with-heading))
+          (org-with-wide-buffer
+           (catch 'break
+             (goto-char (point-min))
+             (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
+               (when (string= (expand-file-name (match-string 3)
+                                                (file-name-directory (car notes-files-with-heading)))
+                              document-name)
+                 (let ((org-noter--start-location-override document-location))
+                   (org-noter))
+                 (throw 'break t))))))))))
 
 (provide 'org-noter)
 

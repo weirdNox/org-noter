@@ -65,7 +65,7 @@ You can also install it manually, using =package.el=.
 3. Run @@html:<kbd>@@M-x@@html:</kbd>@@ ~package-install-from-buffer~ @@html:<kbd>@@RET@@html:</kbd>@@
 
 ** Usage
-The usage is very simple:
+If you want to give it a try without much trouble:
 - Just have an Org file where you want the notes to go
 - Create a root heading to hold the notes
 - Run @@html:<kbd>@@M-x@@html:</kbd>@@ ~org-noter~ inside!
@@ -73,6 +73,19 @@ The usage is very simple:
   property.
 
 This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
+
+More generally, there are two modes of operation. You may run
+@@html:<kbd>@@M-x@@html:</kbd>@@ ~org-noter~:
+- Inside a heading in an Org notes file :: This will associate that heading with a
+     document and open a session with it. This mode is the one described in the example
+     above.
+
+- In a document (PDF, EPUB, ...) :: This will try to find the respective notes file
+     automatically. To use this mode, open a document (eg. a PDF) and run
+     @@html:<kbd>@@M-x@@html:</kbd>@@ ~org-noter~, then follow the instructions in the
+     minibuffer.
+
+There is, of course, more information in the docstrings of each command.
 
 ** Screencast
 [[https://www.youtube.com/watch?v=Un0ZRXTzufo][Watch the screencast here!]]
@@ -168,8 +181,7 @@ is only applied in the indirect one, not on the original, so you may continue wo
 the rest of the buffer when interleaving.
 
 Also, this is as if you always used the multi-pdf mode of the original - you can't open a
-session without having a parent headline. As such, there is still no way to open the notes
-from the document file (when I have time, maybe I'll try to implement this).
+session without having a parent headline.
 
 For compatibility with existing notes made with Sebastian's Interleave, *you must* change
 the following variables like this:
