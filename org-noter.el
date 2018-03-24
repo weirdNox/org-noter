@@ -270,9 +270,9 @@ When nil, it will use the selected frame if it does not belong to any other sess
      0.05 nil
      (lambda ()
        (with-current-buffer document-buffer
-         (if target-location
-             (org-noter--doc-goto-location target-location)
-           (org-noter--doc-location-change-handler)))))))
+         (let ((org-noter--inhibit-location-change-handler t))
+           (when target-location (org-noter--doc-goto-location target-location)))
+         (org-noter--doc-location-change-handler))))))
 
 (defun org-noter--valid-session (session)
   (when session
@@ -414,7 +414,8 @@ When nil, it will use the selected frame if it does not belong to any other sess
       (goto-char (org-element-property :begin ast))
       (org-show-entry)
       (org-narrow-to-subtree)
-      (org-show-children))))
+      (org-show-children)
+      (org-cycle-hide-drawers 'all))))
 
 (defun org-noter--get-doc-window ()
   (org-noter--with-valid-session
@@ -1017,39 +1018,95 @@ want to kill."
           (delete-frame frame))))))
 
 (defun org-noter-create-skeleton ()
-  "Create notes skeleton with PDF outline.
+  "Create notes skeleton with the PDF outline or annotations.
 Only available with PDF Tools."
   (interactive)
   (org-noter--with-valid-session
-   (cond ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
-          (let* ((ast (org-noter--parse-root))
-                 (level (org-element-property :level ast))
-                 (outline (pdf-info-outline)))
-            (with-current-buffer (org-noter--session-notes-buffer session)
-              (widen)
-              (save-excursion
-                (goto-char (org-element-property :end ast))
-                (dolist (item outline)
-                  (let ((type  (alist-get 'type item))
-                        (page  (alist-get 'page item))
-                        (depth (alist-get 'depth item))
-                        (title (alist-get 'title item))
-                        (top   (alist-get 'top item)))
-                    (when (and (eq type 'goto-dest)
-                               (> page 0))
-                      (org-noter--insert-heading (+ level depth))
-                      (insert title)
-                      (if (and (not (eobp)) (org-next-line-empty-p))
-                          (forward-line)
-                        (insert "\n"))
-                      (org-entry-put nil org-noter-property-note-location
-                                     (org-noter--pretty-print-location (cons page top))))))
-                (setq ast (org-noter--parse-root))
-                (org-noter--narrow-to-root ast)
-                (goto-char (org-element-property :begin ast))
-                (outline-hide-subtree)
-                (org-show-children 2)))))
-         (t (error "This command is only supported on PDF Tools.")))))
+   (cond
+    ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+     (let* ((ast (org-noter--parse-root))
+            (level (org-element-property :level ast))
+            output-data)
+       (with-current-buffer (org-noter--session-doc-buffer session)
+         (cond
+          ((string= "Outline" (completing-read "What do you want to import? " '("Outline" "Annotations")))
+           (dolist (item (pdf-info-outline))
+             (let ((type  (alist-get 'type item))
+                   (page  (alist-get 'page item))
+                   (depth (alist-get 'depth item))
+                   (title (alist-get 'title item))
+                   (top   (alist-get 'top item)))
+               (when (and (eq type 'goto-dest) (> page 0))
+                 (push (vector title (cons page top) (1+ depth)) output-data))))
+           (when output-data
+             (push (vector "Outline" nil 1) output-data)))
+          (t
+           (let ((possible-annots (list '("Highlights" . highlight)
+                                        '("Underlines" . underline)
+                                        '("Squigglies" . squiggly)
+                                        '("Text notes" . text)
+                                        '("Strikeouts" . strike-out)
+                                        '("Links" . link)))
+                 chosen-annots)
+             (while (> (length possible-annots) 1)
+               (let* ((chosen-string (completing-read "Which types of annotations do you want? "
+                                                      possible-annots nil t))
+                      (chosen-pair (assoc chosen-string possible-annots)))
+                 (if (not (cdr chosen-pair))
+                     (setq possible-annots nil)
+                   (push (cdr chosen-pair) chosen-annots)
+                   (setq possible-annots (delq chosen-pair possible-annots))
+                   (when (= 1 (length chosen-annots)) (push '("DONE") possible-annots)))))
+
+             (dolist (item (pdf-info-getannots))
+               (let ((type  (alist-get 'type item))
+                     (page  (alist-get 'page item))
+                     (edges (or (car (alist-get 'markup-edges item))
+                                (alist-get 'edges item)))
+                     name)
+                 (when (and (memq type chosen-annots) (> page 0))
+                   (setq name (cond ((eq type 'highlight) "Highlight")
+                                    ((eq type 'underline) "Underline")
+                                    ((eq type 'squiggly) "Squiggly")
+                                    ((eq type 'text) "Text note")
+                                    ((eq type 'strike-out) "Strikeout")
+                                    ((eq type 'link) "Link")))
+                   (push (vector (format "%s on page %d" name page) (cons page (nth 1 edges)) 2)
+                         output-data)))))
+           (when output-data
+             (push (vector "Annotations" nil 1) output-data)))))
+
+       (setq output-data
+             (sort output-data
+                   (lambda (e1 e2)
+                     (or (not (aref e1 1))
+                         (and (aref e2 1)
+                              (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
+
+       (with-current-buffer (org-noter--session-notes-buffer session)
+         ;; NOTE(nox): org-with-wide-buffer can't be used because we wan't to set the
+         ;; narrow region
+         (widen)
+         (save-excursion
+           (goto-char (org-element-property :end ast))
+
+           (dolist (data output-data)
+             (org-noter--insert-heading (+ level (aref data 2)))
+             (insert (aref data 0))
+             (if (and (not (eobp)) (org-next-line-empty-p))
+                 (forward-line)
+               (insert "\n"))
+             (when (aref data 1)
+               (org-entry-put
+                nil org-noter-property-note-location (org-noter--pretty-print-location (aref data 1)))))
+
+           (setq ast (org-noter--parse-root))
+           (org-noter--narrow-to-root ast)
+           (goto-char (org-element-property :begin ast))
+           (outline-hide-subtree)
+           (org-show-children 2)))))
+
+    (t (error "This command is only supported on PDF Tools.")))))
 
 (defun org-noter-insert-note (&optional arg precise-location)
   "Insert note associated with the current location.
@@ -1449,9 +1506,11 @@ notes file, even if it finds one."
              notes-files)
         (dolist (name search-names)
           (let ((directory (locate-dominating-file default-directory name))
-                file)
+                file buffer)
             (when directory
-              (setq file (expand-file-name name directory))
+              (setq file (expand-file-name name directory)
+                    buffer (find-buffer-visiting file))
+              (when buffer (with-current-buffer buffer (save-buffer)))
               (push file notes-files)
               (with-temp-buffer
                 (insert-file-contents file)
@@ -1485,8 +1544,7 @@ notes file, even if it finds one."
           (if (member (car notes-files) notes-files-with-heading)
               ;; NOTE(nox): This is needed in order to override with the arg
               (setq notes-files-with-heading notes-files)
-            (with-temp-file (car notes-files)
-              (insert-file-contents (car notes-files))
+            (with-current-buffer (find-file-noselect (car notes-files))
               (goto-char (point-max))
               (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
                       "* " document-base)
