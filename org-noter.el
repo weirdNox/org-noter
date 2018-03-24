@@ -1464,6 +1464,7 @@ notes file, even if it finds one."
 
         (when (or arg (not notes-files-with-heading))
           (when (or arg (not notes-files))
+            (setq search-names (nreverse search-names))
             (let* ((notes-file-name (completing-read "What name do you want the notes to have? "
                                                      search-names nil t))
                    (directory (locate-dominating-file default-directory notes-file-name))
