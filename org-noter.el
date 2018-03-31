@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/weirdNox/org-noter
 ;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
-;; Version: 1.0
+;; Version: 1.0.1
 
 ;; This file is not part of GNU Emacs.
 
@@ -1403,11 +1403,11 @@ As such, it will only work when the notes window exists."
 (defun org-noter (&optional arg)
   "Start `org-noter' session.
 
-There are two modes of operation: you may either run this command
-inside a heading in an Org notes file, or you may run this
-command in a document (PDF, EPUB, ...).
+There are two modes of operation. You may create the session from:
+- The Org notes file
+- The document to be annotated (PDF, EPUB, ...)
 
-- When opening inside a heading ------------------------------
+- Creating the session from notes file -----------------------------------------
 This will open a session for taking your notes, with indirect
 buffers to the document and the notes side by side. Your current
 window configuration won't be changed, because this opens in a
@@ -1424,7 +1424,7 @@ With a prefix number ARG, only open the document like `find-file'
 would if ARG >= 0, or open the folder containing the document
 when ARG < 0.
 
-- When opening inside a document -----------------------------
+- Creating the session from the document ---------------------------------------
 This will try to find a notes file in any of the parent folders.
 The names it will search for are defined in `org-noter-default-notes-file-names'.
 It will also try to find a notes file with the same name as the
@@ -1437,7 +1437,9 @@ folder (direct or otherwise) of the document.
 You may pass a prefix ARG in order to make it let you choose the
 notes file, even if it finds one."
   (interactive "P")
-  (when (eq major-mode 'org-mode)
+  (cond
+   ;; NOTE(nox): Creating the session from notes file
+   ((eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
       (error "`org-noter' must be issued inside a heading"))
 
@@ -1491,7 +1493,8 @@ notes file, even if it finds one."
               t)
         (org-noter--create-session ast document-property notes-file-path))))
 
-  (when (memq major-mode '(doc-view-mode pdf-view-mode nov-mode))
+   ;; NOTE(nox): Creating the session from the document
+   ((memq major-mode '(doc-view-mode pdf-view-mode nov-mode))
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
@@ -1562,7 +1565,7 @@ notes file, even if it finds one."
                               document-name)
                  (let ((org-noter--start-location-override document-location))
                    (org-noter))
-                 (throw 'break t))))))))))
+                 (throw 'break t)))))))))))
 
 (provide 'org-noter)
 
