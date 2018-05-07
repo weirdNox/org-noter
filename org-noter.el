@@ -516,7 +516,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
   (let ((window (if (org-noter--valid-session org-noter--session)
                     (org-noter--get-doc-window)
                   (selected-window))))
-    (assert window)
+    (cl-assert window)
     (with-selected-window window
       (cond
        ((memq major-mode '(doc-view-mode pdf-view-mode))
