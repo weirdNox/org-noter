@@ -1129,6 +1129,13 @@ more info)."
           (notes-in-view (org-noter--get-notes-for-current-view))
           (location-cons (org-noter--doc-approx-location (or precise-location 'infer)))
           (include-property-less t)
+          (default-title-value
+            (cond
+             ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+              (when (pdf-view-active-region-p)
+                (replace-regexp-in-string "\n" " " (mapconcat 'identity (pdf-view-active-region-text) ? ))))
+             ((eq (org-noter--session-doc-mode session) 'nov-mode)
+              (replace-regexp-in-string "\n" " " (buffer-substring-no-properties (mark) (point))))))
           best-previous-element)
 
      (org-element-map contents 'headline
@@ -1198,7 +1205,7 @@ more info)."
                    (when (org-at-heading-p)
                      (forward-line -1)))))
 
-           (let ((title (read-string "Title: "))
+           (let ((title (read-string "Title: " default-title-value))
                  (wanted-post-blank (if org-noter-separate-notes-from-heading 2 1)))
              (when (zerop (length title))
                (setq title (replace-regexp-in-string
