@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/weirdNox/org-noter
 ;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
-;; Version: 1.0.1
+;; Version: 1.0.2
 
 ;; This file is not part of GNU Emacs.
 
@@ -1116,7 +1116,9 @@ If:
     which one to write
 
 When inserting a new note, it will ask you for a title; if you
-want the default title, input an empty string.
+want the default title, input an empty string. Also, when using
+PDF View or Nov.el, if you have something selected, it will be
+used as the default title.
 
 If you want to force the creation of a separate note, use a
 prefix ARG. PRECISE-LOCATION makes the new note associated with a
