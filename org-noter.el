@@ -1084,7 +1084,7 @@ Only available with PDF Tools."
                               (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
 
        (with-current-buffer (org-noter--session-notes-buffer session)
-         ;; NOTE(nox): org-with-wide-buffer can't be used because we wan't to set the
+         ;; NOTE(nox): org-with-wide-buffer can't be used because we want to set the
          ;; narrow region
          (widen)
          (save-excursion
@@ -1093,9 +1093,6 @@ Only available with PDF Tools."
            (dolist (data output-data)
              (org-noter--insert-heading (+ level (aref data 2)))
              (insert (aref data 0))
-             (if (and (not (eobp)) (org-next-line-empty-p))
-                 (forward-line)
-               (insert "\n"))
              (when (aref data 1)
                (org-entry-put
                 nil org-noter-property-note-location (org-noter--pretty-print-location (aref data 1)))))
@@ -1202,7 +1199,7 @@ more info)."
                      (forward-line -1)))))
 
            (let ((title (read-string "Title: "))
-                 (post-blank (if org-noter-separate-notes-from-heading 2 1)))
+                 (wanted-post-blank (if org-noter-separate-notes-from-heading 2 1)))
              (when (zerop (length title))
                (setq title (replace-regexp-in-string
                             (regexp-quote "$p$") (number-to-string (car location-cons))
@@ -1220,13 +1217,16 @@ more info)."
                (outline-show-entry)
                (org-noter--insert-heading (1+ (org-element-property :level ast))))
              (insert title)
-             (end-of-line)
-             (dotimes (i post-blank)
+             (org-entry-put nil org-noter-property-note-location
+                            (org-noter--pretty-print-location location-cons))
+
+             (goto-char (org-element-property :contents-end (org-element-at-point)))
+             (while (= 32 (char-syntax (char-before))) (backward-char))
+             (dotimes (i wanted-post-blank)
                (if (and (not (eobp)) (org-next-line-empty-p))
                    (forward-line)
                  (insert "\n")))
-             (org-entry-put nil org-noter-property-note-location
-                            (org-noter--pretty-print-location location-cons))
+
              (setf (org-noter--session-num-notes-in-view session)
                    (1+ (org-noter--session-num-notes-in-view session)))))
          (org-show-context)
