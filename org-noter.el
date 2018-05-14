@@ -1063,6 +1063,7 @@ Only available with PDF Tools."
                (when (and (eq type 'goto-dest) (> page 0))
                  (push (vector title (cons page top) (1+ depth)) output-data))))
            (when output-data
+             (setq output-data (nreverse output-data))
              (push (vector "Outline" nil 1) output-data)))
           (t
            (let ((possible-annots (list '("Highlights" . highlight)
@@ -1100,12 +1101,13 @@ Only available with PDF Tools."
            (when output-data
              (push (vector "Annotations" nil 1) output-data)))))
 
-       (setq output-data
-             (sort output-data
-                   (lambda (e1 e2)
-                     (or (not (aref e1 1))
-                         (and (aref e2 1)
-                              (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
+       (when (string= "Annotations" (aref (car output-data) 0))
+         (setq output-data
+               (sort output-data
+                     (lambda (e1 e2)
+                       (or (not (aref e1 1))
+                           (and (aref e2 1)
+                                (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1))))))))
 
        (with-current-buffer (org-noter--session-notes-buffer session)
          ;; NOTE(nox): org-with-wide-buffer can't be used because we want to set the
