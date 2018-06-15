@@ -1099,15 +1099,13 @@ Only available with PDF Tools."
                    (push (vector (format "%s on page %d" name page) (cons page (nth 1 edges)) 2)
                          output-data)))))
            (when output-data
+             (setq output-data
+                   (sort output-data
+                         (lambda (e1 e2)
+                           (or (not (aref e1 1))
+                               (and (aref e2 1)
+                                    (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
              (push (vector "Annotations" nil 1) output-data)))))
-
-       (when (string= "Annotations" (aref (car output-data) 0))
-         (setq output-data
-               (sort output-data
-                     (lambda (e1 e2)
-                       (or (not (aref e1 1))
-                           (and (aref e2 1)
-                                (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1))))))))
 
        (with-current-buffer (org-noter--session-notes-buffer session)
          ;; NOTE(nox): org-with-wide-buffer can't be used because we want to set the
