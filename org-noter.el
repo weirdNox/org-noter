@@ -1231,7 +1231,7 @@ more info)."
 
              (goto-char (org-element-property :contents-end (org-element-at-point)))
              (while (= 32 (char-syntax (char-before))) (backward-char))
-             (dotimes (i wanted-post-blank)
+             (dotimes (_ wanted-post-blank)
                (if (and (not (eobp)) (org-next-line-empty-p))
                    (forward-line)
                  (insert "\n")))
