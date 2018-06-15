@@ -118,7 +118,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :type 'boolean)
 
 (defcustom org-noter-insert-selected-text-inside-note t
-  "When non-nil, it will automatically insert the selected text to an existing note."
+  "When non-nil, it will automatically append the selected text into an existing note."
   :group 'org-noter
   :type 'boolean)
 
@@ -1114,7 +1114,7 @@ Only available with PDF Tools."
   "Insert note associated with the current location.
 
 If:
-  - There are no notes for this locaiton yet, this will insert a new
+  - There are no notes for this location yet, this will insert a new
     subheading inside the root heading.
   - There is only one note for this location, it will insert there
   - If there are multiple notes for this location, it will ask you in
@@ -1128,7 +1128,10 @@ used as the default title.
 If you want to force the creation of a separate note, use a
 prefix ARG. PRECISE-LOCATION makes the new note associated with a
 more specific location (see `org-noter-insert-precise-note' for
-more info)."
+more info).
+
+See `org-noter-insert-selected-text-inside-note' for information
+on how to copy the selected text into a note."
   (interactive "P")
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
@@ -1267,9 +1270,23 @@ This will ask you to click where you want to scroll to when you
 sync the document to this note. You should click on the top of
 that part. Will always create a new note.
 
+When text is selected, it will automatically choose the top of
+the selected text as the location.
+
 See `org-noter-insert-note' docstring for more."
   (interactive)
-  (org-noter-insert-note t (org-noter--ask-precise-location)))
+  (org-noter--with-valid-session
+   (let ((location (cond
+                    ((and (eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+                          (pdf-view-active-region-p))
+                     (cadar (pdf-view-active-region)))
+
+                    ((and (eq (org-noter--session-doc-mode session) 'nov-mode)
+                          (region-active-p))
+                     (min (mark) (point)))
+
+                    (t (org-noter--ask-precise-location)))))
+     (org-noter-insert-note t location))))
 
 (defun org-noter-sync-prev-page-or-chapter ()
   "Show previous page or chapter that has notes, in relation to the current page or chapter.
