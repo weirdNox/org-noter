@@ -1502,48 +1502,73 @@ notes file, even if it finds one."
               t)
         (org-noter--create-session ast document-property notes-file-path))))
 
-   ;; NOTE(nox): Creating the session from the document
+   ;; NOTE(nox): Creating the session from the annotated document
    ((memq major-mode '(doc-view-mode pdf-view-mode nov-mode))
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
 
-      (let* ((document-name buffer-file-name)
-             (document-non-directory (file-name-nondirectory document-name))
-             (document-directory (file-name-directory document-name))
+      ;; NOTE(nox): `buffer-file-truename' is a workaround for modes that delete
+      ;; `buffer-file-name', and may not have the same results
+      (unless (or buffer-file-name buffer-file-truename)
+        (error "This buffer does not seem to be visiting any file"))
+
+      (let* ((document-path (or buffer-file-name buffer-file-truename))
+             (document-name (file-name-nondirectory document-path))
              (document-base (file-name-base document-name))
-             (document-location (org-noter--doc-approx-location 'infer))
+             (document-directory (if buffer-file-name
+                                     (file-name-directory buffer-file-name)
+                                   (if (file-equal-p document-name buffer-file-truename)
+                                       default-directory
+                                     (file-name-directory buffer-file-truename))))
+             ;; NOTE(nox): This is the path that is actually going to be used, and should
+             ;; be the same as `buffer-file-name', but is needed for the truename workaround
+             (document-used-path (expand-file-name document-name document-directory))
+
              (search-names (append org-noter-default-notes-file-names (list (concat document-base ".org"))))
-             notes-files-with-heading
-             notes-files)
+             notes-files-annotating     ; List of files annotating document
+             notes-files                ; List of found notes files (annotating or not)
+
+             (document-location (org-noter--doc-approx-location 'infer)))
+
+        ;; NOTE(nox): `search-names' is in reverse order, so we only need to (push ...)
+        ;; and it will end up in the correct order
         (dolist (name search-names)
-          (let ((directory (locate-dominating-file default-directory name))
+          (let ((directory (locate-dominating-file document-directory name))
                 file buffer)
             (when directory
-              (setq file (expand-file-name name directory)
-                    buffer (find-buffer-visiting file))
-              (when buffer (with-current-buffer buffer (save-buffer)))
+              (setq file (expand-file-name name directory))
               (push file notes-files)
+
+              ; NOTE(nox): In order to insert the correct file contents
+              (setq buffer (find-buffer-visiting file))
+              (when buffer (with-current-buffer buffer (save-buffer)))
+
               (with-temp-buffer
                 (insert-file-contents file)
                 (catch 'break
                   (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
-                    (when (string= (expand-file-name (match-string 3) directory) document-name)
-                      (push file notes-files-with-heading)
+                    (when (file-equal-p (expand-file-name (match-string 3) directory)
+                                        document-path)
+                      ;; NOTE(nox): This notes file has the document we want!
+                      (push file notes-files-annotating)
                       (throw 'break t))))))))
 
-        (when (or arg (not notes-files-with-heading))
+        (setq search-names (nreverse search-names))
+
+        (when (or arg (not notes-files-annotating))
           (when (or arg (not notes-files))
-            (setq search-names (nreverse search-names))
             (let* ((notes-file-name (completing-read "What name do you want the notes to have? "
                                                      search-names nil t))
-                   (directory (locate-dominating-file default-directory notes-file-name))
+                   (directory (locate-dominating-file document-directory notes-file-name))
                    target)
               (while (not directory)
                 (setq directory
                       (expand-file-name (read-directory-name "Where do you want to save the notes file? "
                                                              nil nil t)))
                 (unless (string-match-p (regexp-quote directory) document-directory)
+                  (message "The chosen directory must be an ancestor to the annotated document")
+                  (sit-for 2.5)
                   (setq directory nil)))
               (setq target (expand-file-name notes-file-name directory)
                     notes-files (list target))
@@ -1553,25 +1578,26 @@ notes file, even if it finds one."
             (setq notes-files (list (completing-read "In which notes file should we create the heading? "
                                                      notes-files nil t))))
 
-          (if (member (car notes-files) notes-files-with-heading)
+          (if (member (car notes-files) notes-files-annotating)
               ;; NOTE(nox): This is needed in order to override with the arg
-              (setq notes-files-with-heading notes-files)
+              (setq notes-files-annotating notes-files)
             (with-current-buffer (find-file-noselect (car notes-files))
               (goto-char (point-max))
               (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
                       "* " document-base)
               (org-entry-put nil org-noter-property-doc-file
-                             (file-relative-name document-name (file-name-directory (car notes-files)))))
-            (setq notes-files-with-heading notes-files)))
+                             (file-relative-name document-used-path
+                                                 (file-name-directory (car notes-files)))))
+            (setq notes-files-annotating notes-files)))
 
-        (with-current-buffer (find-file-noselect (car notes-files-with-heading))
+        (with-current-buffer (find-file-noselect (car notes-files-annotating))
           (org-with-wide-buffer
            (catch 'break
              (goto-char (point-min))
              (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
-               (when (string= (expand-file-name (match-string 3)
-                                                (file-name-directory (car notes-files-with-heading)))
-                              document-name)
+               (when (file-equal-p (expand-file-name (match-string 3)
+                                                     (file-name-directory (car notes-files-annotating)))
+                                   document-path)
                  (let ((org-noter--start-location-override document-location))
                    (org-noter))
                  (throw 'break t)))))))))))
