@@ -127,6 +127,11 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'list)
 
+(defcustom org-noter-notes-search-path '("~/Documents")
+  "List of paths to check (non recursively) when searching for a notes file."
+  :group 'org-noter
+  :type 'list)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -821,6 +826,20 @@ a continuous group of notes."
      (cond ((= number-of-notes 0) (propertize " 0 notes" 'face 'org-noter-no-notes-exist-face))
            ((= number-of-notes 1) (propertize " 1 note" 'face 'org-noter-notes-exist-face))
            (t (propertize (format " %d notes" number-of-notes) 'face 'org-noter-notes-exist-face))))))
+
+(defun org-noter--check-if-document-is-annotated-on-file (document-path notes-path)
+  ;; NOTE(nox): In order to insert the correct file contents
+  (let ((buffer (find-buffer-visiting notes-path)))
+    (when buffer (with-current-buffer buffer (save-buffer)))
+
+    (with-temp-buffer
+      (insert-file-contents notes-path)
+      (catch 'break
+        (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
+          (when (file-equal-p (expand-file-name (match-string 3) (file-name-directory notes-path))
+                              document-path)
+            ;; NOTE(nox): This notes file has the document we want!
+            (throw 'break t)))))))
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
@@ -1561,6 +1580,15 @@ notes file, even if it finds one."
 
              (document-location (org-noter--doc-approx-location 'infer)))
 
+        ;; NOTE(nox): Check the search path
+        (dolist (path org-noter-notes-search-path)
+          (dolist (name search-names)
+            (let ((file-name (expand-file-name name path)))
+              (when (file-exists-p file-name)
+                (push file-name notes-files)
+                (when (org-noter--check-if-document-is-annotated-on-file document-path file-name)
+                  (push file-name notes-files-annotating))))))
+
         ;; NOTE(nox): `search-names' is in reverse order, so we only need to (push ...)
         ;; and it will end up in the correct order
         (dolist (name search-names)
@@ -1568,21 +1596,9 @@ notes file, even if it finds one."
                 file buffer)
             (when directory
               (setq file (expand-file-name name directory))
-              (push file notes-files)
-
-              ; NOTE(nox): In order to insert the correct file contents
-              (setq buffer (find-buffer-visiting file))
-              (when buffer (with-current-buffer buffer (save-buffer)))
-
-              (with-temp-buffer
-                (insert-file-contents file)
-                (catch 'break
-                  (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
-                    (when (file-equal-p (expand-file-name (match-string 3) directory)
-                                        document-path)
-                      ;; NOTE(nox): This notes file has the document we want!
-                      (push file notes-files-annotating)
-                      (throw 'break t))))))))
+              (unless (member file notes-files) (push file notes-files))
+              (when (org-noter--check-if-document-is-annotated-on-file document-path file)
+                (push file notes-files-annotating)))))
 
         (setq search-names (nreverse search-names))
 
@@ -1590,19 +1606,49 @@ notes file, even if it finds one."
           (when (or arg (not notes-files))
             (let* ((notes-file-name (completing-read "What name do you want the notes to have? "
                                                      search-names nil t))
-                   (directory (locate-dominating-file document-directory notes-file-name))
+                   list-of-possible-targets
                    target)
-              (while (not directory)
-                (setq directory
-                      (expand-file-name (read-directory-name "Where do you want to save the notes file? "
-                                                             nil nil t)))
-                (unless (string-match-p (regexp-quote directory) document-directory)
-                  (message "The chosen directory must be an ancestor to the annotated document")
-                  (sit-for 2.5)
-                  (setq directory nil)))
-              (setq target (expand-file-name notes-file-name directory)
-                    notes-files (list target))
-              (unless (file-exists-p target) (write-region "" nil target))))
+
+              ;; NOTE(nox): Create list of targets from current path
+              (catch 'break
+                (let ((current-directory document-directory)
+                      file-name)
+                  (while t
+                    (setq file-name (expand-file-name notes-file-name current-directory))
+                    (when (file-exists-p file-name)
+                      (setq file-name (propertize file-name 'display
+                                                 (concat file-name
+                                                         (propertize " -- Exists!"
+                                                                     'face '(foreground-color . "green")))))
+                      (push file-name list-of-possible-targets)
+                      (throw 'break nil))
+
+                    (push file-name list-of-possible-targets)
+
+                    (when (string= current-directory
+                                   (setq current-directory
+                                         (file-name-directory (directory-file-name current-directory))))
+                      (throw 'break nil)))))
+              (setq list-of-possible-targets (nreverse list-of-possible-targets))
+
+              ;; NOTE(nox): Create list of targets from search path
+              (dolist (path org-noter-notes-search-path)
+                (when (file-exists-p path)
+                  (let ((file-name (expand-file-name notes-file-name path)))
+                    (unless (member file-name list-of-possible-targets)
+                      (when (file-exists-p file-name)
+                        (setq file-name (propertize file-name 'display
+                                                    (concat file-name
+                                                            (propertize " -- Exists!"
+                                                                        'face '(foreground-color . "green"))))))
+                      (push file-name list-of-possible-targets)))))
+
+              (setq target (completing-read "Where do you want to save it? " list-of-possible-targets
+                                            nil t))
+              (set-text-properties 0 (length target) nil target)
+              (unless (file-exists-p target) (write-region "" nil target))
+
+              (setq notes-files (list target))))
 
           (when (> (length notes-files) 1)
             (setq notes-files (list (completing-read "In which notes file should we create the heading? "
@@ -1619,6 +1665,10 @@ notes file, even if it finds one."
                              (file-relative-name document-used-path
                                                  (file-name-directory (car notes-files)))))
             (setq notes-files-annotating notes-files)))
+
+        (when (> (length notes-files-annotating) 1)
+            (setq notes-files-annotating (list (completing-read "Which notes file should we open? "
+                                                                notes-files-annotating nil t))))
 
         (with-current-buffer (find-file-noselect (car notes-files-annotating))
           (org-with-wide-buffer
