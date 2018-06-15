@@ -117,6 +117,11 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-insert-selected-text-inside-note t
+  "When non-nil, it will automatically insert the selected text to an existing note."
+  :group 'org-noter
+  :type 'boolean)
+
 (defcustom org-noter-default-notes-file-names '("Notes.org")
   "List of possible names for the default notes file, in increasing order of priority."
   :group 'org-noter
@@ -1131,13 +1136,18 @@ more info)."
           (notes-in-view (org-noter--get-notes-for-current-view))
           (location-cons (org-noter--doc-approx-location (or precise-location 'infer)))
           (include-property-less t)
-          (default-title-value
-            (cond
-             ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
-              (when (pdf-view-active-region-p)
-                (replace-regexp-in-string "\n" " " (mapconcat 'identity (pdf-view-active-region-text) ? ))))
-             ((eq (org-noter--session-doc-mode session) 'nov-mode)
-              (replace-regexp-in-string "\n" " " (buffer-substring-no-properties (mark) (point))))))
+
+          (selected-text
+           (cond
+            ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
+             (when (pdf-view-active-region-p)
+               (mapconcat 'identity (pdf-view-active-region-text) ? )))
+
+            ((eq (org-noter--session-doc-mode session) 'nov-mode)
+             (buffer-substring-no-properties (mark) (point)))))
+
+          (default-title-value (when selected-text (replace-regexp-in-string "\n" " " selected-text)))
+
           best-previous-element)
 
      (org-element-map contents 'headline
@@ -1205,7 +1215,10 @@ more info)."
                      (setq post-blank (1+ post-blank)))
 
                    (when (org-at-heading-p)
-                     (forward-line -1)))))
+                     (forward-line -1))
+
+                   (when (and org-noter-insert-selected-text-inside-note selected-text)
+                     (insert selected-text)))))
 
            (let ((title (read-string "Title: " default-title-value))
                  (wanted-post-blank (if org-noter-separate-notes-from-heading 2 1)))
