@@ -827,6 +827,21 @@ a continuous group of notes."
            ((= number-of-notes 1) (propertize " 1 note" 'face 'org-noter-notes-exist-face))
            (t (propertize (format " %d notes" number-of-notes) 'face 'org-noter-notes-exist-face))))))
 
+;; NOTE(nox): From machc/pdf-tools-org
+(defun org-noter--pdf-tools-edges-to-region (edges)
+  "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
+  (let ((left0 (nth 0 (car edges)))
+        (top0 (nth 1 (car edges)))
+        (bottom0 (nth 3 (car edges)))
+        (top1 (nth 1 (car (last edges))))
+        (right1 (nth 2 (car (last edges))))
+        (bottom1 (nth 3 (car (last edges))))
+        (n (safe-length edges)))
+    (list left0
+          (+ top0 (/ (- bottom0 top0) 3))
+          right1
+          (- bottom1 (/ (- bottom1 top1) 3)))))
+
 (defun org-noter--check-if-document-is-annotated-on-file (document-path notes-path)
   ;; NOTE(nox): In order to insert the correct file contents
   (let ((buffer (find-buffer-visiting notes-path)))
@@ -1072,7 +1087,7 @@ Only available with PDF Tools."
                                         '("Text notes" . text)
                                         '("Strikeouts" . strike-out)
                                         '("Links" . link)))
-                 chosen-annots)
+                 chosen-annots insert-contents)
              (while (> (length possible-annots) 1)
                (let* ((chosen-string (completing-read "Which types of annotations do you want? "
                                                       possible-annots nil t))
@@ -1083,12 +1098,17 @@ Only available with PDF Tools."
                    (setq possible-annots (delq chosen-pair possible-annots))
                    (when (= 1 (length chosen-annots)) (push '("DONE") possible-annots)))))
 
+             (setq insert-contents (y-or-n-p "Should we insert the annotations contents? "))
+
              (dolist (item (pdf-info-getannots))
-               (let ((type  (alist-get 'type item))
-                     (page  (alist-get 'page item))
-                     (edges (or (car (alist-get 'markup-edges item))
-                                (alist-get 'edges item)))
-                     name)
+               (let* ((type  (alist-get 'type item))
+                      (page  (alist-get 'page item))
+                      (markup-edges (alist-get 'markup-edges item))
+                      (edges (or (car markup-edges)
+                                 (alist-get 'edges item)))
+                      (item-subject (alist-get 'subject item))
+                      (item-contents (alist-get 'contents item))
+                      name contents)
                  (when (and (memq type chosen-annots) (> page 0))
                    (setq name (cond ((eq type 'highlight) "Highlight")
                                     ((eq type 'underline) "Underline")
@@ -1096,7 +1116,15 @@ Only available with PDF Tools."
                                     ((eq type 'text) "Text note")
                                     ((eq type 'strike-out) "Strikeout")
                                     ((eq type 'link) "Link")))
-                   (push (vector (format "%s on page %d" name page) (cons page (nth 1 edges)) 2)
+                   (when insert-contents
+                     (setq contents (concat (or item-subject "") (if (and item-subject item-contents) "\n" "")
+                                            (or item-contents "")))
+                     (when markup-edges
+                       (setq contents
+                             (concat
+                              (if (> (length contents) 0) "\n" "")
+                              (pdf-info-gettext page (org-noter--pdf-tools-edges-to-region markup-edges))))))
+                   (push (vector (format "%s on page %d" name page) (cons page (nth 1 edges)) 2 contents)
                          output-data)))))
            (when output-data
              (setq output-data
@@ -1105,7 +1133,7 @@ Only available with PDF Tools."
                            (or (not (aref e1 1))
                                (and (aref e2 1)
                                     (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
-             (push (vector "Annotations" nil 1) output-data)))))
+             (push (vector "Annotations" nil 1 nil) output-data)))))
 
        (with-current-buffer (org-noter--session-notes-buffer session)
          ;; NOTE(nox): org-with-wide-buffer can't be used because we want to set the
@@ -1119,7 +1147,14 @@ Only available with PDF Tools."
              (insert (aref data 0))
              (when (aref data 1)
                (org-entry-put
-                nil org-noter-property-note-location (org-noter--pretty-print-location (aref data 1)))))
+                nil org-noter-property-note-location (org-noter--pretty-print-location (aref data 1))))
+             (org-end-of-subtree)
+             (when (aref data 3)
+               (while (= 32 (char-syntax (char-before))) (backward-char))
+               (if (and (not (eobp)) (org-next-line-empty-p))
+                   (forward-line)
+                 (insert "\n"))
+               (insert (aref data 3))))
 
            (setq ast (org-noter--parse-root))
            (org-noter--narrow-to-root ast)
