@@ -49,6 +49,7 @@
 (declare-function pdf-info-outline "ext:pdf-info")
 (declare-function nov-render-document "ext:nov")
 (defvar nov-documents-index)
+(defvar nov-file-name)
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User variables
@@ -1594,10 +1595,9 @@ notes file, even if it finds one."
 
       ;; NOTE(nox): `buffer-file-truename' is a workaround for modes that delete
       ;; `buffer-file-name', and may not have the same results
-      (unless (or buffer-file-name buffer-file-truename)
-        (error "This buffer does not seem to be visiting any file"))
-
-      (let* ((document-path (or buffer-file-name buffer-file-truename))
+      (let* ((buffer-file-name (or buffer-file-name (bound-and-true-p nov-file-name)))
+             (document-path (or buffer-file-name buffer-file-truename
+                                (error "This buffer does not seem to be visiting any file")))
              (document-name (file-name-nondirectory document-path))
              (document-base (file-name-base document-name))
              (document-directory (if buffer-file-name
