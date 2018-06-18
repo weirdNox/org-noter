@@ -1202,7 +1202,8 @@ on how to copy the selected text into a note."
                (mapconcat 'identity (pdf-view-active-region-text) ? )))
 
             ((eq (org-noter--session-doc-mode session) 'nov-mode)
-             (buffer-substring-no-properties (mark) (point)))))
+             (when (region-active-p)
+               (buffer-substring-no-properties (mark) (point))))))
 
           (default-title-value (when selected-text (replace-regexp-in-string "\n" " " selected-text)))
 
