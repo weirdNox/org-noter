@@ -1077,10 +1077,10 @@ Only available with PDF Tools."
                    (title (alist-get 'title item))
                    (top   (alist-get 'top item)))
                (when (and (eq type 'goto-dest) (> page 0))
-                 (push (vector title (cons page top) (1+ depth)) output-data))))
+                 (push (vector title (cons page top) (1+ depth) nil) output-data))))
            (when output-data
              (setq output-data (nreverse output-data))
-             (push (vector "Outline" nil 1) output-data)))
+             (push (vector "Outline" nil 1 nil) output-data)))
           (t
            (let ((possible-annots (list '("Highlights" . highlight)
                                         '("Underlines" . underline)
