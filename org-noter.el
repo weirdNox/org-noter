@@ -168,6 +168,9 @@ When nil, it will use the selected frame if it does not belong to any other sess
 (defvar-local org-noter--nov-timer nil
   "Timer for synchronizing notes after scrolling.")
 
+(defvar org-noter--arrow-location nil
+  "A vector [TIMER WINDOW TOP] that shows where the arrow should appear, when idling.")
+
 (defconst org-noter--property-behavior "NOTER_NOTES_BEHAVIOR"
   "Property for overriding global `org-noter-notes-window-behavior'.")
 
@@ -641,16 +644,29 @@ If the point isn't inside any heading with location property, return the outer h
         ((eq (org-noter--session-doc-mode session) 'nov-mode)
          (posn-point (event-start event))))))))
 
+(defun org-noter--show-arrow ()
+  (when (and org-noter--arrow-location
+             (window-live-p (aref org-noter--arrow-location 1)))
+    (with-selected-window (aref org-noter--arrow-location 1)
+      (pdf-util-tooltip-arrow (aref org-noter--arrow-location 2))))
+  (setq org-noter--arrow-location nil))
+
 (defun org-noter--doc-goto-location (location-cons)
   "Go to location specified by LOCATION-CONS."
   (org-noter--with-valid-session
-   (with-selected-window (org-noter--get-doc-window)
-     (let ((mode (org-noter--session-doc-mode session)))
+   (let ((window (org-noter--get-doc-window))
+         (mode (org-noter--session-doc-mode session)))
+     (with-selected-window window
        (cond
         ((memq mode '(doc-view-mode pdf-view-mode))
-         (if (eq mode 'pdf-view-mode)
-             (pdf-view-goto-page (car location-cons))
-           (doc-view-goto-page (car location-cons)))
+         (if (eq mode 'doc-view-mode)
+             (doc-view-goto-page (car location-cons))
+           (pdf-view-goto-page (car location-cons))
+           ;; NOTE(nox): This timer is needed because the tooltip introduces a delay, so
+           ;; syncing multiple pages was slow
+           (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
+           (setq org-noter--arrow-location (vector (run-with-idle-timer 0.7 nil 'org-noter--show-arrow)
+                                                   window (cdr location-cons))))
          (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location-cons))
                              (window-vscroll))))
 
@@ -658,10 +674,10 @@ If the point isn't inside any heading with location property, return the outer h
          (setq nov-documents-index (car location-cons))
          (nov-render-document)
          (goto-char (cdr location-cons))
-         (recenter))))
-     ;; NOTE(nox): This needs to be here, because it would be issued anyway after
-     ;; everything and would run org-noter--nov-scroll-handler.
-     (redisplay))))
+         (recenter)))
+       ;; NOTE(nox): This needs to be here, because it would be issued anyway after
+       ;; everything and would run org-noter--nov-scroll-handler.
+       (redisplay)))))
 
 (defun org-noter--compare-location-cons (comp p1 p2)
   "Compare P1 and P2, which are location cons.
