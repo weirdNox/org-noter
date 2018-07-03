@@ -851,9 +851,9 @@ a continuous group of notes."
 (defun org-noter--mode-line-text ()
   (org-noter--with-valid-session
    (let* ((number-of-notes (or (org-noter--session-num-notes-in-view session) 0)))
-     (cond ((= number-of-notes 0) (propertize " 0 notes" 'face 'org-noter-no-notes-exist-face))
-           ((= number-of-notes 1) (propertize " 1 note" 'face 'org-noter-notes-exist-face))
-           (t (propertize (format " %d notes" number-of-notes) 'face 'org-noter-notes-exist-face))))))
+     (cond ((= number-of-notes 0) (propertize " 0 notes " 'face 'org-noter-no-notes-exist-face))
+           ((= number-of-notes 1) (propertize " 1 note " 'face 'org-noter-notes-exist-face))
+           (t (propertize (format " %d notes " number-of-notes) 'face 'org-noter-notes-exist-face))))))
 
 ;; NOTE(nox): From machc/pdf-tools-org
 (defun org-noter--pdf-tools-edges-to-region (edges)
@@ -1509,7 +1509,9 @@ As such, it will only work when the notes window exists."
 
   (let ((mode-line-segment '(:eval (org-noter--mode-line-text))))
     (if org-noter-doc-mode
-        (push mode-line-segment mode-line-format)
+        (if (symbolp (car-safe mode-line-format))
+            (setq mode-line-format (list mode-line-segment mode-line-format))
+          (push mode-line-segment mode-line-format))
       (setq mode-line-format (delete mode-line-segment mode-line-format)))))
 
 (define-minor-mode org-noter-notes-mode
