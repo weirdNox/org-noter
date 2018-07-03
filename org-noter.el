@@ -133,6 +133,14 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'list)
 
+(defcustom org-noter-arrow-delay 0.2
+  "Number of seconds from when the command was invoked until the tooltip arrow appears.
+
+When set to a negative number, the arrow tooltip is disabled.
+This is needed in order to keep Emacs from hanging when doing many syncs."
+  :group 'org-noter
+  :type 'list)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -662,11 +670,14 @@ If the point isn't inside any heading with location property, return the outer h
          (if (eq mode 'doc-view-mode)
              (doc-view-goto-page (car location-cons))
            (pdf-view-goto-page (car location-cons))
-           ;; NOTE(nox): This timer is needed because the tooltip introduces a delay, so
-           ;; syncing multiple pages was slow
-           (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
-           (setq org-noter--arrow-location (vector (run-with-idle-timer 0.7 nil 'org-noter--show-arrow)
-                                                   window (cdr location-cons))))
+           ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
+           ;; so syncing multiple pages was slow
+           (when (>= org-noter-arrow-delay 0)
+             (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
+             (setq org-noter--arrow-location
+                   (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
+                           window
+                           (cdr location-cons)))))
          (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location-cons))
                              (window-vscroll))))
 
