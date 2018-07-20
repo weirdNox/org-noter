@@ -1093,10 +1093,14 @@ Only available with PDF Tools."
     ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
      (let* ((ast (org-noter--parse-root))
             (level (org-element-property :level ast))
-            output-data)
+            (options '(("Outline" . (outline))
+                       ("Annotations" . (annots))
+                       ("Both" . (outline annots))))
+            chosen-option output-data)
        (with-current-buffer (org-noter--session-doc-buffer session)
-         (cond
-          ((string= "Outline" (completing-read "What do you want to import? " '("Outline" "Annotations")))
+         (setq answer (assoc (completing-read "What do you want to import? " options nil t) options))
+
+         (when (memq 'outline answer)
            (dolist (item (pdf-info-outline))
              (let ((type  (alist-get 'type item))
                    (page  (alist-get 'page item))
@@ -1104,11 +1108,9 @@ Only available with PDF Tools."
                    (title (alist-get 'title item))
                    (top   (alist-get 'top item)))
                (when (and (eq type 'goto-dest) (> page 0))
-                 (push (vector title (cons page top) (1+ depth) nil) output-data))))
-           (when output-data
-             (setq output-data (nreverse output-data))
-             (push (vector "Outline" nil 1 nil) output-data)))
-          (t
+                 (push (vector title (cons page top) (1+ depth) nil) output-data)))))
+
+         (when (memq 'annots answer)
            (let ((possible-annots (list '("Highlights" . highlight)
                                         '("Underlines" . underline)
                                         '("Squigglies" . squiggly)
@@ -1159,37 +1161,43 @@ Only available with PDF Tools."
                              (concat
                               (if (> (length contents) 0) "\n" "")
                               (pdf-info-gettext page (org-noter--pdf-tools-edges-to-region markup-edges))))))
-                   (push (vector (format "%s on page %d" name page) (cons page (nth 1 edges)) 2 contents)
-                         output-data)))))
-           (when output-data
-             (setq output-data
-                   (sort output-data
-                         (lambda (e1 e2)
-                           (or (not (aref e1 1))
-                               (and (aref e2 1)
-                                    (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
-             (push (vector "Annotations" nil 1 nil) output-data)))))
+                   (push (vector (format "%s on page %d" name page) (cons page (nth 1 edges)) 'inside contents)
+                         output-data))))))
+
+         (when output-data
+           (setq output-data
+                 (sort output-data
+                       (lambda (e1 e2)
+                         (or (not (aref e1 1))
+                             (and (aref e2 1)
+                                  (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
+           (push (vector "Skeleton" nil 1 nil) output-data)))
 
        (with-current-buffer (org-noter--session-notes-buffer session)
-         ;; NOTE(nox): org-with-wide-buffer can't be used because we want to set the
-         ;; narrow region
+         ;; NOTE(nox): org-with-wide-buffer can't be used because we want to reset the
+         ;; narrow region to include the new headings
          (widen)
          (save-excursion
            (goto-char (org-element-property :end ast))
 
-           (dolist (data output-data)
-             (org-noter--insert-heading (+ level (aref data 2)))
-             (insert (aref data 0))
-             (when (aref data 1)
-               (org-entry-put
-                nil org-noter-property-note-location (org-noter--pretty-print-location (aref data 1))))
-             (org-end-of-subtree)
-             (when (aref data 3)
-               (while (= 32 (char-syntax (char-before))) (backward-char))
-               (if (and (not (eobp)) (org-next-line-empty-p))
-                   (forward-line)
-                 (insert "\n"))
-               (insert (aref data 3))))
+           (let (last-absolute-level)
+             (dolist (data output-data)
+               (if (symbolp (aref data 2))
+                   (org-noter--insert-heading (1+ last-absolute-level))
+                 (setq last-absolute-level (+ level (aref data 2)))
+                 (org-noter--insert-heading last-absolute-level))
+
+               (insert (aref data 0))
+               (when (aref data 1)
+                 (org-entry-put
+                  nil org-noter-property-note-location (org-noter--pretty-print-location (aref data 1))))
+               (org-end-of-subtree)
+               (when (aref data 3)
+                 (while (= 32 (char-syntax (char-before))) (backward-char))
+                 (if (and (not (eobp)) (org-next-line-empty-p))
+                     (forward-line)
+                   (insert "\n"))
+                 (insert (aref data 3)))))
 
            (setq ast (org-noter--parse-root))
            (org-noter--narrow-to-root ast)
