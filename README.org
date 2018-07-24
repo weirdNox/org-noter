@@ -81,10 +81,13 @@ More generally, there are two modes of operation. You may run
      document and open a session with it. This mode is the one described in the example
      above.
 
-- In a document (PDF, EPUB, ...) :: This will try to find the respective notes file
-     automatically. To use this mode, open a document (eg. a PDF) and run
-     @@html:<kbd>@@M-x@@html:</kbd>@@ ~org-noter~, then follow the instructions in the
-     minibuffer.
+- In a document :: Run @@html:<kbd>@@M-x@@html:</kbd>@@ ~org-noter~ when viewing a
+                   document (eg. PDF, epub...).
+
+                   This will try to find the respective notes file automatically. It will
+                   search in all parent folders and some specific folders set by you. See
+                   ~org-noter-default-notes-file-names~ and ~org-noter-notes-search-path~
+                   for more information.
 
 There is, of course, more information in the docstrings of each command.
 
@@ -155,8 +158,8 @@ There are two types of sync commands:
   because this type of commands is in relation to the selected notes (ie, where the cursor
   is).
 
-When using PDF Tools, the command =org-noter-create-skeleton= imports the PDF outline as
-notes, and it may be used, for example, as a starting point.
+When using PDF Tools, the command ~org-noter-create-skeleton~ imports the PDF outline or
+annotations (or both!) as notes, and it may be used, for example, as a starting point.
 
 You may also want to check the docstrings of the functions associated with the
 keybindings, because there is some extra functionality in some.

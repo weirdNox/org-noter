@@ -834,6 +834,7 @@ a continuous group of notes."
                (vector 'nov (org-noter--doc-approx-location (window-start))
                        (org-noter--doc-approx-location (window-end nil t))))))
             result group)
+
        (org-element-map contents 'headline
          (lambda (headline)
            (let ((property (org-noter--location-property headline)))
@@ -1319,8 +1320,9 @@ on how to copy the selected text into a note."
          (select-frame-set-input-focus (window-frame window))
          (select-window window)
 
-         ;; NOTE(nox): Need to be careful changing the next part, it is a bit complicated to
-         ;; get it right...
+         ;; IMPORTANT(nox): Need to be careful changing the next part, it is a bit
+         ;; complicated to get it right...
+
          (if (and notes-in-view (not arg))
              (let ((point (point))
                    default note collection)
