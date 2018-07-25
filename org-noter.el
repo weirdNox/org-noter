@@ -714,11 +714,14 @@ If the point isn't inside any heading with location property, return the outer h
 
 (defun org-noter--compare-location-cons (comp p1 p2)
   "Compare P1 and P2, which are location cons.
-When COMP is '<, '<= or '>, it works as expected.
+When COMP is '<, '<=, '>, or '>=, it works as expected.
 When COMP is '>f, it will return t when P1 is a page greater than
 P2 or, when in the same page, if P1 is the _f_irst of the two."
   (cond ((not p1) nil)
         ((not p2) t)
+        ((eq comp '=)
+         (and (= (car p1) (car p2))
+              (= (cdr p1) (cdr p2))))
         ((eq comp '<)
          (or (< (car p1) (car p2))
              (and (= (car p1) (car p2))
@@ -768,6 +771,7 @@ P2 or, when in the same page, if P1 is the _f_irst of the two."
 If it has, it will be the `:end' of the last element without that location property."
   (org-element-property :end (org-noter--get-this-note-last-element note)))
 
+;; FIXME IMPORTANT change this
 (defun org-noter--focus-notes-region (note-groups)
   (when note-groups
     (org-noter--with-selected-notes-window
@@ -825,28 +829,29 @@ If it has, it will be the `:end' of the last element without that location prope
                       (org-noter--doc-approx-location (window-end nil t)))))
            (t (error "Unknown document type"))))))
 
-(defun org-noter--note-before-tipping-point (note-property view)
+(defun org-noter--note-after-tipping-point (note-property view)
   ;; NOTE(nox): This __assumes__ the note is inside the view!
   (cond
    ((eq (aref view 0) 'paged)
-    (< (cdr note-property) org-noter-continuous-tipping-point))
+    (> (cdr note-property) org-noter-continuous-tipping-point))
    ((eq (aref view 0) 'nov)
-    (< (cdr note-property) (+ (aref view 1)
+    (> (cdr note-property) (+ (aref view 1)
                               (* org-noter-continuous-tipping-point (- (aref view 2) (aref view 1))))))))
 
-(defun org-noter--note-in-view (note-property view)
+(defun org-noter--relative-position-to-view (note-property view)
   (cond
    ((eq (aref view 0) 'paged)
-    (= (car note-property) (aref view 1)))
+    (let ((note-page (car note-property))
+          (view-page (aref view 1)))
+      (cond ((< note-page view-page) 'before)
+            ((= note-page view-page) 'inside)
+            (t                       'after))))
    ((eq (aref view 0) 'nov)
-    (and (org-noter--compare-location-cons '>= note-property (aref view 1))
-         (org-noter--compare-location-cons '<= note-property (aref view 2))))))
-
-(defun org-noter--count-notes (notes-in-view)
-  (org-noter--with-valid-session
-   (let* ((number-of-notes 0))
-     (dolist (group notes-in-view) (setq number-of-notes (+ number-of-notes (length group))))
-     number-of-notes)))
+    (let ((view-top (aref view 1))
+          (view-bot (aref view 2)))
+      (cond ((org-noter--compare-location-cons '<  note-property view-top) 'before)
+            ((org-noter--compare-location-cons '<= note-property view-bot) 'inside)
+            (t                                                             'after))))))
 
 (cl-defstruct org-noter--view-info notes-in-view regions reference-for-insertion)
 
@@ -860,55 +865,78 @@ relative to."
     (org-noter--with-valid-session
      (let* ((contents (org-element-contents (org-noter--parse-root)))
             (without-property t) (search-for-before t) ;; NOTE(nox): Used when searching reference
-            notes-in-view regions reference-for-insertion
-            current-region-start current-region-end
+            notes-in-view
+            regions current-region-start current-region-end
+            reference-for-insertion reference-location
+            (all-after-tipping-point t)
             (search-for-continuous-note (>= org-noter-continuous-tipping-point 0))
-            has-notes-before-tipping-point continuous-note)
+            continuous-notes continuous-notes-location)
+
        (org-element-map contents 'headline
          (lambda (headline)
            (let ((property (org-noter--location-property headline)))
              (if (not property)
-                 (when (and new-location without-property)
-                   (setq reference-for-insertion (cons 'after headline)))
+                 (when (and new-location without-property) (setq reference-for-insertion (cons 'after headline)))
 
-               (if (org-noter--note-in-view property view)
-                   (progn
-                     (push headline notes-in-view)
-                     (setq current-region-start (or current-region-start (org-element-property :begin headline))
-                           current-region-end (org-element-property :end headline)
-                           has-notes-before-tipping-point (and search-for-continuous-note
-                                                               (org-noter--note-before-tipping-point property
-                                                                                                     view))))
-                 (push (cons current-region-start current-region-end) regions)
-                 (setq current-region-start nil))
+               (let ((relative-position (org-noter--relative-position-to-view property view)))
+                 (cond
+                  ((eq relative-position 'inside)
+                   (push headline notes-in-view)
+                   (setq current-region-start (or current-region-start (org-element-property :begin headline))
+                         current-region-end (org-element-property :end headline)
+                         all-after-tipping-point
+                         (and all-after-tipping-point (org-noter--note-after-tipping-point property view))))
+
+                  (t
+                   (when current-region-start
+                     (push (cons current-region-start current-region-end) regions)
+                     (setq current-region-start nil))
+
+                   (when (and search-for-continuous-note all-after-tipping-point (eq relative-position 'before))
+                     (cond
+                      ((org-noter--compare-location-cons '> property continuous-notes-location)
+                       (setq continuous-notes (list headline)
+                             continuous-notes-location property))
+                      ((equal property continuous-notes-location)
+                       (push headline continuous-notes)))))))
 
                (when new-location
+                 (setq without-property nil)
                  (cond ((and (org-noter--compare-location-cons '<= property new-location)
-                             (org-noter--compare-location-cons '>= property reference-for-insertion))
+                             (org-noter--compare-location-cons '>= property reference-location))
                         (setq search-for-before nil
-                              reference-for-insertion (cons 'after headline)))
+                              reference-for-insertion (cons 'after headline)
+                              reference-location property))
 
                        ((and search-for-before
                              (org-noter--compare-location-cons '>= property new-location)
-                             (org-noter--compare-location-cons '<= property reference-for-insertion))
-                        (setq reference-for-insertion (cons 'before headline))))))))
+                             (org-noter--compare-location-cons '<= property reference-location))
+                        (setq reference-for-insertion (cons 'before headline)
+                              reference-location property)))))))
          nil nil org-noter--note-search-no-recurse)
 
-       (when group (push (nreverse group) result))
+       (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
 
-       (setf (org-noter--session-num-notes-in-view session) (org-noter--count-notes result))
-       (nreverse result)))))
+       (when all-after-tipping-point
+         (dolist (note continuous-notes)
+           (push note notes-in-view)
+           (push (cons (org-element-property :begin note) (org-element-property :end note)) regions)))
+
+       (make-org-noter--view-info
+        :notes-in-view (nreverse notes-in-view)
+        :regions (nreverse regions)
+        :reference-for-insertion reference-for-insertion)))))
 
 (defun org-noter--doc-location-change-handler ()
   (org-noter--with-valid-session
-   (let ((notes (org-noter--get-view-info (org-noter--get-current-view))))
-     (unless org-noter--inhibit-location-change-handler
-       (force-mode-line-update t)
-       (when notes
-         (org-noter--get-notes-window 'scroll)
-         (org-noter--focus-notes-region notes)))
+   (let ((view-info (org-noter--get-view-info (org-noter--get-current-view))))
+     (force-mode-line-update t)
+     (when (and (not org-noter--inhibit-location-change-handler)
+                (org-noter--view-info-notes-in-view notes))
+       (org-noter--get-notes-window 'scroll)
+       (org-noter--focus-notes-region view-info)))
 
-     (when (org-noter--session-auto-save-last-location session) (org-noter-set-start-location nil)))))
+   (when (org-noter--session-auto-save-last-location session) (org-noter-set-start-location))))
 
 (defun org-noter--mode-line-text ()
   (org-noter--with-valid-session
@@ -948,7 +976,7 @@ relative to."
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
-(defun org-noter-set-start-location (arg)
+(defun org-noter-set-start-location (&optional arg)
   "When opening a session with this document, go to the current location.
 With a prefix ARG, remove start location."
   (interactive "P")
@@ -1333,8 +1361,9 @@ on how to copy the selected text into a note."
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
-          (notes-in-view (org-noter--get-view-info (org-noter--get-current-view)))
           (location-cons (org-noter--doc-approx-location (or precise-location 'infer)))
+          ;; TODO IMPORTANT renamed from notes-in-view
+          (view-info (org-noter--get-view-info (org-noter--get-current-view) location-cons))
 
           (selected-text
            (cond
