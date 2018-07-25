@@ -16,9 +16,8 @@ away!
 therefore, /not every feature of the original mode is available/! You may prefer using the
 original, because this is a different take on the same idea. [[#diff][View some differences here.]]
 
-Org-noter is compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]], and [[https://github.com/wasamasa/nov.el][Nov.el]] (*very experimental!*). These
-modes make it possible to annotate *PDF*, *EPUB*, *Microsoft Office*, DVI, PS, and
-OpenDocument.
+Org-noter is compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]], and [[https://github.com/wasamasa/nov.el][Nov.el]]. These modes make it possible
+to annotate *PDF*, *EPUB*, *Microsoft Office*, DVI, PS, and OpenDocument.
 
 On a personal note, if you annotate and read lots of PDFs, give PDF Tools a try! It is
 great.
@@ -94,8 +93,11 @@ There is, of course, more information in the docstrings of each command.
 ** Screencast
 [[https://www.youtube.com/watch?v=Un0ZRXTzufo][Watch the screencast here!]]
 
-The files used to make this screencast are shipped with the package, so you can try it
-even without creating the notes.
+Note that this package has had some updates since this screencast was made, so, while the
+core functionality is the same, there may be some UX and feature differences.
+
+The files used to make this screencast are shipped with the package, so you can try this
+package even without creating the notes.
 
 ** Customization @@html:<a name="custom">@@
 There are two kinds of customizations you may do:
@@ -125,8 +127,11 @@ List of utility commands:
   up for this session. With a prefix argument, it becomes persistent for this document.
 
 - ~org-noter-set-hide-other~ will toggle whether or not it should hide headings not
-  related to the executed action for this session. Check the docstring for more
-  information.
+  related to the executed action. Check the docstring for more information.
+
+- ~org-noter-set-closest-tipping-point~ will set the closest note tipping point. Check its
+  and the variable ~org-noter-closest-tipping-point~ docstrings to see what this does and
+  better understand the tipping point.
 
 ** Keybindings and commands @@html:<a name="keys">@@
 :PROPERTIES:
