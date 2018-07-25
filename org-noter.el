@@ -123,6 +123,15 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-continuous-tipping-point 0.3
+  "This value defines the continuous note feature behavior.
+When positive, if there are notes above the represented percentage of the
+page, don't use the continuous note. Else, use it.
+
+When negative, disable this feature."
+  :group 'org-noter
+  :type 'number)
+
 (defcustom org-noter-default-notes-file-names '("Notes.org")
   "List of possible names for the default notes file, in increasing order of priority."
   :group 'org-noter
@@ -804,6 +813,27 @@ If it has, it will be the `:end' of the last element without that location prope
 
        (org-cycle-hide-drawers 'all)))))
 
+(defun org-noter--get-current-view ()
+  "Return a vector with the current view information."
+  (org-noter--with-valid-session
+   (let ((mode (org-noter--session-doc-mode session)))
+     (cond ((memq mode '(doc-view-mode pdf-view-mode))
+            (vector 'paged (car (org-noter--doc-approx-location))))
+           ((eq mode 'nov-mode)
+            (with-selected-window (org-noter--get-doc-window)
+              (vector 'nov (org-noter--doc-approx-location (window-start))
+                      (org-noter--doc-approx-location (window-end nil t)))))
+           (t (error "Unknown document type"))))))
+
+(defun org-noter--note-before-tipping-point (note-property view)
+  ;; NOTE(nox): This __assumes__ the note is inside the view!
+  (cond
+   ((eq (aref view 0) 'paged)
+    (< (cdr note-property) org-noter-continuous-tipping-point))
+   ((eq (aref view 0) 'nov)
+    (< (cdr note-property) (+ (aref view 1)
+                              (* org-noter-continuous-tipping-point (- (aref view 2) (aref view 1))))))))
+
 (defun org-noter--note-in-view (note-property view)
   (cond
    ((eq (aref view 0) 'paged)
@@ -818,32 +848,50 @@ If it has, it will be the `:end' of the last element without that location prope
      (dolist (group notes-in-view) (setq number-of-notes (+ number-of-notes (length group))))
      number-of-notes)))
 
-(defun org-noter--get-notes-for-current-view ()
-  "Returns a list where each element is a list with the notes of
-a continuous group of notes."
-  (org-noter--with-valid-session
-   (with-selected-window (org-noter--get-doc-window)
+(cl-defstruct org-noter--view-info notes-in-view regions reference-for-insertion)
+
+(defun org-noter--get-view-info (view &optional new-location)
+  "Return VIEW related information.
+
+When optional NEW-LOCATION is provided, it will be used to find
+the best heading to serve as a reference to create the new one
+relative to."
+  (when view
+    (org-noter--with-valid-session
      (let* ((contents (org-element-contents (org-noter--parse-root)))
-            (mode (org-noter--session-doc-mode session))
-            (view
-             (cond
-              ((memq mode '(doc-view-mode pdf-view-mode))
-               (vector 'paged (car (org-noter--doc-approx-location))))
-
-              ((eq mode 'nov-mode)
-               (vector 'nov (org-noter--doc-approx-location (window-start))
-                       (org-noter--doc-approx-location (window-end nil t))))))
-            result group)
-
+            (without-property t) (search-for-before t) ;; NOTE(nox): Used when searching reference
+            notes-in-view regions reference-for-insertion
+            current-region-start current-region-end
+            (search-for-continuous-note (>= org-noter-continuous-tipping-point 0))
+            has-notes-before-tipping-point continuous-note)
        (org-element-map contents 'headline
          (lambda (headline)
            (let ((property (org-noter--location-property headline)))
-             (when property
+             (if (not property)
+                 (when (and new-location without-property)
+                   (setq reference-for-insertion (cons 'after headline)))
+
                (if (org-noter--note-in-view property view)
-                   (push headline group)
-                 (when group
-                   (push (nreverse group) result)
-                   (setq group nil))))))
+                   (progn
+                     (push headline notes-in-view)
+                     (setq current-region-start (or current-region-start (org-element-property :begin headline))
+                           current-region-end (org-element-property :end headline)
+                           has-notes-before-tipping-point (and search-for-continuous-note
+                                                               (org-noter--note-before-tipping-point property
+                                                                                                     view))))
+                 (push (cons current-region-start current-region-end) regions)
+                 (setq current-region-start nil))
+
+               (when new-location
+                 (cond ((and (org-noter--compare-location-cons '<= property new-location)
+                             (org-noter--compare-location-cons '>= property reference-for-insertion))
+                        (setq search-for-before nil
+                              reference-for-insertion (cons 'after headline)))
+
+                       ((and search-for-before
+                             (org-noter--compare-location-cons '>= property new-location)
+                             (org-noter--compare-location-cons '<= property reference-for-insertion))
+                        (setq reference-for-insertion (cons 'before headline))))))))
          nil nil org-noter--note-search-no-recurse)
 
        (when group (push (nreverse group) result))
@@ -853,7 +901,7 @@ a continuous group of notes."
 
 (defun org-noter--doc-location-change-handler ()
   (org-noter--with-valid-session
-   (let ((notes (org-noter--get-notes-for-current-view)))
+   (let ((notes (org-noter--get-view-info (org-noter--get-current-view))))
      (unless org-noter--inhibit-location-change-handler
        (force-mode-line-update t)
        (when notes
@@ -1285,9 +1333,8 @@ on how to copy the selected text into a note."
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
-          (notes-in-view (org-noter--get-notes-for-current-view))
+          (notes-in-view (org-noter--get-view-info (org-noter--get-current-view)))
           (location-cons (org-noter--doc-approx-location (or precise-location 'infer)))
-          (include-property-less t)
 
           (selected-text
            (cond
