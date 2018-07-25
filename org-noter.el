@@ -766,56 +766,63 @@ P2 or, when in the same page, if P1 is the _f_irst of the two."
     (or result
         note)))
 
-(defun org-noter--get-this-note-end (note)
-  "If this notes has no children headings with location properties, then this is the same as `:end'.
-If it has, it will be the `:end' of the last element without that location property."
-  (org-element-property :end (org-noter--get-this-note-last-element note)))
+(defun org-noter--show-note-entry (note)
+  "This will show the note entry and its children.
+Every direct subheading that isn't a note itself will also be opened."
+  (save-excursion
+    (goto-char (org-element-property :begin note))
+    (org-show-entry)
+    (org-show-children)
+    (org-show-set-visibility t)
+    (org-element-map (org-element-contents note) 'headline
+      (lambda (headline)
+        (unless (org-noter--location-property headline)
+          (goto-char (org-element-property :begin headline))
+          (org-show-entry)
+          (org-show-children)))
+      nil nil org-element-all-elements)))
 
-;; FIXME IMPORTANT change this
-(defun org-noter--focus-notes-region (note-groups)
-  (when note-groups
-    (org-noter--with-selected-notes-window
-     (when (org-noter--session-hide-other session) (org-overview))
+(defun org-noter--focus-notes-region (view-info)
+  (org-noter--with-selected-notes-window
+   (when (org-noter--session-hide-other session) (org-overview))
+   (dolist (note (org-noter--view-info-notes view-info)) (org-noter--show-note-entry note))
 
-     (save-excursion
-       (dolist (group note-groups)
-         (dolist (note group)
-           (goto-char (org-element-property :begin note))
-           (org-show-entry) (org-show-children) (org-show-set-visibility t)
-           (org-element-map (org-element-contents note) 'headline
-             (lambda (headline)
-               (unless (org-noter--location-property headline)
-                 (goto-char (org-element-property :begin headline))
-                 (org-show-entry) (org-show-children)))
-             nil nil org-element-all-elements))))
+   (unless (catch 'break
+             (let ((point (point)))
+               (dolist (region (org-noter--view-info-regions view-info))
+                 (when (and (>= point (car region))
+                            (<  point (cdr region)))
+                   (throw 'break t)))))
+     (let* ((note-to-focus (car (org-noter--view-info-notes view-info)))
+            (begin (org-element-property :begin note-to-focus)))))
 
-     (let* ((group (car note-groups)) ;; TODO(nox): This chooses the first group always
-            (begin (org-element-property :begin (car group)))
-            (end (org-noter--get-this-note-end (car (last group))))
-            (window-start (window-start))
-            (window-end (window-end nil t))
-            (num-lines (count-lines begin end))
-            (curr-point (point))
-            (target (org-noter--get-properties-end (car group)) ))
+   (let* ((group (car note-groups)) ;; TODO(nox): This chooses the first group always
+          (begin )
+          (end (org-noter--get-this-note-end (car (last group))))
+          (window-start (window-start))
+          (window-end (window-end nil t))
+          (num-lines (count-lines begin end))
+          (curr-point (point))
+          (target (org-noter--get-properties-end (car group)) ))
 
-       (if (> num-lines (window-height))
-           (progn
-             (goto-char begin)
-             (recenter 0))
-         (cond ((< begin window-start)
-                (goto-char begin)
-                (recenter 0))
-               ((> end window-end)
-                (goto-char end)
-                (recenter -2))))
+     (if (> num-lines (window-height))
+         (progn
+           (goto-char begin)
+           (recenter 0))
+       (cond ((< begin window-start)
+              (goto-char begin)
+              (recenter 0))
+             ((> end window-end)
+              (goto-char end)
+              (recenter -2))))
 
-       (if (or (< curr-point begin)
-               (and (not (eq (point-max) end))
-                    (>= curr-point end)))
-           (goto-char target)
-         (goto-char curr-point))
+     (if (or (< curr-point begin)
+             (and (not (eq (point-max) end))
+                  (>= curr-point end)))
+         (goto-char target)
+       (goto-char curr-point))
 
-       (org-cycle-hide-drawers 'all)))))
+     (org-cycle-hide-drawers 'all))))
 
 (defun org-noter--get-current-view ()
   "Return a vector with the current view information."
@@ -853,7 +860,24 @@ If it has, it will be the `:end' of the last element without that location prope
             ((org-noter--compare-location-cons '<= note-property view-bot) 'inside)
             (t                                                             'after))))))
 
-(cl-defstruct org-noter--view-info notes-in-view regions reference-for-insertion)
+(cl-defstruct org-noter--view-info notes regions reference-for-insertion)
+
+(defmacro org-noter--view-region-finish (info &optional terminating-headline)
+  `(when ,info
+     ,(if terminating-headline
+          `(push (cons (aref ,info 1) (min (aref ,info 2) (org-element-property :begin ,terminating-headline)))
+                 (gv-deref (aref ,info 0)))
+        `(push (cons (aref ,info 1) (aref ,info 2)) (gv-deref (aref ,info 0))))
+     (setq ,info nil)))
+
+(defmacro org-noter--view-region-add (info list-name headline)
+  `(progn
+     (when (and ,info (not (eq (aref ,info 0) ,list-name))) (org-noter--view-region-finish ,info ,headline))
+
+     (if ,info
+         (setf (aref ,info 2) (max (aref ,info 2) (org-element-property :end ,headline)))
+       (setq ,info (vector (gv-ref ,list-name)
+                           (org-element-property :begin ,headline) (org-element-property :end headline))))))
 
 (defun org-noter--get-view-info (view &optional new-location)
   "Return VIEW related information.
@@ -863,42 +887,49 @@ the best heading to serve as a reference to create the new one
 relative to."
   (when view
     (org-noter--with-valid-session
-     (let* ((contents (org-element-contents (org-noter--parse-root)))
-            (without-property t) (search-for-before t) ;; NOTE(nox): Used when searching reference
-            notes-in-view
-            regions current-region-start current-region-end
-            reference-for-insertion reference-location
-            (all-after-tipping-point t)
-            (search-for-continuous-note (>= org-noter-continuous-tipping-point 0))
-            continuous-notes continuous-notes-location)
+     (let ((contents (org-element-contents (org-noter--parse-root)))
+           (without-property t) (search-for-before t) ;; NOTE(nox): Used when searching reference
+           notes-in-view regions-in-view
+           reference-for-insertion reference-location
+           (all-after-tipping-point t)
+           (search-for-continuous-note (>= org-noter-continuous-tipping-point 0))
+           continuous-notes continuous-notes-regions continuous-notes-location
+           current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END]
 
        (org-element-map contents 'headline
          (lambda (headline)
            (let ((property (org-noter--location-property headline)))
-             (if (not property)
-                 (when (and new-location without-property) (setq reference-for-insertion (cons 'after headline)))
-
+             (cond
+              (property
                (let ((relative-position (org-noter--relative-position-to-view property view)))
                  (cond
                   ((eq relative-position 'inside)
                    (push headline notes-in-view)
-                   (setq current-region-start (or current-region-start (org-element-property :begin headline))
-                         current-region-end (org-element-property :end headline)
-                         all-after-tipping-point
-                         (and all-after-tipping-point (org-noter--note-after-tipping-point property view))))
+
+                   (org-noter--view-region-add current-region-info regions-in-view headline)
+
+                   (setq all-after-tipping-point (and all-after-tipping-point
+                                                      (org-noter--note-after-tipping-point property view))))
 
                   (t
-                   (when current-region-start
-                     (push (cons current-region-start current-region-end) regions)
-                     (setq current-region-start nil))
+                   (when (and current-region-info (eq (gv-deref (aref current-region-info 0)) regions-in-view))
+                     (org-noter--view-region-finish current-region-info headline))
 
-                   (when (and search-for-continuous-note all-after-tipping-point (eq relative-position 'before))
+                   (when (and search-for-continuous-note all-after-tipping-point
+                              (eq relative-position 'before))
                      (cond
                       ((org-noter--compare-location-cons '> property continuous-notes-location)
                        (setq continuous-notes (list headline)
-                             continuous-notes-location property))
+                             continuous-notes-location property
+                             current-region-info nil
+                             continuous-notes-regions nil)
+                       (org-noter--view-region-add current-region-info continuous-notes-regions headline))
+
                       ((equal property continuous-notes-location)
-                       (push headline continuous-notes)))))))
+                       (push headline continuous-notes)
+                       (org-noter--view-region-add current-region-info continuous-notes-regions headline))
+
+                      (t (org-noter--view-region-finish current-region-info headline)))))))
 
                (when new-location
                  (setq without-property nil)
@@ -912,19 +943,22 @@ relative to."
                              (org-noter--compare-location-cons '>= property new-location)
                              (org-noter--compare-location-cons '<= property reference-location))
                         (setq reference-for-insertion (cons 'before headline)
-                              reference-location property)))))))
+                              reference-location property)))))
+
+              (t (when (and new-location without-property) (setq reference-for-insertion (cons 'after headline)))))))
          nil nil org-noter--note-search-no-recurse)
+
+       (org-noter--view-region-finish current-region-info)
 
        (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
 
        (when all-after-tipping-point
-         (dolist (note continuous-notes)
-           (push note notes-in-view)
-           (push (cons (org-element-property :begin note) (org-element-property :end note)) regions)))
+         (setq notes-in-view   (append (nreverse continuous-notes)         notes-in-view)
+               regions-in-view (append (nreverse continuous-notes-regions) regions-in-view)))
 
        (make-org-noter--view-info
-        :notes-in-view (nreverse notes-in-view)
-        :regions (nreverse regions)
+        :notes (nreverse notes-in-view)
+        :regions (nreverse regions-in-view)
         :reference-for-insertion reference-for-insertion)))))
 
 (defun org-noter--doc-location-change-handler ()
@@ -932,7 +966,7 @@ relative to."
    (let ((view-info (org-noter--get-view-info (org-noter--get-current-view))))
      (force-mode-line-update t)
      (when (and (not org-noter--inhibit-location-change-handler)
-                (org-noter--view-info-notes-in-view notes))
+                (org-noter--view-info-notes view-info))
        (org-noter--get-notes-window 'scroll)
        (org-noter--focus-notes-region view-info)))
 
