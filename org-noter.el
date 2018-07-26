@@ -1473,7 +1473,7 @@ defines if the text should be inserted inside the note."
          ;; complicated to get it right...
 
          (let ((point (point))
-               collection default title selection
+               collection default default-begin title selection
                (target-post-blank (if org-noter-separate-notes-from-heading 2 1)))
 
            ;; NOTE(nox): When precise, it will certainly be a new note
@@ -1481,10 +1481,12 @@ defines if the text should be inserted inside the note."
                (setq default (and selected-text (replace-regexp-in-string "\n" " " selected-text)))
 
              (dolist (note-cons (org-noter--view-info-notes view-info))
-               (let ((display (org-element-property :raw-value (car note-cons))))
+               (let ((display (org-element-property :raw-value (car note-cons)))
+                     (begin   (org-element-property :begin     (car note-cons))))
                  (push (cons display note-cons) collection)
-                 (when (>= point (org-element-property :begin (car note-cons)))
-                   (setq default display)))))
+                 (when (and (>= point begin) (> begin (or default-begin 0)))
+                   (setq default display
+                         default-begin begin)))))
 
            (setq collection (nreverse collection)
                  title (completing-read "Note: " collection nil nil nil nil default)
