@@ -125,8 +125,11 @@ List of utility commands:
   up for this session. With a prefix argument, it becomes persistent for this document.
 
 - ~org-noter-set-hide-other~ will toggle whether or not it should hide headings not
-  related to the executed action for this session. Check the docstring for more
-  information.
+  related to the executed action. Check the docstring for more information.
+
+- ~org-noter-set-closest-tipping-point~ will set the closest note tipping point. Check its
+  and the variable ~org-noter-closest-tipping-point~ docstrings to see what this does and
+  better understand the tipping point.
 
 ** Keybindings and commands @@html:<a name="keys">@@
 :PROPERTIES:

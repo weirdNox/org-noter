@@ -136,7 +136,10 @@ view (eg. a page of a PDF):
 |    |    previous note will be shown.
 +----+
 
-When this value is negative, disable this feature."
+When this value is negative, disable this feature.
+
+This setting may be changed document-by-document with the
+function `org-noter-set-closest-tipping-point', which see."
   :group 'org-noter
   :type 'number)
 
@@ -176,7 +179,8 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
   frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path property-text
-  level num-notes-in-view window-behavior window-location auto-save-last-location hide-other)
+  level num-notes-in-view window-behavior window-location auto-save-last-location hide-other
+  closest-tipping-point)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -207,6 +211,9 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
 
 (defconst org-noter--property-hide-other "NOTER_HIDE_OTHER"
   "Property for overriding global `org-noter-hide-other'.")
+
+(defconst org-noter--property-closest-tipping-point "NOTER_CLOSEST_TIPPING_POINT"
+  "Property for overriding global `org-noter-closest-tipping-point'.")
 
 (defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
   "List of elements that shouldn't be recursed into when searching for notes.")
@@ -258,6 +265,8 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
            :auto-save-last-location (or (org-noter--auto-save-location-property ast)
                                         org-noter-auto-save-last-location)
            :hide-other (or (org-noter--hide-other-property ast) org-noter-hide-other)
+           :closest-tipping-point (or (org-noter--closest-tipping-point-property ast)
+                                      org-noter-closest-tipping-point)
            :modified-tick -1))
 
          (target-location org-noter--start-location-override))
@@ -553,14 +562,17 @@ properties, by a margin of NEWLINES-NUMBER."
 (defun org-noter--auto-save-location-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-location)) ast)))
     (when (and (stringp property) (> (length property) 0))
-      (when (intern property)
-        t))))
+      (when (intern property) t))))
 
 (defun org-noter--hide-other-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter--property-hide-other)) ast)))
     (when (and (stringp property) (> (length property) 0))
-      (when (intern property)
-        t))))
+      (when (intern property) t))))
+
+(defun org-noter--closest-tipping-point-property (ast)
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-closest-tipping-point)) ast)))
+    (when (and (stringp property) (> (length property) 0))
+      (ignore-errors (string-to-number property)))))
 
 (defun org-noter--doc-approx-location (&optional precise-location)
   (let ((window (if (org-noter--valid-session org-noter--session)
@@ -818,14 +830,13 @@ Every direct subheading that isn't a note itself will also be opened."
                       (org-noter--doc-approx-location (window-end nil t)))))
            (t (error "Unknown document type"))))))
 
-(defun org-noter--note-after-tipping-point (note-property view)
+(defun org-noter--note-after-tipping-point (point note-property view)
   ;; NOTE(nox): This __assumes__ the note is inside the view!
   (cond
    ((eq (aref view 0) 'paged)
-    (> (cdr note-property) org-noter-closest-tipping-point))
+    (> (cdr note-property) point))
    ((eq (aref view 0) 'nov)
-    (> (cdr note-property) (+ (aref view 1)
-                              (* org-noter-closest-tipping-point (- (aref view 2) (aref view 1))))))))
+    (> (cdr note-property) (+ (aref view 1) (* point (- (aref view 2) (aref view 1))))))))
 
 (defun org-noter--relative-position-to-view (note-property view)
   (cond
@@ -875,7 +886,8 @@ relative to."
            notes-in-view regions-in-view
            reference-for-insertion reference-location
            (all-after-tipping-point t)
-           (search-for-closest-note (>= org-noter-closest-tipping-point 0))
+           (closest-tipping-point (and (>= (org-noter--session-closest-tipping-point session) 0)
+                                       (org-noter--session-closest-tipping-point session)))
            closest-notes closest-notes-regions closest-notes-location
            current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END REGIONS-LIST-NAME]
 
@@ -891,15 +903,15 @@ relative to."
 
                    (org-noter--view-region-add current-region-info regions-in-view headline)
 
-                   (setq all-after-tipping-point (and all-after-tipping-point
-                                                      (org-noter--note-after-tipping-point property view))))
+                   (setq all-after-tipping-point
+                         (and all-after-tipping-point (org-noter--note-after-tipping-point
+                                                       closest-tipping-point property view))))
 
                   (t
                    (when (and current-region-info (eq (aref current-region-info 3) 'regions-in-view))
                      (org-noter--view-region-finish current-region-info headline))
 
-                   (when (and search-for-closest-note all-after-tipping-point
-                              (eq relative-position 'before))
+                   (when (and closest-tipping-point all-after-tipping-point (eq relative-position 'before))
                      (cond
                       ((org-noter--compare-location-cons '> property closest-notes-location)
                        (setq closest-notes (list (cons headline headline))
@@ -1081,6 +1093,27 @@ With a prefix ARG, delete the current setting and use the default."
           (if (eq persistent 'write)
               (org-entry-put nil org-noter--property-hide-other (format "%s" new-setting))
             (org-entry-delete nil org-noter--property-hide-other))))))))
+
+(defun org-noter-set-closest-tipping-point (arg)
+  "This sets the closest note tipping point (see `org-noter-closest-tipping-point')
+- With a prefix \\[universal-argument], set it permanently for this document.
+- With a prefix \\[universal-argument] \\[universal-argument], remove the setting and use the default."
+  (interactive "P")
+  (org-noter--with-selected-notes-window
+   (let* ((ast (org-noter--parse-root))
+          (inhibit-read-only t)
+          (persistent (cond ((equal arg '(4)) 'write)
+                            ((equal arg '(16)) 'remove)))
+          (new-setting (if (eq persistent 'remove)
+                           org-noter-closest-tipping-point
+                         (read-number "New tipping point: " (org-noter--session-closest-tipping-point session)))))
+     (setf (org-noter--session-closest-tipping-point session) new-setting)
+     (when persistent
+       (org-with-wide-buffer
+        (goto-char (org-element-property :begin ast))
+        (if (eq persistent 'write)
+            (org-entry-put nil org-noter--property-closest-tipping-point (format "%f" new-setting))
+          (org-entry-delete nil org-noter--property-closest-tipping-point)))))))
 
 (defun org-noter-set-notes-window-behavior (arg)
   "Set the notes window behaviour for the current session.
