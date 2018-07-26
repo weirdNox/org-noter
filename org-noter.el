@@ -792,41 +792,45 @@ Every direct subheading that isn't a note itself will also be opened."
    (when (org-noter--session-hide-other session) (org-overview))
    (org-cycle-hide-drawers 'all)
 
-   (let ((notes-cons (org-noter--view-info-notes view-info)))
+   (let* ((notes-cons (org-noter--view-info-notes view-info))
+          (regions (or (org-noter--view-info-regions view-info)
+                       (org-noter--view-info-prev-regions view-info)))
+          (point-before (point))
+          target-region
+          point-inside-target-region)
      (cond
       (notes-cons
        (dolist (note-cons notes-cons) (org-noter--show-note-entry (car note-cons)))
 
-       (unless (catch 'break
-                 (let ((point (point)))
-                   (dolist (region (org-noter--view-info-regions view-info))
-                     (when (and (>= point (car region))
-                                (<  point (cdr region)))
-                       (throw 'break t)))))
-         (let* ((region (car (org-noter--view-info-regions view-info)))
-                (begin (car region))
-                (end   (cdr region))
-                (target (org-noter--get-properties-end (caar notes-cons)))
-                (window-start (window-start))
-                (window-end (window-end nil t))
-                (num-lines (count-screen-lines begin end)))
-           (cond
-            ((> num-lines (window-height))
-             (goto-char begin)
-             (recenter 0))
+       (setq target-region (or (catch 'result (dolist (region regions) (when (and (>= point-before (car region))
+                                                                                  (<  point-before (cdr region)))
+                                                                         (setq point-inside-target-region t)
+                                                                         (throw 'result region))))
+                               (car regions)))
 
-            ((< begin window-start)
-             (goto-char begin)
-             (recenter 0))
+       (let ((begin (car target-region)) (end (cdr target-region)) num-lines
+             (target-char (if point-inside-target-region
+                              point-before
+                            (org-noter--get-properties-end (caar notes-cons))))
+             (window-start (window-start)) (window-end (window-end nil t)))
+         (setq num-lines (count-screen-lines begin end))
 
-            ((> end window-end)
-             (goto-char end)
-             (recenter -2)))
+         (cond
+          ((> num-lines (window-height))
+           (goto-char begin)
+           (recenter 0))
 
-           (goto-char target))))
+          ((< begin window-start)
+           (goto-char begin)
+           (recenter 0))
 
-      (t
-       (org-noter--show-note-entry (org-noter--parse-root)))))))
+          ((> end window-end)
+           (goto-char end)
+           (recenter -2)))
+
+         (goto-char target-char)))
+
+      (t (org-noter--show-note-entry (org-noter--parse-root)))))))
 
 (defun org-noter--get-current-view ()
   "Return a vector with the current view information."
@@ -881,7 +885,7 @@ Every direct subheading that isn't a note itself will also be opened."
                            (org-element-property :begin ,headline) (org-element-property :end ,headline)
                            ',list-name)))))
 
-(cl-defstruct org-noter--view-info notes regions reference-for-insertion)
+(cl-defstruct org-noter--view-info notes regions prev-regions reference-for-insertion)
 
 (defun org-noter--get-view-info (view &optional new-location)
   "Return VIEW related information.
@@ -970,13 +974,12 @@ relative to."
 
        (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
 
-       (when all-after-tipping-point
-         (setq notes-in-view   (append closest-notes         notes-in-view)
-               regions-in-view (append closest-notes-regions regions-in-view)))
+       (when all-after-tipping-point (setq notes-in-view (append closest-notes notes-in-view)))
 
        (make-org-noter--view-info
         :notes (nreverse notes-in-view)
         :regions (nreverse regions-in-view)
+        :prev-regions (nreverse closest-notes-regions)
         :reference-for-insertion reference-for-insertion)))))
 
 (defun org-noter--make-view-info-for-single-note (headline)
