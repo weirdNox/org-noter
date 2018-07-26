@@ -179,34 +179,45 @@ internals, proposing pull requests, more back and forth in code review, etc...
 Besides, I like doing things from scratch, not only because it expands my skills, but also
 because it is something I find very rewarding!
 
-*** Some differences from Interleave @@html:<a name="diff">@@
+*** Non-exhaustive list of differences from Interleave @@html:<a name="diff">@@
 :PROPERTIES:
 :CUSTOM_ID: diff
 :END:
-Note that this list *is not* exhaustive!
+**** New features
+- Each session is isolated, which means that it has its own frame with indirect buffers
+  - Makes it possible to have several sessions simultaneously open
+  - Doesn't narrow the original buffer, which continues completely accessible
+- Has precise notes (attached to a section of a page)
+- Also supports nov.el
+- Skeleton extraction (outline and/or annotations)
+- Being able to use the closest previous note when no notes are present on the current
+  page
+- Closing all notes not related to the notes present in the current view
+- Possibility of overriding some global settings in each document or session
 
-There are new features, such as each session having its own frame and the possibility of
-having several sessions simultaneously (even of the same document and/or from the same
-notes file!). Aside from that, using indirect buffers is also great, because the narrowing
-is only applied in the indirect one, not on the original, so you may continue working on
-the rest of the buffer when interleaving.
-
-Also, this is as if you always used the multi-pdf mode of the original - you can't open a
-session without having a parent headline.
-
-For compatibility with existing notes made with Sebastian's Interleave, *you must* change
-the following variables like this:
-#+BEGIN_SRC emacs-lisp
-  (setq org-noter-property-doc-file "INTERLEAVE_PDF"
-        org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
-#+END_SRC
-
-One of the reasons of rewriting from scratch is to fix some bugs, like:
+**** Some annoyances fixed
 - Notes not sorted
 - Notes not synced when executing different page change commands, eg. goto-page or
   beginning-of-buffer
 - Sometimes it would start narrowing other parts of the buffer, giving errors when trying
   to go to notes.
+
+*** Changes to make in order to be compatible with documents created by Interleave
+This package only works like the multi-pdf mode of Interleave - you can't open a session
+without having a parent headline.
+
+For compatibility with existing notes made with Interleave, you can do one of two things:
+- Change the following property names inside the your documents:
+  | Old                    | New              |
+  |------------------------+------------------|
+  | =INTERLEAVE_PDF=       | =NOTER_DOCUMENT= |
+  | =INTERLEAVE_PAGE_NOTE= | =NOTER_PAGE=     |
+
+- Set these variables on your init file:
+  #+BEGIN_SRC emacs-lisp
+(setq org-noter-property-doc-file "INTERLEAVE_PDF"
+      org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
+  #+END_SRC
 
 ** Acknowledgments
 I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and the inspiration!
