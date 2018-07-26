@@ -123,7 +123,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
-(defcustom org-noter-continuous-tipping-point 0.3
+(defcustom org-noter-closest-tipping-point 0.3
   "Defines when to show the closest previous note.
 
 Let x be (this value)*100. The following schematic represents the
@@ -822,10 +822,10 @@ Every direct subheading that isn't a note itself will also be opened."
   ;; NOTE(nox): This __assumes__ the note is inside the view!
   (cond
    ((eq (aref view 0) 'paged)
-    (> (cdr note-property) org-noter-continuous-tipping-point))
+    (> (cdr note-property) org-noter-closest-tipping-point))
    ((eq (aref view 0) 'nov)
     (> (cdr note-property) (+ (aref view 1)
-                              (* org-noter-continuous-tipping-point (- (aref view 2) (aref view 1))))))))
+                              (* org-noter-closest-tipping-point (- (aref view 2) (aref view 1))))))))
 
 (defun org-noter--relative-position-to-view (note-property view)
   (cond
@@ -875,8 +875,8 @@ relative to."
            notes-in-view regions-in-view
            reference-for-insertion reference-location
            (all-after-tipping-point t)
-           (search-for-continuous-note (>= org-noter-continuous-tipping-point 0))
-           continuous-notes continuous-notes-regions continuous-notes-location
+           (search-for-closest-note (>= org-noter-closest-tipping-point 0))
+           closest-notes closest-notes-regions closest-notes-location
            current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END REGIONS-LIST-NAME]
 
        (org-element-map contents 'headline
@@ -898,19 +898,19 @@ relative to."
                    (when (and current-region-info (eq (aref current-region-info 3) 'regions-in-view))
                      (org-noter--view-region-finish current-region-info headline))
 
-                   (when (and search-for-continuous-note all-after-tipping-point
+                   (when (and search-for-closest-note all-after-tipping-point
                               (eq relative-position 'before))
                      (cond
-                      ((org-noter--compare-location-cons '> property continuous-notes-location)
-                       (setq continuous-notes (list (cons headline headline))
-                             continuous-notes-location property
+                      ((org-noter--compare-location-cons '> property closest-notes-location)
+                       (setq closest-notes (list (cons headline headline))
+                             closest-notes-location property
                              current-region-info nil
-                             continuous-notes-regions nil)
-                       (org-noter--view-region-add current-region-info continuous-notes-regions headline))
+                             closest-notes-regions nil)
+                       (org-noter--view-region-add current-region-info closest-notes-regions headline))
 
-                      ((equal property continuous-notes-location)
-                       (push (cons headline headline) continuous-notes)
-                       (org-noter--view-region-add current-region-info continuous-notes-regions headline))
+                      ((equal property closest-notes-location)
+                       (push (cons headline headline) closest-notes)
+                       (org-noter--view-region-add current-region-info closest-notes-regions headline))
 
                       (t (org-noter--view-region-finish current-region-info headline)))))))
 
@@ -934,10 +934,10 @@ relative to."
                         (when (< (org-element-property :begin headline)
                                  (org-element-property :end   (caar notes-in-view)))
                           (setcdr (car notes-in-view) headline)))
-                       ((eq (aref current-region-info 3) 'continuous-notes-regions)
+                       ((eq (aref current-region-info 3) 'closest-notes-regions)
                         (when (< (org-element-property :begin headline)
-                                 (org-element-property :end   (caar continuous-notes)))
-                          (setcdr (car continuous-notes) headline)))))
+                                 (org-element-property :end   (caar closest-notes)))
+                          (setcdr (car closest-notes) headline)))))
 
                (when (and new-location without-property)
                  (setq reference-for-insertion (cons 'after headline)))))))
@@ -948,8 +948,8 @@ relative to."
        (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
 
        (when all-after-tipping-point
-         (setq notes-in-view   (append continuous-notes         notes-in-view)
-               regions-in-view (append continuous-notes-regions regions-in-view)))
+         (setq notes-in-view   (append closest-notes         notes-in-view)
+               regions-in-view (append closest-notes-regions regions-in-view)))
 
        (make-org-noter--view-info
         :notes (nreverse notes-in-view)
@@ -1390,7 +1390,7 @@ it in the notes buffer. When the input is empty, a title based on
 
 If there are other notes related to the current location, the
 prompt will also suggest them. Depending on the value of the
-variable `org-noter-continuous-tipping-point', it may also
+variable `org-noter-closest-tipping-point', it may also
 suggest the closest previous note.
 
 PRECISE-LOCATION makes the new note associated with a more
