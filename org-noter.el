@@ -88,10 +88,13 @@ at the moment."
 
 When the list contains:
 - `start', the window will be created when starting a `org-noter' session.
-- `scroll', it will be created when you go to a location with an associated note."
+- `scroll', it will be created when you go to a location with an associated note.
+- `only-prev', it will be created when you go to a location without notes, but that
+   has previous notes that are shown."
   :group 'org-noter
   :type '(set (const :tag "Session start" start)
-              (const :tag "Scrolling" scroll)))
+              (const :tag "Scrolling" scroll)
+              (const :tag "Scroll to location with previous notes only" only-prev)))
 
 (defcustom org-noter-notes-window-location 'horizontal-split
   "Whether the notes should appear in the main frame (horizontal or vertical split) or in a separate frame.
@@ -1005,7 +1008,8 @@ relative to."
    (let ((view-info (org-noter--get-view-info (org-noter--get-current-view))))
      (force-mode-line-update t)
      (unless org-noter--inhibit-location-change-handler
-       (org-noter--get-notes-window 'scroll)
+       (org-noter--get-notes-window (cond ((org-noter--view-info-regions view-info) 'scroll)
+                                          ((org-noter--view-info-prev-regions view-info) 'only-prev)))
        (org-noter--focus-notes-region view-info)))
 
    (when (org-noter--session-auto-save-last-location session) (org-noter-set-start-location))))
@@ -1113,7 +1117,7 @@ With a prefix ARG, delete the current setting and use the default."
 - With a prefix \\[universal-argument], set it permanently for this document.
 - With a prefix \\[universal-argument] \\[universal-argument], remove the setting and use the default."
   (interactive "P")
-  (org-noter--with-selected-notes-window
+  (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root))
           (inhibit-read-only t)
           (persistent (cond ((equal arg '(4)) 'write)
@@ -1123,11 +1127,12 @@ With a prefix ARG, delete the current setting and use the default."
                          (read-number "New tipping point: " (org-noter--session-closest-tipping-point session)))))
      (setf (org-noter--session-closest-tipping-point session) new-setting)
      (when persistent
-       (org-with-wide-buffer
-        (goto-char (org-element-property :begin ast))
-        (if (eq persistent 'write)
-            (org-entry-put nil org-noter--property-closest-tipping-point (format "%f" new-setting))
-          (org-entry-delete nil org-noter--property-closest-tipping-point)))))))
+       (with-current-buffer (org-noter--session-notes-buffer session)
+         (org-with-wide-buffer
+          (goto-char (org-element-property :begin ast))
+          (if (eq persistent 'write)
+              (org-entry-put nil org-noter--property-closest-tipping-point (format "%f" new-setting))
+            (org-entry-delete nil org-noter--property-closest-tipping-point))))))))
 
 (defun org-noter-set-notes-window-behavior (arg)
   "Set the notes window behaviour for the current session.
@@ -1138,24 +1143,38 @@ See `org-noter-notes-window-behavior' for more information."
   (org-noter--with-valid-session
    (let* ((inhibit-read-only t)
           (ast (org-noter--parse-root))
-          (behavior-possibilities
-           '(("Default" . nil)
-             ("On start and scroll" . (start scroll))
-             ("On start" . (start))
-             ("On scroll" . (scroll))
-             ("Never" . (never))))
-          (behavior
-           (cdr (assoc (completing-read "Behavior: " behavior-possibilities nil t)
-                       behavior-possibilities))))
+          (possible-behaviors (list '("Default" . default)
+                                    '("On start" . start)
+                                    '("On scroll" . scroll)
+                                    '("On scroll to location that only has previous notes" . only-prev)
+                                    '("Never" . never)))
+          chosen-behaviors)
+
+     (while (> (length possible-behaviors) 1)
+       (let ((chosen-pair (assoc (completing-read "Behavior: " possible-behaviors nil t) possible-behaviors)))
+         (cond ((eq (cdr chosen-pair) 'default) (setq possible-behaviors nil))
+
+               ((eq (cdr chosen-pair) 'never) (setq chosen-behaviors (list 'never)
+                                                    possible-behaviors nil))
+
+               ((eq (cdr chosen-pair) 'done) (setq possible-behaviors nil))
+
+               (t (push (cdr chosen-pair) chosen-behaviors)
+                  (setq possible-behaviors (delq chosen-pair possible-behaviors))
+                  (when (= (length chosen-behaviors) 1)
+                    (setq possible-behaviors (delq (rassq 'default possible-behaviors) possible-behaviors)
+                          possible-behaviors (delq (rassq 'never possible-behaviors) possible-behaviors))
+                    (push (cons "Done" 'done) possible-behaviors))))))
+
      (setf (org-noter--session-window-behavior session)
-           (or behavior org-noter-notes-window-behavior))
+           (or chosen-behaviors org-noter-notes-window-behavior))
+
      (when arg
        (with-current-buffer (org-noter--session-notes-buffer session)
          (org-with-wide-buffer
           (goto-char (org-element-property :begin ast))
-          (if behavior
-              (org-entry-put nil org-noter--property-behavior
-                             (format "%s" behavior))
+          (if chosen-behaviors
+              (org-entry-put nil org-noter--property-behavior (format "%s" chosen-behaviors))
             (org-entry-delete nil org-noter--property-behavior))))))))
 
 (defun org-noter-set-notes-window-location (arg)
