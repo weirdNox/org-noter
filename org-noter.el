@@ -93,7 +93,7 @@ When the list contains:
    has previous notes that are shown."
   :group 'org-noter
   :type '(set (const :tag "Session start" start)
-              (const :tag "Scrolling" scroll)
+              (const :tag "Scroll to location with notes" scroll)
               (const :tag "Scroll to location with previous notes only" only-prev)))
 
 (defcustom org-noter-notes-window-location 'horizontal-split
