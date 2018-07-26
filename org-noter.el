@@ -899,7 +899,7 @@ relative to."
   (when view
     (org-noter--with-valid-session
      (let ((contents (org-element-contents (org-noter--parse-root)))
-           (without-property t) (search-for-before t) ;; NOTE(nox): Used when searching reference
+           (without-property t) ;; NOTE(nox): Used when searching reference
            notes-in-view regions-in-view
            reference-for-insertion reference-location
            (all-after-tipping-point t)
@@ -947,14 +947,15 @@ relative to."
                (when new-location
                  (setq without-property nil)
                  (cond ((and (org-noter--compare-location-cons '<= property new-location)
-                             (org-noter--compare-location-cons '>= property reference-location))
-                        (setq search-for-before nil
-                              reference-for-insertion (cons 'after headline)
+                             (or (eq (car reference-for-insertion) 'before)
+                                 (org-noter--compare-location-cons '>= property reference-location)))
+                        (setq reference-for-insertion (cons 'after headline)
                               reference-location property))
 
-                       ((and search-for-before
-                             (org-noter--compare-location-cons '>= property new-location)
-                             (org-noter--compare-location-cons '<= property reference-location))
+                       ((and (eq (car reference-for-insertion) 'after)
+                             (< (org-element-property :begin headline)
+                                (org-element-property :end   (cdr reference-for-insertion)))
+                             (org-noter--compare-location-cons '>= property new-location))
                         (setq reference-for-insertion (cons 'before headline)
                               reference-location property)))))
 
@@ -969,8 +970,7 @@ relative to."
                                  (org-element-property :end   (caar closest-notes)))
                           (setcdr (car closest-notes) headline)))))
 
-               (when (and new-location without-property)
-                 (setq reference-for-insertion (cons 'after headline)))))))
+               (when (and new-location without-property) (setq reference-for-insertion (cons 'after headline)))))))
          nil nil org-noter--note-search-no-recurse)
 
        (org-noter--view-region-finish current-region-info)
@@ -1543,7 +1543,8 @@ defines if the text should be inserted inside the note."
                  (when (and org-noter-insert-selected-text-inside-note selected-text) (insert selected-text)))
 
              ;; NOTE(nox): Inserting a new note
-             (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info)))
+             (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
+                   level)
                (when (zerop (length title))
                  (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (car location-cons))
                                                        org-noter-default-heading-title)))
@@ -1556,23 +1557,26 @@ defines if the text should be inserted inside the note."
                       ((eq (car reference-element-cons) 'after)
                        (goto-char (org-element-property :end (cdr reference-element-cons)))))
 
-                     (org-noter--insert-heading (org-element-property :level (cdr reference-element-cons)) title
-                                                target-post-blank))
+                     (setq level (org-element-property :level (cdr reference-element-cons))))
 
-                 (goto-char (org-element-map contents 'section (lambda (section) (org-element-property :end section))
-                                             nil t org-element-all-elements))
-                 ;; NOTE(nox): This is needed to insert in the right place...
-                 (outline-show-entry)
-                 (org-noter--insert-heading (1+ (org-element-property :level ast)) title target-post-blank))
+                 (goto-char (org-element-map contents 'section
+                              (lambda (section) (org-element-property :end section))
+                              nil t org-element-all-elements))
+                 (setq level (1+ (org-element-property :level ast))))
+
+               ;; NOTE(nox): This is needed to insert in the right place...
+               (outline-show-entry)
+               (org-noter--insert-heading level title target-post-blank)
+               (when (org-noter--session-hide-other session) (org-overview))
 
                (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location-cons))
 
                (setf (org-noter--session-num-notes-in-view session)
                      (1+ (org-noter--session-num-notes-in-view session)))))
 
-           (org-show-context)
-           (org-show-siblings)
-           (org-show-subtree)
+           (org-show-entry)
+           (org-show-children)
+           (org-show-set-visibility t)
            (org-cycle-hide-drawers 'all)))
        (when quit-flag
          ;; NOTE(nox): If this runs, it means the user quitted while creating a note, so
