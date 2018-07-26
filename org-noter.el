@@ -44,10 +44,17 @@
 (declare-function image-get-display-property "image-mode")
 (declare-function image-mode-window-get "image-mode")
 (declare-function image-scroll-up "image-mode")
-(declare-function pdf-view-mode "ext:pdf-view")
-(declare-function pdf-view-goto-page "ext:pdf-view")
-(declare-function pdf-info-outline "ext:pdf-info")
 (declare-function nov-render-document "ext:nov")
+(declare-function pdf-info-getannots "ext:pdf-info")
+(declare-function pdf-info-gettext "ext:pdf-info")
+(declare-function pdf-info-outline "ext:pdf-info")
+(declare-function pdf-info-pagelinks "ext:pdf-info")
+(declare-function pdf-util-tooltip-arrow "ext:pdf-util")
+(declare-function pdf-view-active-region "ext:pdf-view")
+(declare-function pdf-view-active-region-p "ext:pdf-view")
+(declare-function pdf-view-active-region-text "ext:pdf-view")
+(declare-function pdf-view-goto-page "ext:pdf-view")
+(declare-function pdf-view-mode "ext:pdf-view")
 (defvar nov-documents-index)
 (defvar nov-file-name)
 
@@ -539,8 +546,11 @@ properties, by a margin of NEWLINES-NUMBER."
       (let ((notes-window (org-noter--get-notes-window)))
         (if notes-window
             (with-selected-window notes-window
-              ,(unless with-error error-str)
-              (progn ,@body))
+              ,(if with-error
+                   `(progn ,@body)
+                 (if body
+                     `(progn ,error-str ,@body)
+                   `(progn ,error-str))))
           ,(when with-error `(user-error "%s" ,error-str)))))))
 
 (defun org-noter--notes-window-behavior-property (ast)
@@ -880,6 +890,7 @@ When optional NEW-LOCATION is provided, it will be used to find
 the best heading to serve as a reference to create the new one
 relative to."
   (when view
+    (org-noter--with-valid-session
      (let ((contents (org-element-contents (org-noter--parse-root)))
            (without-property t) (search-for-before t) ;; NOTE(nox): Used when searching reference
            notes-in-view regions-in-view
@@ -1887,9 +1898,9 @@ notes file, even if it finds one."
                     (setq file-name (expand-file-name notes-file-name current-directory))
                     (when (file-exists-p file-name)
                       (setq file-name (propertize file-name 'display
-                                                 (concat file-name
-                                                         (propertize " -- Exists!"
-                                                                     'face '(foreground-color . "green")))))
+                                                  (concat file-name
+                                                          (propertize " -- Exists!"
+                                                                      'face '(foreground-color . "green")))))
                       (push file-name list-of-possible-targets)
                       (throw 'break nil))
 
@@ -1937,8 +1948,8 @@ notes file, even if it finds one."
             (setq notes-files-annotating notes-files)))
 
         (when (> (length notes-files-annotating) 1)
-            (setq notes-files-annotating (list (completing-read "Which notes file should we open? "
-                                                                notes-files-annotating nil t))))
+          (setq notes-files-annotating (list (completing-read "Which notes file should we open? "
+                                                              notes-files-annotating nil t))))
 
         (with-current-buffer (find-file-noselect (car notes-files-annotating))
           (org-with-wide-buffer
