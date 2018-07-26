@@ -106,6 +106,12 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (const :tag "Vertical" vertical-split)
                  (const :tag "Other frame" 'other-frame)))
 
+(defcustom org-noter-doc-split-percentage '(0.5 . 0.5)
+  "Percentage of the frame that the document window will occupy when split.
+This is a cons of the type (HORIZONTAL-PERCENTAGE . VERTICAL-PERCENTAGE)."
+  :group 'org-noter
+  :type '(cons (number :tag "Horizontal percentage") (number :tag "Vertical percentage")))
+
 (defcustom org-noter-auto-save-last-location nil
   "When non-nil, save the last visited location automatically; when starting a new session, go to that location."
   :group 'org-noter
@@ -148,8 +154,8 @@ view (eg. a page of a PDF):
 
 When this value is negative, disable this feature.
 
-This setting may be changed document-by-document with the
-function `org-noter-set-closest-tipping-point', which see."
+This setting may be overridden in a document with the function
+`org-noter-set-closest-tipping-point', which see."
   :group 'org-noter
   :type 'number)
 
@@ -189,8 +195,8 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
   frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path property-text
-  level num-notes-in-view window-behavior window-location auto-save-last-location hide-other
-  closest-tipping-point)
+  level num-notes-in-view window-behavior window-location doc-split-percentage auto-save-last-location
+  hide-other closest-tipping-point)
 
 (defvar org-noter--sessions nil
   "List of `org-noter' sessions.")
@@ -215,6 +221,9 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
 
 (defconst org-noter--property-location "NOTER_NOTES_LOCATION"
   "Property for overriding global `org-noter-notes-window-location'.")
+
+(defconst org-noter--property-doc-split-percentage "NOTER_DOCUMENT_SPLIT_PERCENTAGE"
+  "Property for overriding global `org-noter-doc-split-percentage'.")
 
 (defconst org-noter--property-auto-save-last-location "NOTER_AUTO_SAVE_LAST_LOCATION"
   "Property for overriding global `org-noter-auto-save-last-location'.")
@@ -272,6 +281,8 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
            :level (org-element-property :level ast)
            :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
            :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location)
+           :doc-split-percentage (or (org-noter--doc-split-percentage-property ast)
+                                          org-noter-doc-split-percentage)
            :auto-save-last-location (or (org-noter--auto-save-location-property ast)
                                         org-noter-auto-save-last-location)
            :hide-other (or (org-noter--hide-other-property ast) org-noter-hide-other)
@@ -518,8 +529,10 @@ properties, by a margin of NEWLINES-NUMBER."
                       (or (window-next-sibling) (window-prev-sibling))
 
                     (if horizontal
-                        (split-window-right)
-                      (split-window-below))))))
+                        (split-window-right (ceiling (* (car (org-noter--session-doc-split-percentage session))
+                                                        (window-total-width))))
+                      (split-window-below (ceiling (* (cdr (org-noter--session-doc-split-percentage session))
+                                                      (window-total-height)))))))))
 
              (set-window-buffer notes-window notes-buffer))
            notes-window)))))
@@ -561,16 +574,21 @@ properties, by a margin of NEWLINES-NUMBER."
         value)
     (when (and (stringp property) (> (length property) 0))
       (setq value (car (read-from-string property)))
-      (when (listp value)
-        value))))
+      (when (listp value) value))))
 
 (defun org-noter--notes-window-location-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter--property-location)) ast))
         value)
     (when (and (stringp property) (> (length property) 0))
       (setq value (intern property))
-      (when (memq value '(horizontal-split vertical-split other-frame))
-        value))))
+      (when (memq value '(horizontal-split vertical-split other-frame)) value))))
+
+(defun org-noter--doc-split-percentage-property (ast)
+  (let ((property (org-element-property (intern (concat ":" org-noter--property-doc-split-percentage)) ast))
+        value)
+    (when (and (stringp property) (> (length property) 0))
+      (setq value (car (read-from-string property)))
+      (when (consp value) value))))
 
 (defun org-noter--auto-save-location-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-location)) ast)))
@@ -1216,6 +1234,36 @@ See `org-noter-notes-window-behavior' for more information."
               (org-entry-put nil org-noter--property-location
                              (format "%s" location))
             (org-entry-delete nil org-noter--property-location))))))))
+
+(defun org-noter-set-doc-split-percentage (arg)
+  "Set the percentage of the frame that the document window will occupy when split.
+- With a prefix \\[universal-argument], set it permanently for this document.
+- With a prefix \\[universal-argument] \\[universal-argument], remove the setting and use the default."
+  (interactive "P")
+  (org-noter--with-valid-session
+   (let* ((ast (org-noter--parse-root))
+          (inhibit-read-only t)
+          (persistent (cond ((equal arg '(4)) 'write)
+                            ((equal arg '(16)) 'remove)))
+          (current-setting (org-noter--session-doc-split-percentage session))
+          (new-setting
+           (if (eq persistent 'remove)
+               org-noter-doc-split-percentage
+             (cons (read-number "Horizontal percentage: " (car current-setting))
+                   (read-number "Vertical percentage: " (cdr current-setting))))))
+     (setf (org-noter--session-doc-split-percentage session) new-setting)
+     (when (org-noter--get-notes-window)
+       (with-current-buffer (org-noter--session-doc-buffer session)
+         (delete-other-windows)
+         (org-noter--get-notes-window 'force)))
+
+     (when persistent
+       (with-current-buffer (org-noter--session-notes-buffer session)
+         (org-with-wide-buffer
+          (goto-char (org-element-property :begin ast))
+          (if (eq persistent 'write)
+              (org-entry-put nil org-noter--property-doc-split-percentage (format "%s" new-setting))
+            (org-entry-delete nil org-noter--property-doc-split-percentage))))))))
 
 (defun org-noter-kill-session (&optional session)
   "Kill an `org-noter' session.
