@@ -5,7 +5,7 @@ After using Sebastian Christ's amazing [[https://github.com/rudolfochrist/interl
 on how I could improve upon it, usability and feature-wise. So I created this package from
 scratch with those ideas in mind!
 
-Org-Noter's purpose is to let you create notes that are kept in sync when you scroll through
+Org-noter's purpose is to let you create notes that are kept in sync when you scroll through
 the document, but that are external to it - the notes themselves live in an Org-mode file.
 As such, this leverages the power of [[http://orgmode.org/][Org-mode]] (the notes may have outlines, latex
 fragments, babel, etc...) while acting like notes that are made /inside/ the document.
@@ -27,27 +27,25 @@ great.
      document buffer and annotate away!
 
 - Keep your notes in sync with the document :: When you take a note by pressing
-     @@html:<kbd>@@i@@html:</kbd>@@, it saves the location where you took it so it is able
-     to show you the notes while you scroll, automatically!
+     @@html:<kbd>@@i@@html:</kbd>@@, it saves the location where you took it so it is able to show you
+     the notes while you scroll, automatically!
 
-- Easy navigation :: You may navigate your document as usual, seeing the notes buffer
-     scroll and show you the respective notes; however, you may also navigate by notes,
-     only seeing annotated pages/chapters.
+- Easy navigation :: You may navigate your document as usual, seeing the notes buffer scroll and show you
+     the respective notes; however, you may also navigate by notes, only seeing annotated pages/chapters.
 
-- Isolated interface :: Each session has its own frame and the document and notes buffers
-     are indirect buffers to the original ones. Killing any of these things will terminate
-     your annotation session.
+- Isolated interface :: Each session has its own frame and the document and notes buffers are indirect
+     buffers to the original ones. Killing any of these things will terminate your annotation session.
 
-- Simultaneous sessions :: You may open as many annotation sessions as you wish, at the
-     same time! The root heading of each document will be made read-only to prevent you
-     from deleting a heading from an open session.
+- Simultaneous sessions :: You may open as many annotation sessions as you wish, at the same time! The
+     root heading of each document will be made read-only to prevent you from deleting a heading from an
+     open session.
 
-- Resume annotating from where you left :: When ~org-noter-auto-save-last-location~ is
-     non-nil, it will save the last location you visited and pick it up when you start
-     another session! You may also set this per-document, [[#custom][read more here]].
+- Resume annotating from where you left :: When ~org-noter-auto-save-last-location~ is non-nil, it will
+     save the last location you visited and pick it up when you start another session! You may also set
+     this per-document, [[#custom][read more here]].
 
-- Keep your notes organized :: You may arrange your notes however you want; you may even
-     group them together inside headings!
+- Keep your notes organized :: You may arrange your notes however you want! You can create groups and
+     nest notes (and even nest documents inside other documents)!
 
 Many of these features are demonstrated in the screencast, so take a look if you are
 confused!
@@ -220,4 +218,5 @@ For compatibility with existing notes made with Interleave, you can do one of tw
   #+END_SRC
 
 ** Acknowledgments
-I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and the inspiration!
+I must thank [[https://github.com/rudolfochrist][Sebastian]] for the original idea and inspiration. Also, many thanks to everyone who
+contributed more ideas, reported bugs and submitted PRs :)
