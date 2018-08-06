@@ -631,11 +631,13 @@ properties, by a margin of NEWLINES-NUMBER."
   (unless org-noter--inhibit-location-change-handler
     (setq org-noter--nov-timer (run-with-timer 0.25 nil 'org-noter--doc-location-change-handler))))
 
+(defsubst org-noter--doc-file-property (headline)
+  (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline))
+
 (defun org-noter--location-property (arg)
-  (let* ((property
-          (if (stringp arg) arg
-            (org-element-property (intern (concat ":" org-noter-property-note-location)) arg)))
-         value)
+  (let ((property (if (stringp arg) arg
+                    (org-element-property (intern (concat ":" org-noter-property-note-location)) arg)))
+        value)
     (when (and (stringp property) (> (length property) 0))
       (setq value (car (read-from-string property)))
       (cond ((and (consp value) (integerp (car value)) (numberp (cdr value))) value)
@@ -794,7 +796,9 @@ P2 or, when in the same page, if P1 is the _f_irst of the two."
 
 (defun org-noter--show-note-entry (note)
   "This will show the note entry and its children.
-Every direct subheading that isn't a note itself will also be opened."
+Every direct subheading _until_ the first heading that doesn't
+belong to the same view (ie. until a heading with location or
+document property) will be opened."
   (save-excursion
     (goto-char (org-element-property :begin note))
     (org-show-entry)
@@ -802,11 +806,13 @@ Every direct subheading that isn't a note itself will also be opened."
     (org-show-set-visibility t)
     (org-element-map (org-element-contents note) 'headline
       (lambda (headline)
-        (unless (org-noter--location-property headline)
+        (if (or (org-noter--doc-file-property headline) (org-noter--location-property headline))
+            t
           (goto-char (org-element-property :begin headline))
           (org-show-entry)
-          (org-show-children)))
-      nil nil org-element-all-elements)))
+          (org-show-children)
+          nil))
+      nil t org-element-all-elements)))
 
 (defun org-noter--focus-notes-region (view-info)
   (org-noter--with-selected-notes-window
@@ -906,6 +912,8 @@ Every direct subheading that isn't a note itself will also be opened."
                            (org-element-property :begin ,headline) (org-element-property :end ,headline)
                            ',list-name)))))
 
+;; NOTE(nox): The notes member is a cons (note . heading-to-add-text). When adding text to a note, it
+;; will use the cdr to know where to insert the new text.
 (cl-defstruct org-noter--view-info notes regions prev-regions reference-for-insertion)
 
 (defun org-noter--get-view-info (view &optional new-location)
@@ -917,21 +925,37 @@ relative to."
   (when view
     (org-noter--with-valid-session
      (let ((contents (org-element-contents (org-noter--parse-root)))
-           (without-property t) ;; NOTE(nox): Used when searching reference
+           (preamble t) ;; NOTE(nox): Used when searching reference
            notes-in-view regions-in-view
            reference-for-insertion reference-location
            (all-after-tipping-point t)
            (closest-tipping-point (and (>= (org-noter--session-closest-tipping-point session) 0)
                                        (org-noter--session-closest-tipping-point session)))
            closest-notes closest-notes-regions closest-notes-location
+           ignore-until-level
            current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END REGIONS-LIST-NAME]
 
        (org-element-map contents 'headline
          (lambda (headline)
-           (let ((property (org-noter--location-property headline)))
+           (let ((doc-file (org-noter--doc-file-property headline))
+                 (location (org-noter--location-property headline)))
+             (when (and ignore-until-level (<= (org-element-property :level headline) ignore-until-level))
+               (setq ignore-until-level nil))
+
              (cond
-              (property
-               (let ((relative-position (org-noter--relative-position-to-view property view)))
+              (ignore-until-level) ;; NOTE(nox): This heading is ignored, do nothing
+
+              (doc-file
+               (org-noter--view-region-finish current-region-info headline)
+               (setq ignore-until-level (org-element-property :level headline))
+               (when (and preamble new-location
+                          (or (not reference-for-insertion)
+                              (>= (org-element-property :begin headline)
+                                  (org-element-property :end (cdr reference-for-insertion)))))
+                 (setq reference-for-insertion (cons 'after headline))))
+
+              (location
+               (let ((relative-position (org-noter--relative-position-to-view location view)))
                  (cond
                   ((eq relative-position 'inside)
                    (push (cons headline headline) notes-in-view)
@@ -940,7 +964,7 @@ relative to."
 
                    (setq all-after-tipping-point
                          (and all-after-tipping-point (org-noter--note-after-tipping-point
-                                                       closest-tipping-point property view))))
+                                                       closest-tipping-point location view))))
 
                   (t
                    (when (and current-region-info (eq (aref current-region-info 3) 'regions-in-view))
@@ -949,33 +973,33 @@ relative to."
                    (when (and closest-tipping-point all-after-tipping-point)
                      (cond
                       ((and (eq relative-position 'before)
-                            (org-noter--compare-location-cons '> property closest-notes-location))
+                            (org-noter--compare-location-cons '> location closest-notes-location))
                        (setq closest-notes (list (cons headline headline))
-                             closest-notes-location property
+                             closest-notes-location location
                              current-region-info nil
                              closest-notes-regions nil)
                        (org-noter--view-region-add current-region-info closest-notes-regions headline))
 
-                      ((and (eq relative-position 'before) (equal property closest-notes-location))
+                      ((and (eq relative-position 'before) (equal location closest-notes-location))
                        (push (cons headline headline) closest-notes)
                        (org-noter--view-region-add current-region-info closest-notes-regions headline))
 
                       (t (org-noter--view-region-finish current-region-info headline)))))))
 
                (when new-location
-                 (setq without-property nil)
-                 (cond ((and (org-noter--compare-location-cons '<= property new-location)
+                 (setq preamble nil)
+                 (cond ((and (org-noter--compare-location-cons '<= location new-location)
                              (or (eq (car reference-for-insertion) 'before)
-                                 (org-noter--compare-location-cons '>= property reference-location)))
+                                 (org-noter--compare-location-cons '>= location reference-location)))
                         (setq reference-for-insertion (cons 'after headline)
-                              reference-location property))
+                              reference-location location))
 
                        ((and (eq (car reference-for-insertion) 'after)
                              (< (org-element-property :begin headline)
                                 (org-element-property :end   (cdr reference-for-insertion)))
-                             (org-noter--compare-location-cons '>= property new-location))
+                             (org-noter--compare-location-cons '>= location new-location))
                         (setq reference-for-insertion (cons 'before headline)
-                              reference-location property)))))
+                              reference-location location)))))
 
               (t
                (when current-region-info
@@ -988,7 +1012,11 @@ relative to."
                                  (org-element-property :end   (caar closest-notes)))
                           (setcdr (car closest-notes) headline)))))
 
-               (when (and new-location without-property) (setq reference-for-insertion (cons 'after headline)))))))
+               (when (and preamble new-location
+                          (or (not reference-for-insertion)
+                              (>= (org-element-property :begin headline)
+                                  (org-element-property :end (cdr reference-for-insertion)))))
+                 (setq reference-for-insertion (cons 'after headline)))))))
          nil nil org-noter--note-search-no-recurse)
 
        (org-noter--view-region-finish current-region-info)
@@ -1004,22 +1032,18 @@ relative to."
         :reference-for-insertion reference-for-insertion)))))
 
 (defun org-noter--make-view-info-for-single-note (headline)
-  (let ((element-with-property (org-element-map (org-element-contents headline) 'headline
-                                 (lambda (headline) (when (org-noter--location-property headline) headline))
-                                 nil t))
-        search-in last-element-inside-note)
-
-    (when element-with-property
-      (setq search-in (org-element-property :parent element-with-property))
-
-      (org-element-map (org-element-contents search-in) '(section headline)
-        (lambda (element) (if (org-noter--location-property element) t (setq last-element-inside-note element) nil))
-        nil t org-element-all-elements))
+  (let ((not-belonging-element (org-element-map (org-element-contents headline) 'headline
+                                 (lambda (headline) (and (or (org-noter--doc-file-property headline)
+                                                             (org-noter--location-property headline))
+                                                         headline))
+                                 nil t)))
 
     (make-org-noter--view-info
+     ;; NOTE(nox): The cdr is only used when inserting, doesn't matter here
      :notes (list (cons headline headline))
      :regions (list (cons (org-element-property :begin headline)
-                          (org-element-property :end (or last-element-inside-note headline)))))))
+                          (or (and not-belonging-element (org-element-property :begin not-belonging-element))
+                              (org-element-property :end headline)))))))
 
 (defun org-noter--doc-location-change-handler ()
   (org-noter--with-valid-session
@@ -1661,6 +1685,22 @@ See `org-noter-insert-note' docstring for more."
                     (t (org-noter--ask-precise-location)))))
      (org-noter-insert-note location))))
 
+(defmacro org-noter--map-ignore-headings-with-doc-file (contents match-first &rest body)
+  `(let (ignore-until-level)
+     (org-element-map ,contents 'headline
+       (lambda (headline)
+         (let ((doc-file (org-noter--doc-file-property headline))
+               (location (org-noter--location-property headline)))
+           (when (and ignore-until-level (<= (org-element-property :level headline) ignore-until-level))
+             (setq ignore-until-level nil))
+
+           (cond
+            (ignore-until-level nil) ;; NOTE(nox): This heading is ignored, do nothing
+            (doc-file (setq ignore-until-level (org-element-property :level headline))
+                      nil)
+            (t ,@body))))
+       nil ,match-first org-noter--note-search-no-recurse)))
+
 (defun org-noter-sync-prev-page-or-chapter ()
   "Show previous page or chapter that has notes, in relation to the current page or chapter.
 This will force the notes window to popup."
@@ -1671,13 +1711,11 @@ This will force the notes window to popup."
          target-location)
      (org-noter--get-notes-window 'force)
 
-     (org-element-map contents 'headline
-       (lambda (headline)
-         (let ((location (org-noter--location-property headline)))
-           (when (and (org-noter--compare-location-cons '<  location location-cons)
-                      (org-noter--compare-location-cons '>f location target-location))
-             (setq target-location location))))
-       nil nil org-noter--note-search-no-recurse)
+     (org-noter--map-ignore-headings-with-doc-file
+      contents nil
+      (when (and (org-noter--compare-location-cons '<  location location-cons)
+                 (org-noter--compare-location-cons '>f location target-location))
+        (setq target-location location)))
 
      (org-noter--get-notes-window 'force)
      (select-window (org-noter--get-doc-window))
@@ -1704,13 +1742,11 @@ This will force the notes window to popup."
          (contents (org-element-contents (org-noter--parse-root)))
          target-location)
 
-     (org-element-map contents 'headline
-       (lambda (headline)
-         (let ((location (org-noter--location-property headline)))
-           (when (and (org-noter--compare-location-cons '> location location-cons)
-                      (org-noter--compare-location-cons '< location target-location))
-             (setq target-location location))))
-       nil nil org-noter--note-search-no-recurse)
+     (org-noter--map-ignore-headings-with-doc-file
+      contents nil
+      (when (and (org-noter--compare-location-cons '> location location-cons)
+                 (org-noter--compare-location-cons '< location target-location))
+        (setq target-location location)))
 
      (org-noter--get-notes-window 'force)
      (select-window (org-noter--get-doc-window))
@@ -1726,18 +1762,16 @@ As such, it will only work when the notes window exists."
    "No notes window exists"
    (let ((org-noter--inhibit-location-change-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
-         (current-begin
-          (org-element-property :begin (org-noter--get-containing-heading)))
+         (current-begin (org-element-property :begin (org-noter--get-containing-heading)))
          previous)
      (when current-begin
-       (org-element-map contents 'headline
-         (lambda (headline)
-           (when (org-noter--location-property headline)
-             (if (= current-begin (org-element-property :begin headline))
-                 t
-               (setq previous headline)
-               nil)))
-         nil t org-noter--note-search-no-recurse))
+       (org-noter--map-ignore-headings-with-doc-file
+        contents t
+        (when location
+          (if (= current-begin (org-element-property :begin headline))
+              t
+            (setq previous headline)
+            nil))))
 
      (if previous
          (progn
@@ -1753,10 +1787,12 @@ As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
    "No notes window exists"
-   (let ((location (org-noter--location-property (org-noter--get-containing-heading))))
-     (if location
-         (org-noter--doc-goto-location location)
-       (error "No note selected"))))
+   (if (string= (org-entry-get nil org-noter-property-doc-file t) (org-noter--session-property-text session))
+       (let ((location (org-noter--location-property (org-noter--get-containing-heading))))
+         (if location
+             (org-noter--doc-goto-location location)
+           (user-error "No note selected")))
+     (user-error "You are inside a different document")))
   (let ((window (org-noter--get-doc-window)))
     (select-frame-set-input-focus (window-frame window))
     (select-window window)))
@@ -1770,13 +1806,13 @@ As such, it will only work when the notes window exists."
    (let ((org-noter--inhibit-location-change-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
          next)
-     (org-element-map contents 'headline
-       (lambda (headline)
-         (when (and
-                (org-noter--location-property headline)
-                (< (point) (org-element-property :begin headline)))
-           (setq next headline)))
-       nil t org-noter--note-search-no-recurse)
+
+     (org-noter--map-ignore-headings-with-doc-file
+      contents t
+      (when (and
+             (org-noter--location-property headline)
+             (< (point) (org-element-property :begin headline)))
+        (setq next headline)))
 
      (if next
          (progn
