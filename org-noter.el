@@ -106,7 +106,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
                  (const :tag "Vertical" vertical-split)
                  (const :tag "Other frame" 'other-frame)))
 
-(make-obsolete-variable 'org-noter-doc-split-percentage 'org-noter-doc-split-fraction "1.2.0")
+(define-obsolete-variable-alias 'org-noter-doc-split-percentage 'org-noter-doc-split-fraction "1.2.0")
 (defcustom org-noter-doc-split-fraction '(0.5 . 0.5)
   "Fraction of the frame that the document window will occupy when split.
 This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
