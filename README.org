@@ -123,8 +123,8 @@ permanent, or revert to the default):
 - With ~org-noter-set-notes-window-location~, you may change /where/ the notes window pops
   up.
 
-- ~org-noter-set-doc-split-percentage~ will ask you for the new percentages that the
-  document window occupies when split.
+- ~org-noter-set-doc-split-fraction~ will ask you for the fraction of the frame that the document window
+  occupies when split.
 
 - ~org-noter-set-hide-other~ will toggle whether or not it should hide headings not
   related to the executed action.
