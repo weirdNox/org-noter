@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/weirdNox/org-noter
 ;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
-;; Version: 1.2.0
+;; Version: 1.2.1
 
 ;; This file is not part of GNU Emacs.
 
@@ -216,6 +216,12 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
 
 (defvar org-noter--arrow-location nil
   "A vector [TIMER WINDOW TOP] that shows where the arrow should appear, when idling.")
+
+(defvar org-noter--completing-read-keymap (make-sparse-keymap)
+  "A `completing-read' keymap that let's the user insert spaces.")
+
+(set-keymap-parent org-noter--completing-read-keymap minibuffer-local-completion-map)
+(define-key org-noter--completing-read-keymap (kbd "SPC") 'self-insert-command)
 
 (defconst org-noter--property-behavior "NOTER_NOTES_BEHAVIOR"
   "Property for overriding global `org-noter-notes-window-behavior'.")
@@ -1569,6 +1575,7 @@ defines if the text should be inserted inside the note."
          ;; complicated to get it right...
 
          (let ((point (point))
+               (minibuffer-local-completion-map org-noter--completing-read-keymap)
                collection default default-begin title selection
                (target-post-blank (if org-noter-separate-notes-from-heading 2 1)))
 
