@@ -178,6 +178,11 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
   :group 'org-noter
   :type 'list)
 
+(defcustom org-noter-doc-property-in-notes nil
+  "If non-nil, every new note will have the document property too."
+  :group 'org-noter
+  :type 'boolean)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -398,25 +403,27 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
     (when (and (not ast) (buffer-live-p notes-buffer))
       (with-current-buffer notes-buffer
         (org-with-wide-buffer
-         (when
-             (or
-              ;; NOTE(nox): Start by trying to find a parent heading with the specified
-              ;; property
-              (catch 'break
-                (while t
-                  (when (string= wanted-prop
-                                 (org-entry-get nil org-noter-property-doc-file))
-                    (org-back-to-heading t)
-                    (throw 'break t))
-                  (unless (org-up-heading-safe) (throw 'break nil))))
-              ;; NOTE(nox): Could not find parent with property, do a global search
-              (let ((pos (org-find-property org-noter-property-doc-file wanted-prop)))
-                (when pos (goto-char pos))))
-           (org-narrow-to-subtree)
-           (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
-           (when session
-             (setf (org-noter--session-ast session) ast
-                   (org-noter--session-modified-tick session) (buffer-chars-modified-tick)))))))
+	     (let (target)
+	       (or
+	        ;; NOTE(nox): Start by trying to find the shallowest parent heading with the specified
+	        ;; property
+	        (catch 'break
+	          (org-back-to-heading t)
+	          (while t
+		        (when (string= wanted-prop (org-entry-get nil org-noter-property-doc-file))
+                  (setq target (point)))
+                (unless (org-up-heading-safe) (throw 'break target))))
+
+            ;; NOTE(nox): Could not find parent with property, do a global search
+            (setq target (org-find-property org-noter-property-doc-file wanted-prop)))
+
+           (when target
+             (goto-char target)
+             (org-narrow-to-subtree)
+             (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
+             (when session
+               (setf (org-noter--session-ast session) ast
+                     (org-noter--session-modified-tick session) (buffer-chars-modified-tick))))))))
     ast))
 
 (defun org-noter--get-properties-end (ast &optional force-trim)
@@ -485,7 +492,7 @@ properties, by a margin of NEWLINES-NUMBER."
     (dotimes (_ number-of-times)
       (funcall changer))
 
-    (insert title)
+    (insert (org-trim (replace-regexp-in-string "\n" " " title)))
 
     (org-end-of-subtree)
     (while (= 32 (char-syntax (char-before))) (backward-char))
@@ -952,7 +959,7 @@ relative to."
              (cond
               (ignore-until-level) ;; NOTE(nox): This heading is ignored, do nothing
 
-              (doc-file
+              ((and doc-file (not (string= doc-file (org-noter--session-property-text session))))
                (org-noter--view-region-finish current-region-info headline)
                (setq ignore-until-level (org-element-property :level headline))
                (when (and preamble new-location
@@ -1515,6 +1522,9 @@ Only available with PDF Tools."
                (when location
                  (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
 
+               (when org-noter-doc-property-in-notes
+                 (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session)))
+
                (when (car contents)
                  (org-noter--insert-heading (1+ level) "Contents")
                  (insert (car contents)))
@@ -1654,6 +1664,8 @@ defines if the text should be inserted inside the note."
                (when (org-noter--session-hide-other session) (org-overview))
 
                (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location-cons))
+               (when org-noter-doc-property-in-notes
+                 (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session)))
 
                (setf (org-noter--session-num-notes-in-view session)
                      (1+ (org-noter--session-num-notes-in-view session)))))
