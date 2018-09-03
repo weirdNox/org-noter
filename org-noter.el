@@ -179,7 +179,8 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
   :type 'list)
 
 (defcustom org-noter-doc-property-in-notes nil
-  "If non-nil, every new note will have the document property too."
+  "If non-nil, every new note will have the document property too.
+This makes moving notes out of the root heading easier."
   :group 'org-noter
   :type 'boolean)
 
@@ -674,19 +675,18 @@ properties, by a margin of NEWLINES-NUMBER."
 
 (defun org-noter--get-containing-heading (&optional include-root)
   "Get smallest containing heading that encloses the point and has location property.
-If the point isn't inside any heading with location property, return the outer heading."
+If the point isn't inside any heading with location property, return the outer heading.
+When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
-   (unless (org-before-first-heading-p)
-     (org-with-wide-buffer
+   (org-with-wide-buffer
+    (unless (org-before-first-heading-p)
       (org-back-to-heading)
-      (let ((root-doc-prop (org-noter--session-property-text session))
+      (let ((ast (org-noter--parse-root))
             previous)
         (catch 'break
           (while t
-            (let ((prop (org-noter--location-property
-                         (org-entry-get nil org-noter-property-note-location)))
-                  (at-root (string= (org-entry-get nil org-noter-property-doc-file)
-                                    root-doc-prop))
+            (let ((prop (org-noter--location-property (org-entry-get nil org-noter-property-note-location)))
+                  (at-root (= (point) (org-element-property :begin ast)))
                   (heading (org-element-at-point)))
               (when (and prop (or include-root (not at-root)))
                 (throw 'break heading))
@@ -1523,7 +1523,8 @@ Only available with PDF Tools."
                  (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
 
                (when org-noter-doc-property-in-notes
-                 (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session)))
+                 (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
+                 (org-entry-put nil org-noter--property-auto-save-last-location "nil"))
 
                (when (car contents)
                  (org-noter--insert-heading (1+ level) "Contents")
@@ -1665,7 +1666,8 @@ defines if the text should be inserted inside the note."
 
                (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location-cons))
                (when org-noter-doc-property-in-notes
-                 (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session)))
+                 (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
+                 (org-entry-put nil org-noter--property-auto-save-last-location "nil"))
 
                (setf (org-noter--session-num-notes-in-view session)
                      (1+ (org-noter--session-num-notes-in-view session)))))
