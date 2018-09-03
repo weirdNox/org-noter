@@ -201,7 +201,7 @@ This makes moving notes out of the root heading easier."
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Private variables or constants
 (cl-defstruct org-noter--session
-  frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path property-text
+  id frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path property-text
   level num-notes-in-view window-behavior window-location doc-split-fraction auto-save-last-location
   hide-other closest-tipping-point)
 
@@ -250,8 +250,19 @@ This makes moving notes out of the root heading easier."
 (defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
   "List of elements that shouldn't be recursed into when searching for notes.")
 
+(defconst org-noter--id-text-property 'org-noter-session-id
+  "Text property used to mark the headings with open sessions.")
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Utility functions
+(defun org-noter--get-new-id ()
+  (catch 'break
+    (while t
+      (let ((id (random most-positive-fixnum)))
+        (unless (cl-loop for session in org-noter--sessions
+                         when (= (org-noter--session-id session) id) return t)
+          (throw 'break id))))))
+
 (defun org-noter--create-session (ast document-property-value notes-file-path)
   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
          (display-name (if raw-value-not-empty
@@ -276,6 +287,7 @@ This makes moving notes out of the root heading easier."
 
          (session
           (make-org-noter--session
+           :id (org-noter--get-new-id)
            :display-name display-name
            :frame
            (if (or org-noter-always-create-frame
@@ -341,7 +353,8 @@ This makes moving notes out of the root heading easier."
             fringe-indicator-alist '((truncation . nil)))
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t)
       (add-hook 'window-scroll-functions 'org-noter--set-notes-scroll nil t)
-      (org-noter--set-read-only (org-noter--parse-root))
+      (org-noter--set-text-properties (org-noter--parse-root (vector notes-buffer document-property-value))
+                                      (org-noter--session-id session))
       (unless target-location
         (setq target-location (org-noter--location-property (org-noter--get-containing-heading t)))))
 
@@ -386,45 +399,54 @@ This makes moving notes out of the root heading easier."
     (when (eq (org-noter--session-frame session) frame)
       (org-noter-kill-session session))))
 
-(defun org-noter--parse-root (&optional buffer property-doc-path)
-  (let* ((session (when (org-noter--valid-session org-noter--session) org-noter--session))
-         (use-args (and (stringp property-doc-path) (buffer-live-p buffer)
-                        (eq (buffer-local-value 'major-mode buffer) 'org-mode)))
-         (notes-buffer (when use-args buffer))
-         (wanted-prop (when use-args property-doc-path))
-         ast)
-    ;; NOTE(nox): Try to use a cached AST
-    (when (and (not use-args) session)
-      (setq notes-buffer (org-noter--session-notes-buffer session)
-            wanted-prop (org-noter--session-property-text session))
-      (when (= (buffer-chars-modified-tick (org-noter--session-notes-buffer session))
-               (org-noter--session-modified-tick session))
-        (setq ast (org-noter--session-ast session))))
+(defun org-noter--parse-root (&optional info)
+  "Parse and return the root AST.
+When used, the INFO argument may be an org-noter session or a vector [NotesBuffer PropertyText].
+If nil, the session used will be `org-noter--session'."
+  (let ((session (or (and (org-noter--session-p info) info) org-noter--session))
+        root-pos ast)
+    (cond
+     ((vectorp info)
+      ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
+	  ;; the specified property
+      (let ((notes-buffer (aref info 0))
+            (wanted-prop  (aref info 1)))
+        (unless (and (buffer-live-p notes-buffer) (stringp wanted-prop)
+                     (eq (buffer-local-value 'major-mode notes-buffer) 'org-mode))
+          (error "Error parsing root with invalid arguments"))
 
-    (when (and (not ast) (buffer-live-p notes-buffer))
-      (with-current-buffer notes-buffer
+        (with-current-buffer notes-buffer
+          (org-with-wide-buffer
+           (catch 'break
+	         (org-back-to-heading t)
+	         (while t
+		       (when (string= (org-entry-get nil org-noter-property-doc-file) wanted-prop)
+                 (setq root-pos (copy-marker (point))))
+               (unless (org-up-heading-safe) (throw 'break t))))))))
+
+     ((org-noter--valid-session session)
+      ;; NOTE(nox): Use session to find heading
+      (or (and (= (buffer-chars-modified-tick (org-noter--session-notes-buffer session))
+                  (org-noter--session-modified-tick session))
+               (setq ast (org-noter--session-ast session))) ; NOTE(nox): Cached version!
+
+          ;; NOTE(nox): Find session id text property
+          (with-current-buffer (org-noter--session-notes-buffer session)
+            (org-with-wide-buffer
+             (let ((pos (text-property-any (point-min) (point-max) org-noter--id-text-property
+                                           (org-noter--session-id session))))
+               (when pos (setq root-pos (copy-marker pos)))))))))
+
+    (unless ast
+      (unless root-pos (error "Root heading not found"))
+      (with-current-buffer (marker-buffer root-pos)
         (org-with-wide-buffer
-	     (let (target)
-	       (or
-	        ;; NOTE(nox): Start by trying to find the shallowest parent heading with the specified
-	        ;; property
-	        (catch 'break
-	          (org-back-to-heading t)
-	          (while t
-		        (when (string= wanted-prop (org-entry-get nil org-noter-property-doc-file))
-                  (setq target (point)))
-                (unless (org-up-heading-safe) (throw 'break target))))
-
-            ;; NOTE(nox): Could not find parent with property, do a global search
-            (setq target (org-find-property org-noter-property-doc-file wanted-prop)))
-
-           (when target
-             (goto-char target)
-             (org-narrow-to-subtree)
-             (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
-             (when session
-               (setf (org-noter--session-ast session) ast
-                     (org-noter--session-modified-tick session) (buffer-chars-modified-tick))))))))
+         (goto-char (marker-position root-pos))
+         (org-narrow-to-subtree)
+         (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
+         (when (and (not (vectorp info)) (org-noter--valid-session session))
+           (setf (org-noter--session-ast session) ast
+                 (org-noter--session-modified-tick session) (buffer-chars-modified-tick))))))
     ast))
 
 (defun org-noter--get-properties-end (ast &optional force-trim)
@@ -442,7 +464,7 @@ This makes moving notes out of the root heading easier."
             (setq properties-end (1- properties-end))))
         properties-end))))
 
-(defun org-noter--set-read-only (ast)
+(defun org-noter--set-text-properties (ast id)
   (org-with-wide-buffer
    (when ast
      (let* ((level (org-element-property :level ast))
@@ -453,22 +475,22 @@ This makes moving notes out of the root heading easier."
             (inhibit-read-only t)
             (modified (buffer-modified-p)))
        (add-text-properties (max 1 (1- begin)) begin '(read-only t))
-       (add-text-properties begin (1- title-begin) '(read-only t front-sticky t))
+       (add-text-properties begin (1- title-begin) `(read-only t front-sticky t ,org-noter--id-text-property ,id))
        (add-text-properties (1- title-begin) title-begin '(read-only t rear-nonsticky t))
        (add-text-properties (1- contents-begin) (1- properties-end) '(read-only t))
        (add-text-properties (1- properties-end) properties-end
                             '(read-only t rear-nonsticky t))
        (set-buffer-modified-p modified)))))
 
-(defun org-noter--unset-read-only (ast)
-  (org-with-wide-buffer
-   (when ast
-     (let ((begin (org-element-property :begin ast))
-           (end (org-noter--get-properties-end ast t))
-           (inhibit-read-only t)
-           (modified (buffer-modified-p)))
+(defun org-noter--unset-text-properties (ast)
+  (when ast
+    (org-with-wide-buffer
+     (let* ((begin (org-element-property :begin ast))
+            (end (org-noter--get-properties-end ast t))
+            (inhibit-read-only t)
+            (modified (buffer-modified-p)))
        (remove-list-of-text-properties (max 1 (1- begin)) end
-                                       '(read-only front-sticky rear-nonsticky))
+                                       `(read-only front-sticky rear-nonsticky ,org-noter--id-text-property))
        (set-buffer-modified-p modified)))))
 
 (defun org-noter--set-notes-scroll (window &rest ignored)
@@ -566,8 +588,7 @@ properties, by a margin of NEWLINES-NUMBER."
         (set-window-dedicated-p doc-window t)
 
         (with-current-buffer notes-buffer
-          (org-noter--narrow-to-root
-           (org-noter--parse-root notes-buffer (org-noter--session-property-text session)))
+          (org-noter--narrow-to-root (org-noter--parse-root session))
           (setq notes-window (org-noter--get-notes-window 'start))
           (org-noter--set-notes-scroll notes-window))))))
 
@@ -681,12 +702,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
    (org-with-wide-buffer
     (unless (org-before-first-heading-p)
       (org-back-to-heading)
-      (let ((ast (org-noter--parse-root))
-            previous)
+      (let (previous)
         (catch 'break
           (while t
             (let ((prop (org-noter--location-property (org-entry-get nil org-noter-property-note-location)))
-                  (at-root (= (point) (org-element-property :begin ast)))
+                  (at-root (equal (org-noter--session-id session)
+                                  (get-text-property (point) org-noter--id-text-property)))
                   (heading (org-element-at-point)))
               (when (and prop (or include-root (not at-root)))
                 (throw 'break heading))
@@ -1358,7 +1379,7 @@ want to kill."
       (kill-buffer notes-buffer)
 
       (with-current-buffer base-buffer
-        (org-noter--unset-read-only ast)
+        (org-noter--unset-text-properties ast)
         (set-buffer-modified-p notes-modified))
 
       (with-current-buffer doc-buffer
@@ -1925,8 +1946,7 @@ notes file, even if it finds one."
       (unless (and document-path (not (file-directory-p document-path)) (file-readable-p document-path))
         (setq document-path (expand-file-name
                              (read-file-name
-                              "Invalid or no document property found. Please specify a document path: "
-                              nil nil t)))
+                              "Invalid or no document property found. Please specify a document path: " nil nil t)))
         (when (or (file-directory-p document-path) (not (file-readable-p document-path)))
           (user-error "Invalid file path"))
 
@@ -1935,7 +1955,7 @@ notes file, even if it finds one."
                                   document-path))
         (org-entry-put nil org-noter-property-doc-file document-property))
 
-      (setq ast (org-noter--parse-root (current-buffer) document-property))
+      (setq ast (org-noter--parse-root (vector (current-buffer) document-property)))
       (when (catch 'should-continue
               (when (or (numberp arg) (eq arg '-))
                 (cond ((> (prefix-numeric-value arg) 0)
@@ -1945,27 +1965,20 @@ notes file, even if it finds one."
                        (find-file (file-name-directory document-path))
                        (throw 'should-continue nil))))
 
-              ;; NOTE(nox): Test for existing sessions
-              (dolist (test-session org-noter--sessions)
-                (when (org-noter--valid-session test-session)
-                  (let ((test-buffer (org-noter--session-notes-buffer test-session))
-                        (test-notes-file (org-noter--session-notes-file-path test-session))
-                        (test-property (org-noter--session-property-text test-session))
-                        test-ast)
-                    (when (and (string= test-notes-file notes-file-path)
-                               (string= test-property document-property))
-                      (setq test-ast (org-noter--parse-root test-buffer test-property))
-                      (when (eq (org-element-property :begin ast)
-                                (org-element-property :begin test-ast))
-
-                        (let* ((org-noter--session test-session)
-                               (location (org-noter--location-property (org-noter--get-containing-heading))))
-                          (org-noter--setup-windows test-session)
-
-                          (when location (org-noter--doc-goto-location location))
-
-                          (select-frame-set-input-focus (org-noter--session-frame test-session)))
-                        (throw 'should-continue nil))))))
+              ;; NOTE(nox): Check if it is an existing session
+              (let ((id (get-text-property (org-element-property :begin ast) org-noter--id-text-property))
+                    session)
+                (when id
+                  (setq session (cl-loop for test-session in org-noter--sessions
+                                         when (= (org-noter--session-id test-session) id)
+                                         return test-session))
+                  (when session
+                    (let* ((org-noter--session session)
+                           (location (org-noter--location-property (org-noter--get-containing-heading))))
+                      (org-noter--setup-windows session)
+                      (when location (org-noter--doc-goto-location location))
+                      (select-frame-set-input-focus (org-noter--session-frame session)))
+                    (throw 'should-continue nil))))
               t)
         (org-noter--create-session ast document-property notes-file-path))))
 
