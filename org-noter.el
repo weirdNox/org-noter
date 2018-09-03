@@ -118,7 +118,7 @@ This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
   :group 'org-noter
   :type 'boolean)
 
-(defcustom org-noter-hide-other nil
+(defcustom org-noter-hide-other t
   "When non-nil, hide all headings not related to the command
   used, like notes from different locations when scrolling."
   :group 'org-noter
