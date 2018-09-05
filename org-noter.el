@@ -119,8 +119,9 @@ This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
   :type 'boolean)
 
 (defcustom org-noter-hide-other t
-  "When non-nil, hide all headings not related to the command
-  used, like notes from different locations when scrolling."
+  "When non-nil, hide all headings not related to the command used.
+For example, when scrolling to pages with notes, collapse all the
+notes that are not annotating the current page."
   :group 'org-noter
   :type 'boolean)
 
@@ -263,6 +264,14 @@ This makes moving notes out of the root heading easier."
                          when (= (org-noter--session-id session) id) return t)
           (throw 'break id))))))
 
+(defmacro org-noter--property-or-default (name)
+  (let ((function-name (intern (concat "org-noter--" (symbol-name name) "-property")))
+        (variable      (intern (concat "org-noter-"  (symbol-name name)))))
+    `(let ((prop-value (,function-name ast)))
+       (cond ((eq prop-value 'disable) nil)
+             (prop-value)
+             (t ,variable)))))
+
 (defun org-noter--create-session (ast document-property-value notes-file-path)
   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
          (display-name (if raw-value-not-empty
@@ -304,15 +313,12 @@ This makes moving notes out of the root heading easier."
            :doc-buffer document-buffer
            :notes-buffer notes-buffer
            :level (org-element-property :level ast)
-           :window-behavior (or (org-noter--notes-window-behavior-property ast) org-noter-notes-window-behavior)
-           :window-location (or (org-noter--notes-window-location-property ast) org-noter-notes-window-location)
-           :doc-split-fraction (or (org-noter--doc-split-fraction-property ast)
-                                   org-noter-doc-split-fraction)
-           :auto-save-last-location (or (org-noter--auto-save-location-property ast)
-                                        org-noter-auto-save-last-location)
-           :hide-other (or (org-noter--hide-other-property ast) org-noter-hide-other)
-           :closest-tipping-point (or (org-noter--closest-tipping-point-property ast)
-                                      org-noter-closest-tipping-point)
+           :window-behavior (org-noter--property-or-default notes-window-behavior)
+           :window-location (org-noter--property-or-default notes-window-location)
+           :doc-split-fraction (org-noter--property-or-default doc-split-fraction)
+           :auto-save-last-location (org-noter--property-or-default auto-save-last-location)
+           :hide-other (org-noter--property-or-default hide-other)
+           :closest-tipping-point (org-noter--property-or-default closest-tipping-point)
            :modified-tick -1))
 
          (target-location org-noter--start-location-override))
@@ -626,15 +632,15 @@ properties, by a margin of NEWLINES-NUMBER."
       (setq value (car (read-from-string property)))
       (when (consp value) value))))
 
-(defun org-noter--auto-save-location-property (ast)
+(defun org-noter--auto-save-last-location-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter--property-auto-save-last-location)) ast)))
     (when (and (stringp property) (> (length property) 0))
-      (when (intern property) t))))
+      (if (intern property) t 'disable))))
 
 (defun org-noter--hide-other-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter--property-hide-other)) ast)))
     (when (and (stringp property) (> (length property) 0))
-      (when (intern property) t))))
+      (if (intern property) t 'disable))))
 
 (defun org-noter--closest-tipping-point-property (ast)
   (let ((property (org-element-property (intern (concat ":" org-noter--property-closest-tipping-point)) ast)))
