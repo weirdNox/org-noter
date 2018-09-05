@@ -102,14 +102,13 @@ There are two kinds of customizations you may do:
 1. Global settings, affecting every session
 2. Document-specific settings, which override the global settings
 
-The *global settings* are changed with either the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html#Easy-Customization][customization interface from Emacs]] or
-directly in your init file. To find which settings are available, you may use the
-customization interface or you may just read =org-noter.el=.
+The *global settings* are changed with either the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html#Easy-Customization][customization interface from Emacs]] or directly in your
+init file. To find which settings are available, you may use the customization interface or you may just
+read =org-noter.el=.
 
-The best way to set *document-specific settings* is by using the utility commands provided
-(list below). In order to use them, you need an open a session. The commands may change
-the settings for that session only (not surviving restarts), or for every session with
-that document.
+The best way to set *document-specific settings* is by using the utility commands provided (list below).
+In order to use them, you need an open session. The commands may change the settings for that session
+only (not surviving restarts), or for every session with that document.
 
 *List of utility commands* (check the docstrings to learn how to make the changes
 permanent, or revert to the default):
