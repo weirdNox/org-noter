@@ -164,12 +164,12 @@ This setting may be overridden in a document with the function
 (defcustom org-noter-default-notes-file-names '("Notes.org")
   "List of possible names for the default notes file, in increasing order of priority."
   :group 'org-noter
-  :type 'list)
+  :type '(repeat string))
 
 (defcustom org-noter-notes-search-path '("~/Documents")
   "List of paths to check (non recursively) when searching for a notes file."
   :group 'org-noter
-  :type 'list)
+  :type '(repeat string))
 
 (defcustom org-noter-arrow-delay 0.2
   "Number of seconds from when the command was invoked until the tooltip arrow appears.
@@ -177,7 +177,7 @@ This setting may be overridden in a document with the function
 When set to a negative number, the arrow tooltip is disabled.
 This is needed in order to keep Emacs from hanging when doing many syncs."
   :group 'org-noter
-  :type 'list)
+  :type 'number)
 
 (defcustom org-noter-doc-property-in-notes nil
   "If non-nil, every new note will have the document property too.
