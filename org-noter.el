@@ -185,6 +185,12 @@ This makes moving notes out of the root heading easier."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-insert-note-no-questions nil
+  "When non-nil, `org-noter-insert-note' won't ask for a title and will always insert a new note.
+The title used will be the default one."
+  :group 'org-noter
+  :type 'boolean)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -1630,8 +1636,10 @@ defines if the text should be inserted inside the note."
                          default-begin begin)))))
 
            (setq collection (nreverse collection)
-                 title (completing-read "Note: " collection nil nil nil nil default)
-                 selection (cdr (assoc title collection)))
+                 title (if org-noter-insert-note-no-questions
+                           (and precise-location default)
+                         (completing-read "Note: " collection nil nil nil nil default))
+                 selection (unless org-noter-insert-note-no-questions (cdr (assoc title collection))))
 
            (if selection
                ;; NOTE(nox): Inserting on an existing note
@@ -1709,7 +1717,7 @@ defines if the text should be inserted inside the note."
          (select-frame-set-input-focus (org-noter--session-frame session))
          (select-window (get-buffer-window (org-noter--session-doc-buffer session))))))))
 
-(defun org-noter-insert-precise-note ()
+(defun org-noter-insert-precise-note (&optional toggle-no-questions)
   "Insert note associated with a specific location.
 This will ask you to click where you want to scroll to when you
 sync the document to this note. You should click on the top of
@@ -1720,9 +1728,12 @@ the selected text as the location and the text itself as the
 title of the note (you may change it anyway!).
 
 See `org-noter-insert-note' docstring for more."
-  (interactive)
+  (interactive "P")
   (org-noter--with-valid-session
-   (let ((location (cond
+   (let ((org-noter-insert-note-no-questions (if toggle-no-questions
+                                                 (not org-noter-insert-note-no-questions)
+                                               org-noter-insert-note-no-questions))
+         (location (cond
                     ((and (eq (org-noter--session-doc-mode session) 'pdf-view-mode)
                           (pdf-view-active-region-p))
                      (cadar (pdf-view-active-region)))
@@ -1733,6 +1744,14 @@ See `org-noter-insert-note' docstring for more."
 
                     (t (org-noter--ask-precise-location)))))
      (org-noter-insert-note location))))
+
+(defun org-noter-insert-note-toggle-no-questions ()
+  "Insert note associated with the current location.
+This is like `org-noter-insert-note', except it will toggle `org-noter-insert-note-no-questions'"
+  (interactive)
+  (org-noter--with-valid-session
+   (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
+     (org-noter-insert-note))))
 
 (defmacro org-noter--map-ignore-headings-with-doc-file (contents match-first &rest body)
   `(let (ignore-until-level)
@@ -1869,8 +1888,11 @@ As such, it will only work when the notes window exists."
   (select-window (org-noter--get-doc-window)))
 
 (define-minor-mode org-noter-doc-mode
-  "Minor mode for the document buffer."
+  "Minor mode for the document buffer.
+Keymap:
+\\{org-noter-doc-mode-map}"
   :keymap `((,(kbd   "i")   . org-noter-insert-note)
+            (,(kbd "C-i")   . org-noter-insert-note-toggle-no-questions)
             (,(kbd "M-i")   . org-noter-insert-precise-note)
             (,(kbd   "q")   . org-noter-kill-session)
             (,(kbd "M-p")   . org-noter-sync-prev-page-or-chapter)
@@ -1888,7 +1910,9 @@ As such, it will only work when the notes window exists."
       (setq mode-line-format (delete mode-line-segment mode-line-format)))))
 
 (define-minor-mode org-noter-notes-mode
-  "Minor mode for the notes buffer."
+  "Minor mode for the notes buffer.
+Keymap:
+\\{org-noter-notes-mode-map}"
   :keymap `((,(kbd "M-p")   . org-noter-sync-prev-page-or-chapter)
             (,(kbd "M-.")   . org-noter-sync-current-page-or-chapter)
             (,(kbd "M-n")   . org-noter-sync-next-page-or-chapter)
