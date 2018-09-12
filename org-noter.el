@@ -520,7 +520,7 @@ If nil, the session used will be `org-noter--session'."
   "Insert a new heading at LEVEL with TITLE.
 The point will be at the start of the contents, after any
 properties, by a margin of NEWLINES-NUMBER."
-  (org-insert-heading)
+  (org-insert-heading nil t)
   (let* ((initial-level (org-element-property :level (org-element-at-point)))
          (changer (if (> level initial-level) 'org-do-demote 'org-do-promote))
          (number-of-times (abs (- level initial-level))))
@@ -1593,7 +1593,7 @@ info).
 When you insert into an existing note and have text selected on
 the document buffer, the variable `org-noter-insert-selected-text-inside-note'
 defines if the text should be inserted inside the note."
-  (interactive "P")
+  (interactive)
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
@@ -1623,21 +1623,23 @@ defines if the text should be inserted inside the note."
                collection default default-begin title selection
                (target-post-blank (if org-noter-separate-notes-from-heading 2 1)))
 
-           ;; NOTE(nox): When precise, it will certainly be a new note
-           (if precise-location
-               (setq default (and selected-text (replace-regexp-in-string "\n" " " selected-text)))
-
+           (cond
+            ;; NOTE(nox): Both precise and without questions will create new notes
+            (precise-location
+             (setq default (and selected-text (replace-regexp-in-string "\n" " " selected-text))))
+            (org-noter-insert-note-no-questions)
+            (t
              (dolist (note-cons (org-noter--view-info-notes view-info))
                (let ((display (org-element-property :raw-value (car note-cons)))
                      (begin   (org-element-property :begin     (car note-cons))))
                  (push (cons display note-cons) collection)
                  (when (and (>= point begin) (> begin (or default-begin 0)))
                    (setq default display
-                         default-begin begin)))))
+                         default-begin begin))))))
 
            (setq collection (nreverse collection)
                  title (if org-noter-insert-note-no-questions
-                           (and precise-location default)
+                           default
                          (completing-read "Note: " collection nil nil nil nil default))
                  selection (unless org-noter-insert-note-no-questions (cdr (assoc title collection))))
 
@@ -1694,7 +1696,7 @@ defines if the text should be inserted inside the note."
                               nil t org-element-all-elements))
                  (setq level (1+ (org-element-property :level ast))))
 
-               ;; NOTE(nox): This is needed to insert in the right place...
+               ;; NOTE(nox): This is needed to insert in the right place
                (outline-show-entry)
                (org-noter--insert-heading level title target-post-blank)
                (when (org-noter--session-hide-other session) (org-overview))
