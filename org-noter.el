@@ -327,7 +327,8 @@ The title used will be the default one."
            :closest-tipping-point (org-noter--property-or-default closest-tipping-point)
            :modified-tick -1))
 
-         (target-location org-noter--start-location-override))
+         (target-location org-noter--start-location-override)
+         (starting-point (point)))
 
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
     (push session org-noter--sessions)
@@ -360,6 +361,9 @@ The title used will be the default one."
 
     (with-current-buffer notes-buffer
       (org-noter-notes-mode 1)
+      ;; NOTE(nox): This is needed because a session created in an indirect buffer would use the point of
+      ;; the base buffer (as this buffer is indirect to the base!)
+      (goto-char starting-point)
       (setq buffer-file-name notes-file-path
             org-noter--session session
             fringe-indicator-alist '((truncation . nil)))
