@@ -961,8 +961,10 @@ document property) will be opened."
                            (org-element-property :begin ,headline) (org-element-property :end ,headline)
                            ',list-name)))))
 
-;; NOTE(nox): The notes member is a cons (note . heading-to-add-text). When adding text to a note, it
-;; will use the cdr to know where to insert the new text.
+;; NOTE(nox): notes is a list of (HEADING . HEADING-TO-INSERT-TEXT-BEFORE):
+;; - HEADING is the root heading of the note
+;; - SHOULD-ADD-SPACE indicates if there should be extra spacing when inserting text to the note (ie. the
+;;   note has contents)
 (cl-defstruct org-noter--view-info notes regions prev-regions reference-for-insertion)
 
 (defun org-noter--get-view-info (view &optional new-location)
@@ -974,7 +976,7 @@ relative to."
   (when view
     (org-noter--with-valid-session
      (let ((contents (org-element-contents (org-noter--parse-root)))
-           (preamble t) ;; NOTE(nox): Used when searching reference
+           (preamble t)
            notes-in-view regions-in-view
            reference-for-insertion reference-location
            (all-after-tipping-point t)
@@ -1007,7 +1009,7 @@ relative to."
                (let ((relative-position (org-noter--relative-position-to-view location view)))
                  (cond
                   ((eq relative-position 'inside)
-                   (push (cons headline headline) notes-in-view)
+                   (push (cons headline nil) notes-in-view)
 
                    (org-noter--view-region-add current-region-info regions-in-view headline)
 
@@ -1016,24 +1018,30 @@ relative to."
                                                        closest-tipping-point location view))))
 
                   (t
-                   (when (and current-region-info (eq (aref current-region-info 3) 'regions-in-view))
-                     (org-noter--view-region-finish current-region-info headline))
+                   (when current-region-info
+                     (let ((note-cons-to-change (cond ((eq (aref current-region-info 3) 'regions-in-view)
+                                                       (car notes-in-view))
+                                                      ((eq (aref current-region-info 3) 'closest-notes-regions)
+                                                       (car closest-notes)))))
+                       (when (< (org-element-property :begin headline)
+                                (org-element-property :end   (car note-cons-to-change)))
+                         (setcdr note-cons-to-change headline))))
 
-                   (when (and closest-tipping-point all-after-tipping-point)
-                     (cond
-                      ((and (eq relative-position 'before)
-                            (org-noter--compare-location-cons '> location closest-notes-location))
-                       (setq closest-notes (list (cons headline headline))
-                             closest-notes-location location
-                             current-region-info nil
-                             closest-notes-regions nil)
-                       (org-noter--view-region-add current-region-info closest-notes-regions headline))
+                   (let ((eligible-for-before (and closest-tipping-point all-after-tipping-point
+                                                   (eq relative-position 'before))))
+                     (cond ((and eligible-for-before
+                                 (org-noter--compare-location-cons '> location closest-notes-location))
+                            (setq closest-notes (list (cons headline nil))
+                                  closest-notes-location location
+                                  current-region-info nil
+                                  closest-notes-regions nil)
+                            (org-noter--view-region-add current-region-info closest-notes-regions headline))
 
-                      ((and (eq relative-position 'before) (equal location closest-notes-location))
-                       (push (cons headline headline) closest-notes)
-                       (org-noter--view-region-add current-region-info closest-notes-regions headline))
+                           ((and eligible-for-before (equal location closest-notes-location))
+                            (push (cons headline nil) closest-notes)
+                            (org-noter--view-region-add current-region-info closest-notes-regions headline))
 
-                      (t (org-noter--view-region-finish current-region-info headline)))))))
+                           (t (org-noter--view-region-finish current-region-info headline)))))))
 
                (when new-location
                  (setq preamble nil)
@@ -1051,16 +1059,6 @@ relative to."
                               reference-location location)))))
 
               (t
-               (when current-region-info
-                 (cond ((eq (aref current-region-info 3) 'regions-in-view)
-                        (when (< (org-element-property :begin headline)
-                                 (org-element-property :end   (caar notes-in-view)))
-                          (setcdr (car notes-in-view) headline)))
-                       ((eq (aref current-region-info 3) 'closest-notes-regions)
-                        (when (< (org-element-property :begin headline)
-                                 (org-element-property :end   (caar closest-notes)))
-                          (setcdr (car closest-notes) headline)))))
-
                (when (and preamble new-location
                           (or (not reference-for-insertion)
                               (>= (org-element-property :begin headline)
@@ -1089,7 +1087,7 @@ relative to."
 
     (make-org-noter--view-info
      ;; NOTE(nox): The cdr is only used when inserting, doesn't matter here
-     :notes (list (cons headline headline))
+     :notes (list (cons headline nil))
      :regions (list (cons (org-element-property :begin headline)
                           (or (and not-belonging-element (org-element-property :begin not-belonging-element))
                               (org-element-property :end headline)))))))
@@ -1647,13 +1645,21 @@ defines if the text should be inserted inside the note."
 
            (if selection
                ;; NOTE(nox): Inserting on an existing note
-               (let* ((reference-element (cdr selection))
+               (let* ((note (car selection))
+                      (insert-before-element (cdr selection))
                       (has-content
-                       (org-element-map (org-element-contents reference-element) org-element-all-elements
-                         (lambda (element) (not (memq (org-element-type element) '(section property-drawer))))
-                         nil t)))
+                       (eq (org-element-map (org-element-contents note) org-element-all-elements
+                             (lambda (element)
+                               (if (org-noter--location-property element)
+                                   'stop
+                                 (not (memq (org-element-type element) '(section property-drawer)))))
+                             nil t)
+                           t)))
                  (when has-content (setq empty-lines-number 2))
-                 (goto-char (org-element-property :end reference-element))
+                 (if insert-before-element
+                     (goto-char (org-element-property :begin insert-before-element))
+                   (goto-char (org-element-property :end note)))
+
 
                  (if (org-at-heading-p)
                      (progn
