@@ -1686,7 +1686,7 @@ defines if the text should be inserted inside the note."
                        (goto-char (org-element-property :end (cdr reference-element-cons)))))
 
                      ;; NOTE(nox): This is here to make the automatic "should insert blank" work better.
-                     (when (= 32 (char-syntax (char-before))) (backward-char))
+                     (when (org-at-heading-p) (backward-char))
 
                      (setq level (org-element-property :level (cdr reference-element-cons))))
 
