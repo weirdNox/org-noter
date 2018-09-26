@@ -877,10 +877,12 @@ document property) will be opened."
       (notes-cons
        (dolist (note-cons notes-cons) (org-noter--show-note-entry (car note-cons)))
 
-       (setq target-region (or (catch 'result (dolist (region regions) (when (and (>= point-before (car region))
-                                                                                  (<  point-before (cdr region)))
-                                                                         (setq point-inside-target-region t)
-                                                                         (throw 'result region))))
+       (setq target-region (or (catch 'result (dolist (region regions)
+                                                (when (and (>= point-before (car region))
+                                                           (or (save-restriction (goto-char (cdr region)) (eobp))
+                                                               (< point-before (cdr region))))
+                                                  (setq point-inside-target-region t)
+                                                  (throw 'result region))))
                                (car regions)))
 
        (let ((begin (car target-region)) (end (cdr target-region)) num-lines
