@@ -714,7 +714,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
    (org-with-wide-buffer
     (unless (org-before-first-heading-p)
-      (org-back-to-heading)
+      (org-back-to-heading t)
       (let (previous)
         (catch 'break
           (while t
