@@ -1,6 +1,6 @@
 ;;; org-noter.el --- A synchronized, Org-mode, document annotator       -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017  Gonçalo Santos
+;; Copyright (C) 2017-2018  Gonçalo Santos
 
 ;; Author: Gonçalo Santos (aka. weirdNox@GitHub)
 ;; Homepage: https://github.com/weirdNox/org-noter
