@@ -540,10 +540,9 @@ properties, by a margin of NEWLINES-NUMBER."
 (defun org-noter--narrow-to-root (ast)
   (when ast
     (save-excursion
-      (goto-char (org-element-property :begin ast))
+      (goto-char (org-element-property :contents-begin ast))
       (org-show-entry)
       (org-narrow-to-subtree)
-      (org-show-children)
       (org-cycle-hide-drawers 'all))))
 
 (defun org-noter--get-doc-window ()
@@ -848,24 +847,24 @@ Every direct subheading _until_ the first heading that doesn't
 belong to the same view (ie. until a heading with location or
 document property) will be opened."
   (save-excursion
-    (goto-char (org-element-property :begin note))
-    (org-show-entry)
-    (org-show-children)
+    (goto-char (org-element-property :contents-begin note))
     (org-show-set-visibility t)
     (org-element-map (org-element-contents note) 'headline
       (lambda (headline)
         (if (or (org-noter--doc-file-property headline) (org-noter--location-property headline))
             t
-          (goto-char (org-element-property :begin headline))
+          (goto-char (org-element-property :contents-begin headline))
           (org-show-entry)
-          (org-show-children)
           nil))
       nil t org-element-all-elements)))
 
 (defun org-noter--focus-notes-region (view-info)
   (org-noter--with-selected-notes-window
-   (when (org-noter--session-hide-other session) (org-overview))
-   (org-cycle-hide-drawers 'all)
+   (if (org-noter--session-hide-other session)
+       (save-excursion
+         (goto-char (org-element-property :begin (org-noter--parse-root)))
+         (outline-hide-subtree))
+     (org-cycle-hide-drawers 'all))
 
    (let* ((notes-cons (org-noter--view-info-notes view-info))
           (regions (or (org-noter--view-info-regions view-info)
@@ -907,7 +906,9 @@ document property) will be opened."
 
          (goto-char target-char)))
 
-      (t (org-noter--show-note-entry (org-noter--parse-root)))))))
+      (t (org-noter--show-note-entry (org-noter--parse-root)))))
+
+   (org-cycle-show-empty-lines t)))
 
 (defun org-noter--get-current-view ()
   "Return a vector with the current view information."
@@ -1710,8 +1711,6 @@ defines if the text should be inserted inside the note."
                (setf (org-noter--session-num-notes-in-view session)
                      (1+ (org-noter--session-num-notes-in-view session)))))
 
-           (org-show-entry)
-           (org-show-children)
            (org-show-set-visibility t)
            (org-cycle-hide-drawers 'all)))
        (when quit-flag
