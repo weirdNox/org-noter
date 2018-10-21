@@ -1376,7 +1376,7 @@ want to kill."
       (advice-remove 'doc-view-goto-page 'org-noter--location-change-advice)
       (advice-remove 'nov-render-document 'org-noter--nov-scroll-handler))
 
-    (let* ((ast (org-noter--parse-root))
+    (let* ((ast   (org-noter--parse-root session))
            (frame (org-noter--session-frame session))
            (notes-buffer (org-noter--session-notes-buffer session))
            (base-buffer (buffer-base-buffer notes-buffer))
