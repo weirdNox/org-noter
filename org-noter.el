@@ -919,7 +919,8 @@ document property) will be opened."
             (vector 'paged (car (org-noter--doc-approx-location))))
            ((eq mode 'nov-mode)
             (with-selected-window (org-noter--get-doc-window)
-              (vector 'nov (org-noter--doc-approx-location (window-start))
+              (vector 'nov
+                      (org-noter--doc-approx-location (window-start))
                       (org-noter--doc-approx-location (window-end nil t)))))
            (t (error "Unknown document type"))))))
 
@@ -929,7 +930,8 @@ document property) will be opened."
    ((eq (aref view 0) 'paged)
     (> (cdr note-property) point))
    ((eq (aref view 0) 'nov)
-    (> (cdr note-property) (+ (aref view 1) (* point (- (aref view 2) (aref view 1))))))))
+    (> (cdr note-property) (+ (* point (- (cdr (aref view 2)) (cdr (aref view 1))))
+                              (cdr (aref view 1)))))))
 
 (defun org-noter--relative-position-to-view (note-property view)
   (cond
