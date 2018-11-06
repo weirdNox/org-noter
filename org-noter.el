@@ -853,9 +853,9 @@ document property) will be opened."
       (lambda (headline)
         (if (or (org-noter--doc-file-property headline) (org-noter--location-property headline))
             t
-          (goto-char (or (org-element-property :contents-begin headline)
-                         (org-element-property :begin headline)))
+          (goto-char (org-element-property :begin headline))
           (org-show-entry)
+          (org-show-children)
           nil))
       nil t org-element-all-elements)))
 
