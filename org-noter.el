@@ -1715,7 +1715,8 @@ defines if the text should be inserted inside the note."
                      (1+ (org-noter--session-num-notes-in-view session)))))
 
            (org-show-set-visibility t)
-           (org-cycle-hide-drawers 'all)))
+           (org-cycle-hide-drawers 'all)
+           (org-cycle-show-empty-lines t)))
        (when quit-flag
          ;; NOTE(nox): If this runs, it means the user quitted while creating a note, so
          ;; revert to the previous window.
