@@ -574,7 +574,9 @@ properties, by a margin of NEWLINES-NUMBER."
                   notes-window
                   (if (window-combined-p nil horizontal)
                       ;; NOTE(nox): Reuse already existent window
-                      (or (window-next-sibling) (window-prev-sibling))
+                      (let ((sibling-window (or (window-next-sibling) (window-prev-sibling))))
+                        (or (window-top-child sibling-window) (window-left-child sibling-window)
+                            sibling-window))
 
                     (if horizontal
                         (split-window-right (ceiling (* (car (org-noter--session-doc-split-fraction session))
