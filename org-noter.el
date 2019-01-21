@@ -420,10 +420,11 @@ The title used will be the default one."
   "Parse and return the root AST.
 When used, the INFO argument may be an org-noter session or a vector [NotesBuffer PropertyText].
 If nil, the session used will be `org-noter--session'."
-  (let ((session (or (and (org-noter--session-p info) info) org-noter--session))
-        root-pos ast)
+  (let* ((arg-is-session (org-noter--session-p info))
+         (session (or (and arg-is-session info) org-noter--session))
+         root-pos ast)
     (cond
-     ((vectorp info)
+     ((and (not arg-is-session) (vectorp info))
       ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
 	  ;; the specified property
       (let ((notes-buffer (aref info 0))
