@@ -191,6 +191,11 @@ The title used will be the default one."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-open-note-file-after-kill-session nil
+  "If non-nil, note file of current session will be opened after kill the session."
+  :group 'org-noter
+  :type 'boolean)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -1412,7 +1417,10 @@ want to kill."
             (progn
               (delete-other-windows)
               (set-frame-parameter nil 'name nil))
-          (delete-frame frame))))))
+          (delete-frame frame)))
+
+      (if org-noter-open-note-file-after-kill-session
+	  (find-file (org-noter--session-notes-file-path session))))))
 
 (defun org-noter-create-skeleton ()
   "Create notes skeleton with the PDF outline or annotations.
