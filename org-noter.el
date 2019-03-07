@@ -191,6 +191,11 @@ The title used will be the default one."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-insert-heading-hook nil
+  "Hook being run after inserting a new heading."
+  :group 'org-noter
+  :type 'hook)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
@@ -536,7 +541,8 @@ properties, by a margin of NEWLINES-NUMBER."
 
     (org-end-of-subtree)
     (unless (bolp) (insert "\n"))
-    (org-N-empty-lines-before-current (1- newlines-number))))
+    (org-N-empty-lines-before-current (1- newlines-number))
+    (run-hooks 'org-noter-insert-heading-hook)))
 
 (defun org-noter--narrow-to-root (ast)
   (when ast
