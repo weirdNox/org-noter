@@ -191,6 +191,11 @@ The title used will be the default one."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-kill-frame-at-session-end t
+  "If non-nil, `org-noter-kill-session' will delete the frame if others exist on the current display.'"
+  :group 'org-noter
+  :type 'boolean)
+
 (defcustom org-noter-insert-heading-hook nil
   "Hook being run after inserting a new heading."
   :group 'org-noter
@@ -1414,7 +1419,7 @@ want to kill."
       (kill-buffer doc-buffer)
 
       (when (frame-live-p frame)
-        (if (= (length (frames-on-display-list)) 1)
+        (if (or (= (length (frames-on-display-list)) 1) (not org-noter-kill-frame-at-session-end))
             (progn
               (delete-other-windows)
               (set-frame-parameter nil 'name nil))
