@@ -104,7 +104,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
   :group 'org-noter
   :type '(choice (const :tag "Horizontal" horizontal-split)
                  (const :tag "Vertical" vertical-split)
-                 (const :tag "Other frame" 'other-frame)))
+                 (const :tag "Other frame" other-frame)))
 
 (define-obsolete-variable-alias 'org-noter-doc-split-percentage 'org-noter-doc-split-fraction "1.2.0")
 (defcustom org-noter-doc-split-fraction '(0.5 . 0.5)
