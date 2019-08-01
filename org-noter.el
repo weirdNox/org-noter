@@ -2146,7 +2146,7 @@ notes file, even if it finds one."
                                                  (file-name-directory (car notes-files)))))
             (setq notes-files-annotating notes-files)))
 
-        (when (> (length notes-files-annotating) 1)
+        (when (> (length (cl-delete-duplicates notes-files-annotating :test 'equal)) 1)
           (setq notes-files-annotating (list (completing-read "Which notes file should we open? "
                                                               notes-files-annotating nil t))))
 
