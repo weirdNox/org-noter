@@ -36,6 +36,7 @@
 
 ;;; Code:
 (require 'org)
+(require 'org-pdftools)
 (require 'org-element)
 (require 'cl-lib)
 
@@ -46,6 +47,7 @@
 (declare-function image-scroll-up "image-mode")
 (declare-function nov-render-document "ext:nov")
 (declare-function pdf-info-getannots "ext:pdf-info")
+(declare-function pdf-info-editannots "ext:pdf-info")
 (declare-function pdf-info-gettext "ext:pdf-info")
 (declare-function pdf-info-outline "ext:pdf-info")
 (declare-function pdf-info-pagelinks "ext:pdf-info")
@@ -55,6 +57,8 @@
 (declare-function pdf-view-active-region-text "ext:pdf-view")
 (declare-function pdf-view-goto-page "ext:pdf-view")
 (declare-function pdf-view-mode "ext:pdf-view")
+(declare-function pdf-annot-add-text-annotation "ext:pdf-annot")
+(declare-function pdf-annot-get-id "ext:pdf-annot")
 (defvar nov-documents-index)
 (defvar nov-file-name)
 
@@ -76,12 +80,41 @@ The default value is still NOTER_PAGE for backwards compatibility."
   :group 'org-noter
   :type 'string)
 
+(defcustom org-noter-property-link-based-note-location "NOTER_LINK"
+  "Name of the property that is in the format of a org-pdfview custom link and specifies the location of the current note."
+  :group 'org-noter
+  :type 'string)
+
 (defcustom org-noter-default-heading-title "Notes for page $p$"
   "The default title for headings created with `org-noter-insert-note'.
 $p$ is replaced with the number of the page or chapter you are in
 at the moment."
   :group 'org-noter
   :type 'string)
+
+(defcustom org-noter-use-org-id t
+  "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
+  :group 'org-noter
+  :type 'boolean)
+
+(defcustom org-noter-export-to-pdf t
+  "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
+
+To use this, org-noter-use-org-id has to be t."
+  :group 'org-noter
+  :type 'boolean)
+
+(defcustom org-noter-export-to-pdf-with-structure t
+  "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
+
+To use this, org-noter-use-org-id has to be t."
+  :group 'org-noter
+  :type 'boolean)
+
+(defcustom org-noter-use-org-id t
+  "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
+  :group 'org-noter
+  :type 'boolean)
 
 (defcustom org-noter-notes-window-behavior '(start scroll)
   "This setting specifies in what situations the notes window should be created.
@@ -1424,6 +1457,126 @@ want to kill."
               (delete-other-windows)
               (set-frame-parameter nil 'name nil))
           (delete-frame frame))))))
+
+(defun org-noter-convert-location-cons-to-link (location)
+  (cond ((consp location)
+         (concat
+          "::"
+          (number-to-string
+           (car location))
+          "++"
+          (format "%.2f" (cdr location))))
+        ((integerp location)
+         (concat
+          "::"
+          (number-to-string
+           (car location))))))
+
+(defun org-noter-convert-old-org-heading ()
+  "Covert an old org heading to a new one for compatiblility."
+  (interactive)
+  (org-noter--with-valid-session
+   (cond ((eq (org-noter--session-doc-mode
+               session)
+              'pdf-view-mode)
+          (let* ((document-property (org-noter--session-property-text
+                                     session)))
+            (let* ((location (org-noter--location-property
+                              (org-entry-get
+                               nil
+                               org-noter-property-note-location)))
+                   (path document-property)
+                   (page (if (consp location)
+                             (car location)
+                           location))
+                   (height (if (consp location)
+                               (cdr location)
+                             0.0))
+                   (pos `(0 . ,(round
+                                (/
+                                 (*
+                                  (cdr (with-current-buffer
+                                           (org-noter--session-doc-buffer
+                                            session)
+                                         (pdf-view-image-size)))
+                                  height)
+                                 (frame-char-height)))))
+                   (annot-id (symbol-name
+                              (pdf-annot-get-id
+                               (save-excursion
+                                 (with-selected-window
+                                     (org-noter--get-doc-window)
+                                   (pdf-view-goto-page page)
+                                   (funcall-interactively
+                                    #'pdf-annot-add-text-annotation
+                                    pos
+                                    org-pdftools-free-pointer-icon
+                                    `((color . ,org-pdftools-free-pointer-color)
+                                      (opacity . ,org-pdftools-free-pointer-opacity)))))))))
+              (org-entry-put
+               nil
+               org-noter-property-note-location
+               (concat
+                "pdftools:"
+                path
+                (org-noter-convert-location-cons-to-link
+                 location)
+                ";;"
+                annot-id))
+              (when org-noter-use-org-id
+                (org-entry-put
+                 nil
+                 "ID"
+                 annot-id))
+              (when org-noter-export-to-pdf
+                (let* ((content (if (and (> (org-current-level) 2)
+                                         org-noter-export-to-pdf-with-structure)
+                                    (let ((parent-id (save-excursion
+                                                       (org-up-heading-safe)
+                                                       (org-id-get))))
+                                      (if parent-id
+                                          (concat
+                                           "#+PROPERTY: PARENT "
+                                           parent-id
+                                           "\n"
+                                           (save-excursion
+                                             (org-back-to-heading nil)
+                                             (buffer-substring-no-properties
+                                              (point)
+                                              (org-end-of-subtree nil t))))))
+                                  (save-excursion
+                                    (org-back-to-heading nil)
+                                    (buffer-substring-no-properties
+                                     (point)
+                                     (org-end-of-subtree nil t))))))
+                  (with-selected-window
+                      (org-noter--get-doc-window)
+                    (pdf-info-editannot
+                     (intern annot-id)
+                     `((contents . ,content)))))))))
+         (t
+          (error
+           "This command is only supported on PDF Tools")))))
+
+(defun org-noter-convert-old-notes ()
+  "Convert old notes (location cons based) to new format (link based)."
+  (interactive)
+  (org-noter--with-valid-session
+   (goto-char (point-min))
+   (when (org-before-first-heading-p)
+     (org-next-visible-heading 1))
+   (while (not (eq (point) (point-max)))
+     (org-next-visible-heading 1)
+     (goto-char (point-at-eol))
+     (let ((prop (org-entry-get
+                  nil
+                  org-noter-property-note-location)))
+       (if (and prop
+                (not (string-prefix-p
+                      "pdftools:"
+                      prop)))
+           (call-interactively
+            #'org-noter-convert-old-org-heading))))))
 
 (defun org-noter-create-skeleton ()
   "Create notes skeleton with the PDF outline or annotations.
