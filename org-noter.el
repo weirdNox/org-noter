@@ -2002,6 +2002,10 @@ defines if the text should be inserted inside the note."
                               (if org-noter-use-pdftools-link-location
                                   location-link
                                 (org-noter--pretty-print-location location)))
+               (when (string-match ".*;;\\(.*\\)" location-link)
+                 (let ((id (match-string 1 location-link)))
+                   (if org-noter-use-org-id
+                       (org-entry-put nil "ID" id))))
                (when org-noter-doc-property-in-notes
                  (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
                  (org-entry-put nil org-noter--property-auto-save-last-location "nil"))
@@ -2196,6 +2200,25 @@ As such, it will only work when the notes window exists."
            (org-noter--focus-notes-region (org-noter--make-view-info-for-single-note next)))
        (error "There is no next note"))))
   (select-window (org-noter--get-doc-window)))
+
+(defun org-noter-jump-to-note (a)
+  "Jump from a PDF annotation A to the corresponding org heading."
+  (interactive (list (with-selected-window (org-noter--get-doc-window)
+                  (pdf-annot-read-annotation
+                   "Left click the annotation "))))
+  (org-noter--with-valid-session
+   (let ((id (symbol-name (pdf-annot-get-id a))))
+     (select-window (org-noter--get-notes-window))
+     (condition-case-unless-debug nil
+         (progn
+           (goto-char
+            (cdr
+             (org-id-find-id-in-file
+              id
+              buffer-file-name)))
+           t)
+       (error nil)))))
+
 
 (define-minor-mode org-noter-doc-mode
   "Minor mode for the document buffer.
