@@ -59,6 +59,7 @@
 (declare-function pdf-view-mode "ext:pdf-view")
 (declare-function pdf-annot-add-text-annotation "ext:pdf-annot")
 (declare-function pdf-annot-get-id "ext:pdf-annot")
+(declare-function org-pdftools-get-link "ext:org-pdftools")
 (defvar nov-documents-index)
 (defvar nov-file-name)
 
@@ -68,6 +69,32 @@
   "A synchronized, external annotator"
   :group 'convenience
   :version "25.3.1")
+
+(defcustom org-noter-markup-pointer-function 'pdf-annot-add-highlight-markup-annotation
+  "Color for markup pointer annotations.
+Can be one of highlight/underline/strikeout/squiggly."
+  :group 'org-noter
+  :type 'function)
+(defcustom org-noter-markup-pointer-color "#A9A9A9"
+  "Color for markup pointer annotations"
+  :group 'org-noter
+  :type 'string)
+(defcustom org-noter-markup-pointer-opacity 1.0
+  "Color for markup pointer annotations"
+  :group 'org-noter
+  :type 'float)
+(defcustom org-noter-free-pointer-icon "Circle"
+  "Color for free pointer annotations. Refer to `pdf-annot-standard-text-icons`."
+  :group 'org-noter
+  :type 'string)
+(defcustom org-noter-free-pointer-color "#FFFFFF"
+  "Color for free pointer annotations"
+  :group 'org-noter
+  :type 'string)
+(defcustom org-noter-free-pointer-opacity 1.0
+  "Color for free pointer annotations"
+  :group 'org-noter
+  :type 'float)
 
 (defcustom org-noter-property-doc-file "NOTER_DOCUMENT"
   "Name of the property that specifies the document."
@@ -80,17 +107,17 @@ The default value is still NOTER_PAGE for backwards compatibility."
   :group 'org-noter
   :type 'string)
 
-(defcustom org-noter-property-link-based-note-location "NOTER_LINK"
-  "Name of the property that is in the format of a org-pdfview custom link and specifies the location of the current note."
-  :group 'org-noter
-  :type 'string)
-
 (defcustom org-noter-default-heading-title "Notes for page $p$"
   "The default title for headings created with `org-noter-insert-note'.
 $p$ is replaced with the number of the page or chapter you are in
 at the moment."
   :group 'org-noter
   :type 'string)
+
+(defcustom org-noter-use-pdftools-link-location t
+  "When non-nil, org-pdftools link is used instead of location-cons when inserting notes."
+  :group 'org-noter
+  :type 'boolean)
 
 (defcustom org-noter-use-org-id t
   "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
@@ -730,14 +757,28 @@ properties, by a margin of NEWLINES-NUMBER."
   (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline))
 
 (defun org-noter--location-property (arg)
-  (let ((property (if (stringp arg) arg
-                    (org-element-property (intern (concat ":" org-noter-property-note-location)) arg)))
+  (let ((property (if (stringp arg)
+                      arg
+                    (org-element-property
+                     (intern
+                      (concat
+                       ":"
+                       org-noter-property-note-location))
+                     arg)))
         value)
-    (when (and (stringp property) (> (length property) 0))
-      (setq value (car (read-from-string property)))
-      (cond ((and (consp value) (integerp (car value)) (numberp (cdr value))) value)
-            ((integerp value) (cons value 0))
-            (t nil)))))
+    (when (and (stringp property)
+               (> (length property) 0))
+      (if org-noter-use-pdftools-link-location
+          property
+        (setq value
+              (car (read-from-string property)))
+        (cond ((and (consp value)
+                    (integerp (car value))
+                    (numberp (cdr value)))
+               value)
+              ((integerp value)
+               (cons value 0))
+              (t nil))))))
 
 (defun org-noter--pretty-print-location (location-cons)
   (org-noter--with-valid-session
@@ -819,6 +860,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
         ((eq (org-noter--session-doc-mode session) 'nov-mode)
          (posn-point (event-start event))))))))
 
+;; TODO Replace with annotation highlight?
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
              (window-live-p (aref org-noter--arrow-location 1)))
@@ -826,8 +868,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
       (pdf-util-tooltip-arrow (aref org-noter--arrow-location 2))))
   (setq org-noter--arrow-location nil))
 
-(defun org-noter--doc-goto-location (location-cons)
-  "Go to location specified by LOCATION-CONS."
+(defun org-noter--doc-goto-location (location)
+  "Go to location specified by LOCATION."
   (org-noter--with-valid-session
    (let ((window (org-noter--get-doc-window))
          (mode (org-noter--session-doc-mode session)))
@@ -835,23 +877,50 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
        (cond
         ((memq mode '(doc-view-mode pdf-view-mode))
          (if (eq mode 'doc-view-mode)
-             (doc-view-goto-page (car location-cons))
-           (pdf-view-goto-page (car location-cons))
-           ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
-           ;; so syncing multiple pages was slow
-           (when (>= org-noter-arrow-delay 0)
-             (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
-             (setq org-noter--arrow-location
-                   (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
-                           window
-                           (cdr location-cons)))))
-         (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location-cons))
-                             (window-vscroll))))
+             (progn
+               (doc-view-goto-page (car location))
+               (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location))
+                                   (window-vscroll))))
+           (if (and org-noter-use-pdftools-link-location
+                    (stringp location))
+               (progn
+                 (string-match
+                  "\\(.*\\)::\\([0-9]*\\)\\+\\+\\([[0-9]\\.*[0-9]*\\);;\\(.*\\)"
+                  location)
+                 (let* ((path (match-string 1 location))
+                        (page (string-to-number
+                               (match-string 2 location)))
+                        (height (string-to-number
+                                 (match-string 3 location)))
+                        (annot-id (match-string 4 location)))
+                   ;; (org-open-file path 1)
+                   (pdf-view-goto-page page)
+                   (image-set-window-vscroll
+                    (round
+                     (/
+                      (*
+                       height
+                       (cdr (pdf-view-image-size)))
+                      (frame-char-height))))
+                   (pdf-annot-show-annotation
+                    (pdf-info-getannot annot-id)
+                    t)))
+             (pdf-view-goto-page (car location))
+             ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
+             ;; so syncing multiple pages was slow
+             (when (>= org-noter-arrow-delay 0)
+               (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
+               (setq org-noter--arrow-location
+                     (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
+                             window
+                             (cdr location))))
+             (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location))
+                                 (window-vscroll))))))
 
         ((eq mode 'nov-mode)
-         (setq nov-documents-index (car location-cons))
+         (setq nov-documents-index (car location))
          (nov-render-document)
-         (goto-char (cdr location-cons))
+         (goto-char (cdr location))
          (recenter)))
        ;; NOTE(nox): This needs to be here, because it would be issued anyway after
        ;; everything and would run org-noter--nov-scroll-handler.
@@ -887,6 +956,36 @@ P2 or, when in the same page, if P1 is the _f_irst of the two."
          (or (> (car p1) (car p2))
              (and (= (car p1) (car p2))
                   (< (cdr p1) (cdr p2)))))))
+
+(defun org-noter--location-link-to-cons (location-link)
+  "Convert a org-pdftools link to old location cons."
+  (let ((page (string-to-number
+               (car (split-string
+                     (car (cdr (split-string
+                                location-link
+                                "::")))
+                     "++"))))
+        (height (or (string-to-number
+                     (car (cdr (split-string
+                                (car (split-string
+                                      location-link
+                                      ";;"))
+                                "++"))))
+                    0.0)))
+    `(,page . ,height)))
+
+(defun org-noter--compare-location (comp l1 l2)
+  "Compare L1 and L2, which are org-pdftools location links.
+When COMP is '<, '<=, '>, or '>=, it works as expected.
+When COMP is '>f, it will return t when L1 is a page greater than
+L2 or, when in the same page, if P1 is the _f_irst of the two."
+  (if (stringp l1)
+      (setq p1 (org-noter--location-link-to-cons l1))
+    (setq p1 l1))
+  (if (stringp l2)
+      (setq p2 (org-noter--location-link-to-cons l2))
+    (setq p2 l2))
+  (org-noter--compare-location-cons comp p1 p2))
 
 (defun org-noter--show-note-entry (note)
   "This will show the note entry and its children.
@@ -973,6 +1072,10 @@ document property) will be opened."
 
 (defun org-noter--note-after-tipping-point (point note-property view)
   ;; NOTE(nox): This __assumes__ the note is inside the view!
+  (if (stringp note-property)
+      (setq note-property
+            (org-noter--location-link-to-cons
+             note-property)))
   (cond
    ((eq (aref view 0) 'paged)
     (> (cdr note-property) point))
@@ -983,6 +1086,9 @@ document property) will be opened."
 (defun org-noter--relative-position-to-view (note-property view)
   (cond
    ((eq (aref view 0) 'paged)
+    (if (stringp note-property)
+        (setq note-property
+              (org-noter--location-link-to-cons note-property)))
     (let ((note-page (car note-property))
           (view-page (aref view 1)))
       (cond ((< note-page view-page) 'before)
@@ -991,8 +1097,8 @@ document property) will be opened."
    ((eq (aref view 0) 'nov)
     (let ((view-top (aref view 1))
           (view-bot (aref view 2)))
-      (cond ((org-noter--compare-location-cons '<  note-property view-top) 'before)
-            ((org-noter--compare-location-cons '<= note-property view-bot) 'inside)
+      (cond ((org-noter--compare-location '<  note-property view-top) 'before)
+            ((org-noter--compare-location '<= note-property view-bot) 'inside)
             (t                                                             'after))))))
 
 (defmacro org-noter--view-region-finish (info &optional terminating-headline)
@@ -1083,7 +1189,7 @@ relative to."
                    (let ((eligible-for-before (and closest-tipping-point all-after-tipping-point
                                                    (eq relative-position 'before))))
                      (cond ((and eligible-for-before
-                                 (org-noter--compare-location-cons '> location closest-notes-location))
+                                 (org-noter--compare-location '> location closest-notes-location))
                             (setq closest-notes (list (cons headline nil))
                                   closest-notes-location location
                                   current-region-info nil
@@ -1098,16 +1204,16 @@ relative to."
 
                (when new-location
                  (setq preamble nil)
-                 (cond ((and (org-noter--compare-location-cons '<= location new-location)
+                 (cond ((and (org-noter--compare-location '<= location new-location)
                              (or (eq (car reference-for-insertion) 'before)
-                                 (org-noter--compare-location-cons '>= location reference-location)))
+                                 (org-noter--compare-location '>= location reference-location)))
                         (setq reference-for-insertion (cons 'after headline)
                               reference-location location))
 
                        ((and (eq (car reference-for-insertion) 'after)
                              (< (org-element-property :begin headline)
                                 (org-element-property :end   (cdr reference-for-insertion)))
-                             (org-noter--compare-location-cons '>= location new-location))
+                             (org-noter--compare-location '>= location new-location))
                         (setq reference-for-insertion (cons 'before headline)
                               reference-location location)))))
 
@@ -1191,6 +1297,20 @@ relative to."
                               document-path)
             ;; NOTE(nox): This notes file has the document we want!
             (throw 'break t)))))))
+
+(defun org-noter--location-cons-to-link (location)
+  (cond ((consp location)
+         (concat
+          "::"
+          (number-to-string
+           (car location))
+          "++"
+          (format "%.2f" (cdr location))))
+        ((integerp location)
+         (concat
+          "::"
+          (number-to-string
+           (car location))))))
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
@@ -1458,20 +1578,6 @@ want to kill."
               (set-frame-parameter nil 'name nil))
           (delete-frame frame))))))
 
-(defun org-noter-convert-location-cons-to-link (location)
-  (cond ((consp location)
-         (concat
-          "::"
-          (number-to-string
-           (car location))
-          "++"
-          (format "%.2f" (cdr location))))
-        ((integerp location)
-         (concat
-          "::"
-          (number-to-string
-           (car location))))))
-
 (defun org-noter-convert-old-org-heading ()
   "Covert an old org heading to a new one for compatiblility."
   (interactive)
@@ -1519,7 +1625,7 @@ want to kill."
                (concat
                 "pdftools:"
                 path
-                (org-noter-convert-location-cons-to-link
+                (org-noter--location-cons-to-link
                  location)
                 ";;"
                 annot-id))
@@ -1582,6 +1688,8 @@ want to kill."
   "Create notes skeleton with the PDF outline or annotations.
 Only available with PDF Tools."
   (interactive)
+  (when org-noter-use-pdftools-link-location
+    (user-error "Create skeleton with new location format is not supported yet"))
   (org-noter--with-valid-session
    (cond
     ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
@@ -1697,7 +1805,7 @@ Only available with PDF Tools."
                            (lambda (e1 e2)
                              (or (not (aref e1 1))
                                  (and (aref e2 1)
-                                      (org-noter--compare-location-cons '< (aref e1 1) (aref e2 1)))))))
+                                      (org-noter--compare-location '< (aref e1 1) (aref e2 1)))))))
              (setq output-data (nreverse output-data)))
 
            (push (vector "Skeleton" nil 1 nil) output-data)))
@@ -1768,11 +1876,12 @@ the document buffer, the variable `org-noter-insert-selected-text-inside-note'
 defines if the text should be inserted inside the note."
   (interactive)
   (org-noter--with-valid-session
+   ;; (if (and org-noter-use-pdftools-link-location
+   ;;          (not precise-location))
+   ;;     (user-error
+   ;;      "When setting `org-noter-use-pdftools-link-location' to t, you should call `org-noter-insert-precise-note'"))
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
-          (location-cons (org-noter--doc-approx-location (or precise-location 'infer)))
-          (view-info (org-noter--get-view-info (org-noter--get-current-view) location-cons))
-
           (selected-text
            (cond
             ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
@@ -1781,7 +1890,23 @@ defines if the text should be inserted inside the note."
 
             ((eq (org-noter--session-doc-mode session) 'nov-mode)
              (when (region-active-p)
-               (buffer-substring-no-properties (mark) (point)))))))
+               (buffer-substring-no-properties (mark) (point))))))
+          (location-link
+           (if org-noter-use-pdftools-link-location
+               (let ((org-pdftools-free-pointer-icon org-noter-free-pointer-icon)
+                     (org-pdftools-free-pointer-color org-noter-free-pointer-color)
+                     (org-pdftools-free-pointer-opacity org-noter-free-pointer-opacity)
+                     (org-pdftools-markup-pointer-color org-noter-markup-pointer-color)
+                     (org-pdftools-markup-pointer-opacity org-noter-markup-pointer-opacity)
+                     (org-pdftools-markup-pointer-function org-noter-markup-pointer-function))
+                 (org-pdftools-get-link))))
+          (location
+           (if location-link
+               (org-noter--location-link-to-cons
+                location-link)
+             (org-noter--doc-approx-location
+              (or precise-location 'infer))))
+          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
 
      (let ((inhibit-quit t))
        (with-local-quit
@@ -1804,7 +1929,7 @@ defines if the text should be inserted inside the note."
             (t
              (dolist (note-cons (org-noter--view-info-notes view-info))
                (let ((display (org-element-property :raw-value (car note-cons)))
-                     (begin   (org-element-property :begin     (car note-cons))))
+                     (begin (org-element-property :begin (car note-cons))))
                  (push (cons display note-cons) collection)
                  (when (and (>= point begin) (> begin (or default-begin 0)))
                    (setq default display
@@ -1847,7 +1972,7 @@ defines if the text should be inserted inside the note."
              (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
                    level)
                (when (zerop (length title))
-                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (car location-cons))
+                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (car location))
                                                        org-noter-default-heading-title)))
 
                (if reference-element-cons
@@ -1873,7 +1998,10 @@ defines if the text should be inserted inside the note."
                (org-noter--insert-heading level title empty-lines-number)
                (when (org-noter--session-hide-other session) (org-overview))
 
-               (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location-cons))
+               (org-entry-put nil org-noter-property-note-location
+                              (if org-noter-use-pdftools-link-location
+                                  location-link
+                                (org-noter--pretty-print-location location)))
                (when org-noter-doc-property-in-notes
                  (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
                  (org-entry-put nil org-noter--property-auto-save-last-location "nil"))
@@ -1905,18 +2033,27 @@ See `org-noter-insert-note' docstring for more."
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (if toggle-no-questions
                                                  (not org-noter-insert-note-no-questions)
-                                               org-noter-insert-note-no-questions))
-         (location (cond
-                    ((and (eq (org-noter--session-doc-mode session) 'pdf-view-mode)
-                          (pdf-view-active-region-p))
-                     (cadar (pdf-view-active-region)))
-
-                    ((and (eq (org-noter--session-doc-mode session) 'nov-mode)
-                          (region-active-p))
-                     (min (mark) (point)))
-
-                    (t (org-noter--ask-precise-location)))))
-     (org-noter-insert-note location))))
+                                               org-noter-insert-note-no-questions)))
+     (if (and (eq (org-noter--session-doc-mode
+                   session)
+                  'pdf-view-mode)
+              org-noter-use-pdftools-link-location)
+         (org-noter-insert-note 'link)
+       (let ((location (cond ((and (eq (org-noter--session-doc-mode
+                                        session)
+                                       'pdf-view-mode)
+                                   (pdf-view-active-region-p))
+                              (cadar
+                               (pdf-view-active-region)))
+                             ((and (eq (org-noter--session-doc-mode
+                                        session)
+                                       'nov-mode)
+                                   (region-active-p))
+                              (min (mark) (point)))
+                             (t
+                              (org-noter--ask-precise-location)))))
+         (org-noter-insert-note
+          location))))))
 
 (defun org-noter-insert-note-toggle-no-questions ()
   "Insert note associated with the current location.
@@ -1954,8 +2091,8 @@ This will force the notes window to popup."
 
      (org-noter--map-ignore-headings-with-doc-file
       contents nil
-      (when (and (org-noter--compare-location-cons '<  location location-cons)
-                 (org-noter--compare-location-cons '>f location target-location))
+      (when (and (org-noter--compare-location '<  location location-cons)
+                 (org-noter--compare-location '>f location target-location))
         (setq target-location location)))
 
      (org-noter--get-notes-window 'force)
@@ -1985,8 +2122,8 @@ This will force the notes window to popup."
 
      (org-noter--map-ignore-headings-with-doc-file
       contents nil
-      (when (and (org-noter--compare-location-cons '> location location-cons)
-                 (org-noter--compare-location-cons '< location target-location))
+      (when (and (org-noter--compare-location '> location location-cons)
+                 (org-noter--compare-location '< location target-location))
         (setq target-location location)))
 
      (org-noter--get-notes-window 'force)
