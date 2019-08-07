@@ -2219,21 +2219,32 @@ As such, it will only work when the notes window exists."
 
 (defun org-noter-jump-to-note (a)
   "Jump from a PDF annotation A to the corresponding org heading."
-  (interactive (list (with-selected-window (org-noter--get-doc-window)
+  (interactive (list
+                (with-selected-window
+                    (org-noter--get-doc-window)
                   (pdf-annot-read-annotation
                    "Left click the annotation "))))
   (org-noter--with-valid-session
-   (let ((id (symbol-name (pdf-annot-get-id a))))
-     (select-window (org-noter--get-notes-window))
-     (condition-case-unless-debug nil
+   (pdf-annot-show-annotation a t)
+   (let ((id (symbol-name
+              (pdf-annot-get-id a))))
+     (select-window
+      (org-noter--get-notes-window))
+     (condition-case-unless-debug
+         nil
          (progn
            (goto-char
-            (cdr
-             (org-id-find-id-in-file
-              id
-              buffer-file-name)))
-           t)
-       (error nil)))))
+            (cdr (org-id-find-id-in-file
+                  (if org-noter-use-unique-org-id
+                      (concat
+                       (org-noter--session-property-text
+                        session)
+                       "-"
+                       id)
+                    id)
+                  buffer-file-name))))
+       (error nil))
+     t)))
 
 
 (define-minor-mode org-noter-doc-mode
