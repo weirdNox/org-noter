@@ -1933,7 +1933,7 @@ defines if the text should be inserted inside the note."
 
            (cond
             ;; NOTE(nox): Both precise and without questions will create new notes
-            (precise-location
+            ((or org-noter-use-pdftools-link-location precise-location)
              (setq default (and selected-text (replace-regexp-in-string "\n" " " selected-text))))
             (org-noter-insert-note-no-questions)
             (t
