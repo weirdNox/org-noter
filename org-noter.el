@@ -143,6 +143,11 @@ To use this, org-noter-use-org-id has to be t."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-use-unique-org-id t
+  "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
+  :group 'org-noter
+  :type 'boolean)
+
 (defcustom org-noter-notes-window-behavior '(start scroll)
   "This setting specifies in what situations the notes window should be created.
 
@@ -1633,7 +1638,12 @@ want to kill."
                 (org-entry-put
                  nil
                  "ID"
-                 annot-id))
+                 (if org-noter-use-unique-org-id
+                     (concat
+                      document-property
+                      "-"
+                      annot-id)
+                   annot-id)))
               (when org-noter-export-to-pdf
                 (let* ((content (if (and (> (org-current-level) 2)
                                          org-noter-export-to-pdf-with-structure)
@@ -2005,7 +2015,13 @@ defines if the text should be inserted inside the note."
                (when (string-match ".*;;\\(.*\\)" location-link)
                  (let ((id (match-string 1 location-link)))
                    (if org-noter-use-org-id
-                       (org-entry-put nil "ID" id))))
+                       (org-entry-put nil "ID"
+                                      (if org-noter-use-unique-org-id
+                                          (concat
+                                           (org-noter--session-property-text session)
+                                           "-"
+                                           id)
+                                          id)))))
                (when org-noter-doc-property-in-notes
                  (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
                  (org-entry-put nil org-noter--property-auto-save-last-location "nil"))
