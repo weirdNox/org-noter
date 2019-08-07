@@ -1604,14 +1604,12 @@ want to kill."
                                (cdr location)
                              0.0))
                    (pos `(0 . ,(round
-                                (/
-                                 (*
-                                  (cdr (with-current-buffer
-                                           (org-noter--session-doc-buffer
-                                            session)
-                                         (pdf-view-image-size)))
-                                  height)
-                                 (frame-char-height)))))
+                                (*
+                                 (cdr (with-current-buffer
+                                          (org-noter--session-doc-buffer
+                                           session)
+                                        (pdf-view-image-size)))
+                                 height))))
                    (annot-id (symbol-name
                               (pdf-annot-get-id
                                (save-excursion
@@ -1909,7 +1907,7 @@ defines if the text should be inserted inside the note."
                      (org-pdftools-markup-pointer-color org-noter-markup-pointer-color)
                      (org-pdftools-markup-pointer-opacity org-noter-markup-pointer-opacity)
                      (org-pdftools-markup-pointer-function org-noter-markup-pointer-function))
-                 (org-pdftools-get-link))))
+                 (org-pdftools-get-link t))))
           (location
            (if location-link
                (org-noter--location-link-to-cons
@@ -1933,7 +1931,7 @@ defines if the text should be inserted inside the note."
 
            (cond
             ;; NOTE(nox): Both precise and without questions will create new notes
-            (precise-location
+            ((or org-noter-use-pdftools-link-location precise-location)
              (setq default (and selected-text (replace-regexp-in-string "\n" " " selected-text))))
             (org-noter-insert-note-no-questions)
             (t
