@@ -1909,7 +1909,7 @@ defines if the text should be inserted inside the note."
                      (org-pdftools-markup-pointer-color org-noter-markup-pointer-color)
                      (org-pdftools-markup-pointer-opacity org-noter-markup-pointer-opacity)
                      (org-pdftools-markup-pointer-function org-noter-markup-pointer-function))
-                 (org-pdftools-get-link))))
+                 (org-pdftools-get-link t))))
           (location
            (if location-link
                (org-noter--location-link-to-cons
