@@ -2224,6 +2224,8 @@ As such, it will only work when the notes window exists."
                     (org-noter--get-doc-window)
                   (pdf-annot-read-annotation
                    "Left click the annotation "))))
+  (when (not org-noter-use-org-id)
+    "You have to enable `org-noter-use-org-id'!")
   (org-noter--with-valid-session
    (pdf-annot-show-annotation a t)
    (let ((id (symbol-name
@@ -2233,6 +2235,7 @@ As such, it will only work when the notes window exists."
      (condition-case-unless-debug
          nil
          (progn
+           (require 'org-id)
            (goto-char
             (cdr (org-id-find-id-in-file
                   (if org-noter-use-unique-org-id
