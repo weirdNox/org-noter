@@ -1604,14 +1604,12 @@ want to kill."
                                (cdr location)
                              0.0))
                    (pos `(0 . ,(round
-                                (/
-                                 (*
-                                  (cdr (with-current-buffer
-                                           (org-noter--session-doc-buffer
-                                            session)
-                                         (pdf-view-image-size)))
-                                  height)
-                                 (frame-char-height)))))
+                                (*
+                                 (cdr (with-current-buffer
+                                          (org-noter--session-doc-buffer
+                                           session)
+                                        (pdf-view-image-size)))
+                                 height))))
                    (annot-id (symbol-name
                               (pdf-annot-get-id
                                (save-excursion
