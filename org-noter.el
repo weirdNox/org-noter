@@ -931,8 +931,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
        ;; everything and would run org-noter--nov-scroll-handler.
        (redisplay)))))
 
-(defun org-noter--location-link-p (locaiton)
-  (and lcoation
+(defun org-noter--location-link-p (location)
+  (and location
        (stringp location)
        (string-prefix-p "pdftools:" location)))
 
@@ -1097,7 +1097,8 @@ document property) will be opened."
   (cond
    ((eq (aref view 0) 'paged)
     (if (org-noter--location-link-p note-property)
-        (setq note-property (org-noter--location-link-to-cons note-property)))
+        (setq note-property (org-noter--location-link-to-cons note-property))
+      (setq note-property (car (read-from-string note-property))))
     (let ((note-page (car note-property))
           (view-page (aref view 1)))
       (cond ((< note-page view-page) 'before)
