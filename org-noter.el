@@ -931,6 +931,11 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
        ;; everything and would run org-noter--nov-scroll-handler.
        (redisplay)))))
 
+(defun org-noter--location-link-p (locaiton)
+  (and lcoation
+       (stringp location)
+       (string-prefix-p "pdftools:" location)))
+
 (defun org-noter--compare-location-cons (comp p1 p2)
   "Compare P1 and P2, which are location cons.
 When COMP is '<, '<=, '>, or '>=, it works as expected.
@@ -984,10 +989,10 @@ P2 or, when in the same page, if P1 is the _f_irst of the two."
 When COMP is '<, '<=, '>, or '>=, it works as expected.
 When COMP is '>f, it will return t when L1 is a page greater than
 L2 or, when in the same page, if P1 is the _f_irst of the two."
-  (if (stringp l1)
+  (if (org-noter--location-link-p l1)
       (setq p1 (org-noter--location-link-to-cons l1))
     (setq p1 l1))
-  (if (stringp l2)
+  (if (org-noter--location-link-p l2)
       (setq p2 (org-noter--location-link-to-cons l2))
     (setq p2 l2))
   (org-noter--compare-location-cons comp p1 p2))
@@ -1077,7 +1082,7 @@ document property) will be opened."
 
 (defun org-noter--note-after-tipping-point (point note-property view)
   ;; NOTE(nox): This __assumes__ the note is inside the view!
-  (if (stringp note-property)
+  (if (org-noter--location-link-p note-property)
       (setq note-property
             (org-noter--location-link-to-cons
              note-property)))
@@ -1091,9 +1096,8 @@ document property) will be opened."
 (defun org-noter--relative-position-to-view (note-property view)
   (cond
    ((eq (aref view 0) 'paged)
-    (if (stringp note-property)
-        (setq note-property
-              (org-noter--location-link-to-cons note-property)))
+    (if (org-noter--location-link-p note-property)
+        (setq note-property (org-noter--location-link-to-cons note-property)))
     (let ((note-page (car note-property))
           (view-page (aref view 1)))
       (cond ((< note-page view-page) 'before)
@@ -1696,8 +1700,6 @@ want to kill."
   "Create notes skeleton with the PDF outline or annotations.
 Only available with PDF Tools."
   (interactive)
-  (when org-noter-use-pdftools-link-location
-    (user-error "Create skeleton with new location format is not supported yet"))
   (org-noter--with-valid-session
    (cond
     ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
@@ -1717,8 +1719,45 @@ Only available with PDF Tools."
                    (depth (alist-get 'depth item))
                    (title (alist-get 'title item))
                    (top   (alist-get 'top item)))
-               (when (and (eq type 'goto-dest) (> page 0))
-                 (push (vector title (cons page top) (1+ depth) nil) output-data)))))
+               (when (and (eq type 'goto-dest)
+                          (> page 0))
+                 (let ((search-string (pdf-info-search-string title))
+                       (path (file-relative-name
+                              (expand-file-name
+                               (org-noter--session-property-text
+                                session))
+                              org-pdftools-root-dir))
+                       pdftools-link)
+                   (if (and search-string
+                            (eq (length (search-title)) 1))
+                       (setq pdftools-link
+                             (concat
+                              "pdftools:"
+                              path
+                              "::"
+                              page
+                              "++"
+                              top
+                              "$$"
+                              (replace-regexp-in-string
+                               " "
+                               "%20"
+                               search-string)))
+                     (setq pdftools-link
+                           (concat
+                            "pdftools:"
+                            path
+                            "::"
+                            page
+                            "++"
+                            top))))
+                 (push
+                  (vector
+                   title
+                   (cons page top)
+                   (1+ depth)
+                   nil)
+                  output-data)))))
 
          (when (memq 'annots answer)
            (let ((possible-annots (list '("Highlights" . highlight)
@@ -1748,21 +1787,34 @@ Only available with PDF Tools."
              (setq insert-contents (y-or-n-p "Should we insert the annotations contents? "))
 
              (dolist (item (pdf-info-getannots))
-               (let* ((type  (alist-get 'type item))
-                      (page  (alist-get 'page item))
+               (let* ((type (alist-get 'type item))
+                      (page (alist-get 'page item))
                       (edges (or (org-noter--pdf-tools-edges-to-region (alist-get 'markup-edges item))
                                  (alist-get 'edges item)))
                       (top (nth 1 edges))
                       (item-subject (alist-get 'subject item))
                       (item-contents (alist-get 'contents item))
-                      name contents)
+                      name contents pdftools-link)
+                 (when org-noter-use-pdftools-link-location
+                   (let* (((path
+                            (file-relative-name
+                             (expand-file-name
+                              (org-noter--session-property-text
+                               session))
+                             org-pdftools-root-dir)))
+                          (id (symbol-name (alist-get 'id item))))
+                     (setq pdftools-link (concat "pdftools:" path "::"
+                                                 page "++"
+                                                 top ";;"
+                                                 id))))
+
                  (when (and (memq type chosen-annots) (> page 0))
                    (if (eq type 'link)
                        (cl-pushnew page pages-with-links)
-                     (setq name (cond ((eq type 'highlight)  "Highlight")
-                                      ((eq type 'underline)  "Underline")
-                                      ((eq type 'squiggly)   "Squiggly")
-                                      ((eq type 'text)       "Text note")
+                     (setq name (cond ((eq type 'highlight) "Highlight")
+                                      ((eq type 'underline) "Underline")
+                                      ((eq type 'squiggly) "Squiggly")
+                                      ((eq type 'text) "Text note")
                                       ((eq type 'strike-out) "Strikeout")))
 
                      (when insert-contents
@@ -1773,14 +1825,16 @@ Only available with PDF Tools."
                                                          (if (and item-subject item-contents) "\n" "")
                                                          (or item-contents ""))))))
 
-                     (push (vector (format "%s on page %d" name page) (cons page top) 'inside contents)
+                     (push (vector (format "%s on page %d" name page) (if org-noter-use-pdftools-link-location
+                                                                          pdftools-link
+                                                                        (cons page top)) 'inside contents)
                            output-data)))))
 
              (dolist (page pages-with-links)
                (let ((links (pdf-info-pagelinks page))
                      type)
                  (dolist (link links)
-                   (setq type (alist-get 'type  link))
+                   (setq type (alist-get 'type link))
                    (unless (eq type 'goto-dest) ;; NOTE(nox): Ignore internal links
                      (let* ((edges (alist-get 'edges link))
                             (title (alist-get 'title link))
@@ -1841,8 +1895,11 @@ Only available with PDF Tools."
 
                (org-noter--insert-heading level title)
 
-               (when location
-                 (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
+               (cond ((and (stringp location)
+                           org-noter-use-pdftools-link-location)
+                      (org-entry-put nil org-noter-property-note-location location))
+                     ((and (consp location))
+                      (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location))))
 
                (when org-noter-doc-property-in-notes
                  (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
@@ -1909,7 +1966,7 @@ defines if the text should be inserted inside the note."
                      (org-pdftools-markup-pointer-function org-noter-markup-pointer-function))
                  (org-pdftools-get-link t))))
           (location
-           (if location-link
+           (if (org-noter--location-link-p location-link)
                (org-noter--location-link-to-cons
                 location-link)
              (org-noter--doc-approx-location
