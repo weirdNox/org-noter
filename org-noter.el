@@ -925,7 +925,10 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                    (when annot-id
                        (pdf-annot-show-annotation
                         (pdf-info-getannot annot-id)
-                        t))))
+                        t))
+                   (when search-string
+                     (isearch-mode t)
+                     (isearch-yank-string search-string))))
              (pdf-view-goto-page (car location))
              ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
              ;; so syncing multiple pages was slow
