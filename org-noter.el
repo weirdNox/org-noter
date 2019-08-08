@@ -773,7 +773,8 @@ properties, by a margin of NEWLINES-NUMBER."
         value)
     (when (and (stringp property)
                (> (length property) 0))
-      (if org-noter-use-pdftools-link-location
+      (if (and org-noter-use-pdftools-link-location
+               (org-noter--location-link-p property))
           property
         (setq value
               (car (read-from-string property)))
@@ -890,26 +891,45 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                     (stringp location))
                (progn
                  (string-match
+
+                  "\\(.*\\)::\\([0-9]*\\)\\(\\+\\+\\)?\\([[0-9]\\.*[0-9]*\\)?\\(;;\\|\\$\\$\\)?\\(.*\\)?"
                   "\\(.*\\)::\\([0-9]*\\)\\+\\+\\([[0-9]\\.*[0-9]*\\);;\\(.*\\)"
                   location)
-                 (let* ((path (match-string 1 location))
-                        (page (string-to-number
-                               (match-string 2 location)))
-                        (height (string-to-number
-                                 (match-string 3 location)))
-                        (annot-id (match-string 4 location)))
+                 (let ((path (match-string 1 location))
+                       (page (match-string 2 location))
+                       (height (match-string 4 location))
+                       annot-id search-string)
                    ;; (org-open-file path 1)
-                   (pdf-view-goto-page page)
-                   (image-set-window-vscroll
-                    (round
-                     (/
-                      (*
-                       height
-                       (cdr (pdf-view-image-size)))
-                      (frame-char-height))))
-                   (pdf-annot-show-annotation
-                    (pdf-info-getannot annot-id)
-                    t)))
+                   (cond ((string-equal
+                           (match-string 5 link)
+                           ";;")
+                          (setq annot-id
+                                (match-string 6 link)))
+                         ((string-equal
+                           (match-string 5 link)
+                           "$$")
+                          (setq search-string
+                                (replace-regexp-in-string
+                                 "%20"
+                                 " "
+                                 (match-string 6 link)))))
+                   (when page
+                       (pdf-view-goto-page (string-to-number page)))
+                   (when height
+                       (image-set-window-vscroll
+                        (round
+                         (/
+                          (*
+                           string-to-number height
+                           (cdr (pdf-view-image-size)))
+                          (frame-char-height)))))
+                   (when annot-id
+                       (pdf-annot-show-annotation
+                        (pdf-info-getannot annot-id)
+                        t))
+                   (when search-string
+                     (isearch-mode t)
+                     (isearch-yank-string search-string))))
              (pdf-view-goto-page (car location))
              ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
              ;; so syncing multiple pages was slow
@@ -1097,8 +1117,7 @@ document property) will be opened."
   (cond
    ((eq (aref view 0) 'paged)
     (if (org-noter--location-link-p note-property)
-        (setq note-property (org-noter--location-link-to-cons note-property))
-      (setq note-property (car (read-from-string note-property))))
+        (setq note-property (org-noter--location-link-to-cons note-property)))
     (let ((note-page (car note-property))
           (view-page (aref view 1)))
       (cond ((< note-page view-page) 'before)
@@ -1719,43 +1738,43 @@ Only available with PDF Tools."
                    (page  (alist-get 'page item))
                    (depth (alist-get 'depth item))
                    (title (alist-get 'title item))
-                   (top   (alist-get 'top item)))
+                   (top   (alist-get 'top item))
+                   pdftools-link path)
                (when (and (eq type 'goto-dest)
                           (> page 0))
-                 (let ((search-string (pdf-info-search-string title))
-                       (path (file-relative-name
-                              (expand-file-name
-                               (org-noter--session-property-text
-                                session))
-                              org-pdftools-root-dir))
-                       pdftools-link)
-                   (if (and search-string
-                            (eq (length (search-title)) 1))
+                 (when org-noter-use-pdftools-link-location
+                   (setq path (file-relative-name
+                               (expand-file-name
+                                (org-noter--session-property-text
+                                 session))
+                               org-pdftools-root-dir))
+                   (if title
                        (setq pdftools-link
                              (concat
                               "pdftools:"
                               path
                               "::"
-                              page
+                              (number-to-string page)
                               "++"
-                              top
+                              (number-to-string top)
                               "$$"
                               (replace-regexp-in-string
                                " "
                                "%20"
-                               search-string)))
+                               title)))
                      (setq pdftools-link
                            (concat
                             "pdftools:"
                             path
                             "::"
-                            page
+                            (number-to-string page)
                             "++"
-                            top))))
+                            (number-to-string top)))))
                  (push
                   (vector
                    title
-                   (cons page top)
+                   (if org-noter-use-pdftools-link-location pdftools-link
+                     (cons page top))
                    (1+ depth)
                    nil)
                   output-data)))))
@@ -1795,19 +1814,19 @@ Only available with PDF Tools."
                       (top (nth 1 edges))
                       (item-subject (alist-get 'subject item))
                       (item-contents (alist-get 'contents item))
-                      name contents pdftools-link)
+                      name contents pdftools-link id path)
                  (when org-noter-use-pdftools-link-location
-                   (let* (((path
-                            (file-relative-name
-                             (expand-file-name
-                              (org-noter--session-property-text
-                               session))
-                             org-pdftools-root-dir)))
-                          (id (symbol-name (alist-get 'id item))))
-                     (setq pdftools-link (concat "pdftools:" path "::"
-                                                 page "++"
-                                                 top ";;"
-                                                 id))))
+                   (setq path
+                         (file-relative-name
+                          (expand-file-name
+                           (org-noter--session-property-text
+                            session))
+                          org-pdftools-root-dir))
+                   (setq id (symbol-name (alist-get 'id item)))
+                   (setq pdftools-link (concat "pdftools:" path "::"
+                                               (number-to-string page) "++"
+                                               (number-to-string top) ";;"
+                                               id)))
 
                  (when (and (memq type chosen-annots) (> page 0))
                    (if (eq type 'link)
@@ -1841,8 +1860,17 @@ Only available with PDF Tools."
                             (title (alist-get 'title link))
                             (top (nth 1 edges))
                             (target-page (alist-get 'page link))
-                            target heading-text)
-
+                            target heading-text pdftools-link path)
+                       (when org-noter-use-pdftools-link-location
+                         (setq path
+                               (file-relative-name
+                                (expand-file-name
+                                 (org-noter--session-property-text
+                                  session))
+                                org-pdftools-root-dir))
+                         (setq pdftools-link (concat "pdftools:" path "::"
+                                                     (number-to-string page) "++"
+                                                     (number-to-string top))))
                        (unless (and title (> (length title) 0)) (setq title (pdf-info-gettext page edges)))
 
                        (cond
@@ -1858,7 +1886,15 @@ Only available with PDF Tools."
 
                         (t (error "Unexpected link type")))
 
-                       (push (vector heading-text (cons page top) 'inside nil) output-data))))))))
+                       (push
+                        (vector
+                         heading-text
+                         (if org-noter-use-pdftools-link-location
+                             pdftools-link
+                           (cons page top))
+                         'inside
+                         nil)
+                        output-data))))))))
 
 
          (when output-data
