@@ -891,9 +891,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                     (stringp location))
                (progn
                  (string-match
-
                   "\\(.*\\)::\\([0-9]*\\)\\(\\+\\+\\)?\\([[0-9]\\.*[0-9]*\\)?\\(;;\\|\\$\\$\\)?\\(.*\\)?"
-                  "\\(.*\\)::\\([0-9]*\\)\\+\\+\\([[0-9]\\.*[0-9]*\\);;\\(.*\\)"
                   location)
                  (let ((path (match-string 1 location))
                        (page (match-string 2 location))
@@ -901,35 +899,33 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                        annot-id search-string)
                    ;; (org-open-file path 1)
                    (cond ((string-equal
-                           (match-string 5 link)
+                           (match-string 5 location)
                            ";;")
                           (setq annot-id
-                                (match-string 6 link)))
+                                (match-string 6 location)))
                          ((string-equal
-                           (match-string 5 link)
+                           (match-string 5 location)
                            "$$")
                           (setq search-string
                                 (replace-regexp-in-string
                                  "%20"
                                  " "
-                                 (match-string 6 link)))))
+                                 (match-string 6 location)))))
                    (when page
-                       (pdf-view-goto-page (string-to-number page)))
+                     (setq page (string-to-number page))
+                     (pdf-view-goto-page page))
                    (when height
                        (image-set-window-vscroll
                         (round
                          (/
                           (*
-                           string-to-number height
+                           (string-to-number height)
                            (cdr (pdf-view-image-size)))
                           (frame-char-height)))))
                    (when annot-id
                        (pdf-annot-show-annotation
                         (pdf-info-getannot annot-id)
-                        t))
-                   (when search-string
-                     (isearch-mode t)
-                     (isearch-yank-string search-string))))
+                        t))))
              (pdf-view-goto-page (car location))
              ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
              ;; so syncing multiple pages was slow
