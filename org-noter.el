@@ -1098,7 +1098,7 @@ document property) will be opened."
    ((eq (aref view 0) 'paged)
     (if (org-noter--location-link-p note-property)
         (setq note-property (org-noter--location-link-to-cons note-property))
-      (setq note-property (read-from-string note-property)))
+      (setq note-property (car (read-from-string note-property))))
     (let ((note-page (car note-property))
           (view-page (aref view 1)))
       (cond ((< note-page view-page) 'before)
