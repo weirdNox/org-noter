@@ -131,6 +131,12 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-suggest-from-attachments t
+  "When non-nil, org-noter will suggest files from the attachments
+when creating a session, if the document is missing."
+  :group 'org-noter
+  :type 'boolean)
+
 (defcustom org-noter-separate-notes-from-heading nil
   "When non-nil, add an empty line between each note's heading and content."
   :group 'org-noter
@@ -1249,6 +1255,32 @@ relative to."
             ;; NOTE(nox): This notes file has the document we want!
             (throw 'break t)))))))
 
+(defsubst org-noter--check-doc-prop (doc-prop)
+  (and doc-prop (not (file-directory-p doc-prop)) (file-readable-p doc-prop)))
+
+(defun org-noter--get-or-read-document-property (inherit-prop &optional force-new)
+  (let ((doc-prop (and (not force-new) (org-entry-get nil org-noter-property-doc-file inherit-prop))))
+    (unless (org-noter--check-doc-prop doc-prop)
+      (setq doc-prop nil)
+
+      (when org-noter-suggest-from-attachments
+        (require 'org-attach)
+        (let* ((attach-dir (org-attach-dir))
+               (attach-list (and attach-dir (org-attach-file-list attach-dir))))
+          (when (and attach-list (y-or-n-p "Do you want to annotate an attached file?"))
+            (setq doc-prop (completing-read "File to annotate: " attach-list nil t))
+            (when doc-prop (setq doc-prop (file-relative-name (expand-file-name doc-prop attach-dir)))))))
+
+      (unless (org-noter--check-doc-prop doc-prop)
+        (setq doc-prop (expand-file-name
+                        (read-file-name
+                         "Invalid or no document property found. Please specify a document path: " nil nil t)))
+        (when (or (file-directory-p doc-prop) (not (file-readable-p doc-prop))) (user-error "Invalid file path"))
+        (when (y-or-n-p "Do you want a relative file name? ") (setq doc-prop (file-relative-name doc-prop))))
+
+      (org-entry-put nil org-noter-property-doc-file doc-prop))
+    doc-prop))
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
 (defun org-noter-set-start-location (&optional arg)
@@ -2037,6 +2069,9 @@ this command will ask you for the target file.
 With a prefix universal argument ARG, only check for the property
 in the current heading, don't inherit from parents.
 
+With 2 prefix universal arguments ARG, ask for a new document,
+even if the current heading annotates one.
+
 With a prefix number ARG:
 - Greater than 0: Open the document like `find-file'
 -     Equal to 0: Create session with `org-noter-always-create-frame' toggled
@@ -2062,26 +2097,12 @@ notes file, even if it finds one."
       (error "`org-noter' must be issued inside a heading"))
 
     (let* ((notes-file-path (buffer-file-name))
-           (document-property (org-entry-get nil org-noter-property-doc-file (not (equal arg '(4)))))
-           (document-path (when (stringp document-property) (expand-file-name document-property)))
-           (org-noter-always-create-frame (if (and (numberp arg) (= arg 0))
-                                              (not org-noter-always-create-frame)
-                                            org-noter-always-create-frame))
-           ast)
+           (document-property (org-noter--get-or-read-document-property (not (equal arg '(4)))
+                                                                        (equal arg '(16))))
+           (org-noter-always-create-frame
+            (if (and (numberp arg) (= arg 0)) (not org-noter-always-create-frame) org-noter-always-create-frame))
+           (ast (org-noter--parse-root (vector (current-buffer) document-property))))
 
-      (unless (and document-path (not (file-directory-p document-path)) (file-readable-p document-path))
-        (setq document-path (expand-file-name
-                             (read-file-name
-                              "Invalid or no document property found. Please specify a document path: " nil nil t)))
-        (when (or (file-directory-p document-path) (not (file-readable-p document-path)))
-          (user-error "Invalid file path"))
-
-        (setq document-property (if (y-or-n-p "Do you want a relative file name? ")
-                                    (file-relative-name document-path)
-                                  document-path))
-        (org-entry-put nil org-noter-property-doc-file document-property))
-
-      (setq ast (org-noter--parse-root (vector (current-buffer) document-property)))
       (when (catch 'should-continue
               (when (or (numberp arg) (eq arg '-))
                 (cond ((> (prefix-numeric-value arg) 0)
