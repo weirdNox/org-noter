@@ -1526,7 +1526,7 @@ want to kill."
       (dolist (window (get-buffer-window-list notes-buffer nil t))
         (with-selected-frame (window-frame window)
           (if (= (count-windows) 1)
-              (delete-frame)
+              (unless (= (length (frames-on-display-list)) 1) (delete-frame))
             (delete-window window))))
 
       (with-current-buffer notes-buffer
