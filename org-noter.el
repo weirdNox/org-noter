@@ -1283,6 +1283,16 @@ relative to."
       (org-entry-put nil org-noter-property-doc-file doc-prop))
     doc-prop))
 
+(defun org-noter--other-frames (&optional this-frame)
+  "Returns non-`nil' when there is at least another frame"
+  (setq this-frame (or this-frame (selected-frame)))
+  (catch 'other-frame
+    (dolist (frame (visible-frame-list))
+      (unless (or (eq this-frame frame)
+                  (frame-parent frame)
+                  (frame-parameter frame 'delete-before))
+        (throw 'other-frame frame)))))
+
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
 (defun org-noter-set-start-location (&optional arg)
@@ -1526,7 +1536,7 @@ want to kill."
       (dolist (window (get-buffer-window-list notes-buffer nil t))
         (with-selected-frame (window-frame window)
           (if (= (count-windows) 1)
-              (unless (= (length (frames-on-display-list)) 1) (delete-frame))
+              (when (org-noter--other-frames) (delete-frame))
             (delete-window window))))
 
       (with-current-buffer notes-buffer
@@ -1543,11 +1553,11 @@ want to kill."
       (kill-buffer doc-buffer)
 
       (when (frame-live-p frame)
-        (if (or (= (length (frames-on-display-list)) 1) (not org-noter-kill-frame-at-session-end))
-            (progn
-              (delete-other-windows)
-              (set-frame-parameter nil 'name nil))
-          (delete-frame frame))))))
+        (if (and (org-noter--other-frames) org-noter-kill-frame-at-session-end)
+            (delete-frame frame)
+          (progn
+            (delete-other-windows)
+            (set-frame-parameter nil 'name nil)))))))
 
 (defun org-noter-create-skeleton ()
   "Create notes skeleton with the PDF outline or annotations.
