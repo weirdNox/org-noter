@@ -852,7 +852,16 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
        (cond
         ((run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode))
 
-        ((memq mode '(doc-view-mode pdf-view-mode))
+        ((eq mode 'pdf-view-mode)
+         (if (pdf-view-active-region-p)
+             (cadar (pdf-view-active-region))
+           (while (not (and (eq 'mouse-1 (car event))
+                            (eq window (posn-window (event-start event)))))
+             (setq event (read-event "Click where you want the start of the note to be!")))
+           (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
+                                                      (cdr (posn-col-row (event-start event)))))))
+
+        ((eq mode doc-view-mode)
          (while (not (and (eq 'mouse-1 (car event))
                           (eq window (posn-window (event-start event)))))
            (setq event (read-event "Click where you want the start of the note to be!")))
@@ -860,10 +869,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                                                     (cdr (posn-col-row (event-start event))))))
 
         ((eq mode 'nov-mode)
-         (while (not (and (eq 'mouse-1 (car event))
-                          (eq window (posn-window (event-start event)))))
-           (setq event (read-event "Click where you want the start of the note to be!")))
-         (posn-point (event-start event))))))))
+         (if (region-active-p)
+             (min (mark) (point))
+           (while (not (and (eq 'mouse-1 (car event))
+                            (eq window (posn-window (event-start event)))))
+             (setq event (read-event "Click where you want the start of the note to be!")))
+           (posn-point (event-start event)))))))))
 
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
