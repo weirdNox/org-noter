@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/weirdNox/org-noter
 ;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
-;; Version: 1.4.0
+;; Version: 1.4.1
 
 ;; This file is not part of GNU Emacs.
 
@@ -861,7 +861,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
            (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
                                                       (cdr (posn-col-row (event-start event)))))))
 
-        ((eq mode doc-view-mode)
+        ((eq mode 'doc-view-mode)
          (while (not (and (eq 'mouse-1 (car event))
                           (eq window (posn-window (event-start event)))))
            (setq event (read-event "Click where you want the start of the note to be!")))
