@@ -739,7 +739,9 @@ properties, by a margin of NEWLINES-NUMBER."
    ((eq major-mode 'nov-mode)
     (cons nov-documents-index (if (integerp precise-info)
                                   precise-info
-                                (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
+                                (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
+
+   (t (error "Unknown document type %s" major-mode))))
 
 (defun org-noter--doc-approx-location (&optional precise-info force-new-ref)
   (let ((window (if (org-noter--valid-session org-noter--session)
@@ -747,8 +749,8 @@ properties, by a margin of NEWLINES-NUMBER."
                   (selected-window))))
     (cl-assert window)
     (with-selected-window window
-      (or (run-hook-with-args-until-success 'org-noter--doc-approx-location-hook major-mode precise-info
-                                            force-new-ref)
+      (or (run-hook-with-args-until-success 'org-noter--doc-approx-location-hook major-mode
+                                            precise-info force-new-ref)
           (org-noter--doc-approx-location-cons precise-info)))))
 
 (defun org-noter--location-change-advice (&rest _)
@@ -957,7 +959,7 @@ L2 or, when in the same page, if L1 is the _f_irst of the two."
                l2 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l2) l2))
          (org-noter--compare-location-cons comp l1 l2))))
 
-(defun org-noter--show-note-entry (note)
+(defun org-noter--show-note-entry (session note)
   "This will show the note entry and its children.
 Every direct subheading _until_ the first heading that doesn't
 belong to the same view (ie. until a heading with location or
@@ -967,12 +969,14 @@ document property) will be opened."
     (org-show-set-visibility t)
     (org-element-map (org-element-contents note) 'headline
       (lambda (headline)
-        (if (or (org-noter--doc-file-property headline) (org-noter--check-location-property headline))
-            t
-          (goto-char (org-element-property :begin headline))
-          (org-show-entry)
-          (org-show-children)
-          nil))
+        (let ((doc-file (org-noter--doc-file-property headline)))
+          (if (or (and doc-file (not (string= doc-file (org-noter--session-property-text session))))
+                  (org-noter--check-location-property headline))
+              t
+            (goto-char (org-element-property :begin headline))
+            (org-show-entry)
+            (org-show-children)
+            nil)))
       nil t org-element-all-elements)))
 
 (defun org-noter--focus-notes-region (view-info)
@@ -991,7 +995,7 @@ document property) will be opened."
           point-inside-target-region)
      (cond
       (notes-cons
-       (dolist (note-cons notes-cons) (org-noter--show-note-entry (car note-cons)))
+       (dolist (note-cons notes-cons) (org-noter--show-note-entry session (car note-cons)))
 
        (setq target-region (or (catch 'result (dolist (region regions)
                                                 (when (and (>= point-before (car region))
@@ -1023,7 +1027,7 @@ document property) will be opened."
 
          (goto-char target-char)))
 
-      (t (org-noter--show-note-entry (org-noter--parse-root)))))
+      (t (org-noter--show-note-entry session (org-noter--parse-root)))))
 
    (org-cycle-show-empty-lines t)))
 
@@ -1031,14 +1035,14 @@ document property) will be opened."
   "Return a vector with the current view information."
   (org-noter--with-valid-session
    (let ((mode (org-noter--session-doc-mode session)))
-     (cond ((memq mode '(doc-view-mode pdf-view-mode))
-            (vector 'paged (car (org-noter--doc-approx-location-cons))))
-           ((eq mode 'nov-mode)
-            (with-selected-window (org-noter--get-doc-window)
+     (with-selected-window (org-noter--get-doc-window)
+       (cond ((memq mode '(doc-view-mode pdf-view-mode))
+              (vector 'paged (car (org-noter--doc-approx-location-cons))))
+             ((eq mode 'nov-mode)
               (vector 'nov
                       (org-noter--doc-approx-location-cons (window-start))
-                      (org-noter--doc-approx-location-cons (window-end nil t)))))
-           (t (error "Unknown document type"))))))
+                      (org-noter--doc-approx-location-cons (window-end nil t))))
+             (t (error "Unknown document type")))))))
 
 (defun org-noter--note-after-tipping-point (point location view)
   ;; NOTE(nox): This __assumes__ the note is inside the view!
@@ -1207,12 +1211,15 @@ relative to."
         :prev-regions (nreverse closest-notes-regions)
         :reference-for-insertion reference-for-insertion)))))
 
-(defun org-noter--make-view-info-for-single-note (headline)
-  (let ((not-belonging-element (org-element-map (org-element-contents headline) 'headline
-                                 (lambda (headline) (and (or (org-noter--doc-file-property headline)
-                                                             (org-noter--check-location-property headline))
-                                                         headline))
-                                 nil t)))
+(defun org-noter--make-view-info-for-single-note (session headline)
+  (let ((not-belonging-element
+         (org-element-map (org-element-contents headline) 'headline
+           (lambda (headline)
+             (let ((doc-file (org-noter--doc-file-property headline)))
+               (and (or (and doc-file (not (string= doc-file (org-noter--session-property-text session))))
+                        (org-noter--check-location-property headline))
+                    headline)))
+           nil t)))
 
     (make-org-noter--view-info
      ;; NOTE(nox): The cdr is only used when inserting, doesn't matter here
@@ -1737,7 +1744,7 @@ Only available with PDF Tools."
            (outline-hide-subtree)
            (org-show-children 2)))))
 
-    (t (error "This command is only supported on PDF Tools.")))))
+    (t (user-error "This command is only supported on PDF Tools.")))))
 
 (defun org-noter-insert-note (&optional precise-info)
   "Insert note associated with the current location.
@@ -1915,8 +1922,8 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
 
            (cond
             (ignore-until-level nil) ;; NOTE(nox): This heading is ignored, do nothing
-            (doc-file (setq ignore-until-level (org-element-property :level headline))
-                      nil)
+            ((and doc-file (not (string= doc-file (org-noter--session-property-text session))))
+             (setq ignore-until-level (org-element-property :level headline)) nil)
             (t ,@body))))
        nil ,match-first org-noter--note-search-no-recurse)))
 
@@ -1996,8 +2003,8 @@ As such, it will only work when the notes window exists."
          (progn
            ;; NOTE(nox): This needs to be manual so we can focus the correct note
            (org-noter--doc-goto-location (org-noter--parse-location-property previous))
-           (org-noter--focus-notes-region (org-noter--make-view-info-for-single-note previous)))
-       (error "There is no previous note"))))
+           (org-noter--focus-notes-region (org-noter--make-view-info-for-single-note session previous)))
+       (user-error "There is no previous note"))))
   (select-window (org-noter--get-doc-window)))
 
 (defun org-noter-sync-current-note ()
@@ -2034,8 +2041,8 @@ As such, it will only work when the notes window exists."
      (if next
          (progn
            (org-noter--doc-goto-location (org-noter--parse-location-property next))
-           (org-noter--focus-notes-region (org-noter--make-view-info-for-single-note next)))
-       (error "There is no next note"))))
+           (org-noter--focus-notes-region (org-noter--make-view-info-for-single-note session next)))
+       (user-error "There is no next note"))))
   (select-window (org-noter--get-doc-window)))
 
 (define-minor-mode org-noter-doc-mode
@@ -2117,7 +2124,7 @@ notes file, even if it finds one."
    ;; NOTE(nox): Creating the session from notes file
    ((eq major-mode 'org-mode)
     (when (org-before-first-heading-p)
-      (error "`org-noter' must be issued inside a heading"))
+      (user-error "`org-noter' must be issued inside a heading"))
 
     (let* ((notes-file-path (buffer-file-name))
            (document-property (org-noter--get-or-read-document-property (not (equal arg '(4)))
