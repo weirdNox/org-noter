@@ -47,6 +47,9 @@ great.
 - Keep your notes organized :: You may arrange your notes however you want! You can create groups and
      nest notes (and even nest documents inside other documents)!
 
+- Annotate ~org-attach~'ed files :: If you have any attached files, it will let you choose one as
+     the document to annotate.
+
 Many of these features are demonstrated in the screencast, so take a look if you are
 confused!
 
@@ -68,7 +71,7 @@ If you want to give it a try without much trouble:
 - Create a root heading to hold the notes
 - Run @@html:<kbd>@@M-x@@html:</kbd>@@ ~org-noter~ inside!
   On the first run, it will ask you for the path of the document and save it in a
-  property.
+  property. By default, it will also let you annotate an attached file [[https://orgmode.org/manual/Attachments.html][(org-attach documentation)]].
 
 This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
 
