@@ -1320,7 +1320,7 @@ With a prefix ARG, remove start location."
   (org-noter--with-valid-session
    (let ((inhibit-read-only t)
          (ast (org-noter--parse-root))
-         (location (org-noter--doc-approx-location 'interactive)))
+         (location (org-noter--doc-approx-location (when (called-interactively-p 'any) 'interactive))))
      (with-current-buffer (org-noter--session-notes-buffer session)
        (org-with-wide-buffer
         (goto-char (org-element-property :begin ast))
