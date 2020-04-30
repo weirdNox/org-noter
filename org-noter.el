@@ -174,6 +174,11 @@ This setting may be overridden in a document with the function
   :group 'org-noter
   :type '(repeat string))
 
+(defcustom org-noter-default-notes-file-suffix ".org"
+  "Ending for the default notes files, can be adapted to for instance '-org-noter.org' to aid regex matching of org-noter files."
+  :group 'org-noter
+  :type 'string)
+
 (defcustom org-noter-notes-search-path '("~/Documents")
   "List of paths to check (non recursively) when searching for a notes file."
   :group 'org-noter
@@ -2181,7 +2186,7 @@ notes file, even if it finds one."
              ;; be the same as `buffer-file-name', but is needed for the truename workaround
              (document-used-path (expand-file-name document-name document-directory))
 
-             (search-names (append org-noter-default-notes-file-names (list (concat document-base ".org"))))
+             (search-names (append org-noter-default-notes-file-names (list (concat document-base org-noter-default-notes-file-suffix))))
              notes-files-annotating     ; List of files annotating document
              notes-files                ; List of found notes files (annotating or not)
 
