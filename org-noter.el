@@ -1296,8 +1296,11 @@ relative to."
                      (if (eq org-noter-suggest-from-attachments 'no-prompt)
                          t
                        (y-or-n-p "Do you want to annotate an attached file?")))
-            (setq doc-prop (completing-read "File to annotate: " attach-list nil t
-                                            nil nil (car attach-list)))
+            (setq doc-prop
+                  (if (> (length attach-list) 1)
+                      (completing-read "File to annotate: " attach-list nil t
+                                       nil nil (car attach-list))
+                    (car attach-list)))
             (when doc-prop (setq doc-prop (file-relative-name (expand-file-name doc-prop attach-dir)))))))
 
       (unless (org-noter--check-doc-prop doc-prop)
