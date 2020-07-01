@@ -135,9 +135,14 @@ When nil, it will use the selected frame if it does not belong to any other sess
 
 (defcustom org-noter-suggest-from-attachments t
   "When non-nil, org-noter will suggest files from the attachments
-when creating a session, if the document is missing."
+when creating a session, if the document is missing.
+
+If the value 'no-prompt is used, do not ask for confirmation and
+offer an attachment right away."
   :group 'org-noter
-  :type 'boolean)
+  :type '(choice (const :tag "Use attachments but ask user for confirmation" t)
+                 (const :tag "Use attachments without asking for confirmation" no-prompt)
+                 (const :tag "Do not use attachments" nil)))
 
 (defcustom org-noter-separate-notes-from-heading nil
   "When non-nil, add an empty line between each note's heading and content."
@@ -491,7 +496,7 @@ If nil, the session used will be `org-noter--session'."
     (cond
      ((and (not arg-is-session) (vectorp info))
       ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
-	  ;; the specified property
+      ;; the specified property
       (let ((notes-buffer (aref info 0))
             (wanted-prop  (aref info 1)))
         (unless (and (buffer-live-p notes-buffer) (stringp wanted-prop)
@@ -501,9 +506,9 @@ If nil, the session used will be `org-noter--session'."
         (with-current-buffer notes-buffer
           (org-with-wide-buffer
            (catch 'break
-	         (org-back-to-heading t)
-	         (while t
-		       (when (string= (org-entry-get nil org-noter-property-doc-file) wanted-prop)
+             (org-back-to-heading t)
+             (while t
+               (when (string= (org-entry-get nil org-noter-property-doc-file) wanted-prop)
                  (setq root-pos (copy-marker (point))))
                (unless (org-up-heading-safe) (throw 'break t))))))))
 
@@ -1287,8 +1292,15 @@ relative to."
         (require 'org-attach)
         (let* ((attach-dir (org-attach-dir))
                (attach-list (and attach-dir (org-attach-file-list attach-dir))))
-          (when (and attach-list (y-or-n-p "Do you want to annotate an attached file?"))
-            (setq doc-prop (completing-read "File to annotate: " attach-list nil t))
+          (when (and attach-list
+                     (if (eq org-noter-suggest-from-attachments 'no-prompt)
+                         t
+                       (y-or-n-p "Do you want to annotate an attached file?")))
+            (setq doc-prop
+                  (if (> (length attach-list) 1)
+                      (completing-read "File to annotate: " attach-list nil t
+                                       nil nil (car attach-list))
+                    (car attach-list)))
             (when doc-prop (setq doc-prop (file-relative-name (expand-file-name doc-prop attach-dir)))))))
 
       (unless (org-noter--check-doc-prop doc-prop)
