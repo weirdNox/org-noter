@@ -135,9 +135,14 @@ When nil, it will use the selected frame if it does not belong to any other sess
 
 (defcustom org-noter-suggest-from-attachments t
   "When non-nil, org-noter will suggest files from the attachments
-when creating a session, if the document is missing."
+when creating a session, if the document is missing.
+
+If the value 'no-prompt is used, do not ask for confirmation and
+offer an attachment right away."
   :group 'org-noter
-  :type 'boolean)
+  :type '(choice (const :tag "Use attachments but ask user for confirmation" t)
+                 (const :tag "Use attachments without asking for confirmation" no-prompt)
+                 (const :tag "Do not use attachments" nil)))
 
 (defcustom org-noter-separate-notes-from-heading nil
   "When non-nil, add an empty line between each note's heading and content."
@@ -1287,7 +1292,10 @@ relative to."
         (require 'org-attach)
         (let* ((attach-dir (org-attach-dir))
                (attach-list (and attach-dir (org-attach-file-list attach-dir))))
-          (when (and attach-list (y-or-n-p "Do you want to annotate an attached file?"))
+          (when (and attach-list
+                     (if (eq org-noter-suggest-from-attachments 'no-prompt)
+                         t
+                       (y-or-n-p "Do you want to annotate an attached file?")))
             (setq doc-prop (completing-read "File to annotate: " attach-list nil t))
             (when doc-prop (setq doc-prop (file-relative-name (expand-file-name doc-prop attach-dir)))))))
 
