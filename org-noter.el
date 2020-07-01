@@ -491,7 +491,7 @@ If nil, the session used will be `org-noter--session'."
     (cond
      ((and (not arg-is-session) (vectorp info))
       ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
-	  ;; the specified property
+      ;; the specified property
       (let ((notes-buffer (aref info 0))
             (wanted-prop  (aref info 1)))
         (unless (and (buffer-live-p notes-buffer) (stringp wanted-prop)
@@ -501,9 +501,9 @@ If nil, the session used will be `org-noter--session'."
         (with-current-buffer notes-buffer
           (org-with-wide-buffer
            (catch 'break
-	         (org-back-to-heading t)
-	         (while t
-		       (when (string= (org-entry-get nil org-noter-property-doc-file) wanted-prop)
+             (org-back-to-heading t)
+             (while t
+               (when (string= (org-entry-get nil org-noter-property-doc-file) wanted-prop)
                  (setq root-pos (copy-marker (point))))
                (unless (org-up-heading-safe) (throw 'break t))))))))
 
