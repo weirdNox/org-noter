@@ -51,7 +51,7 @@
 (declare-function pdf-info-gettext "ext:pdf-info")
 (declare-function pdf-info-outline "ext:pdf-info")
 (declare-function pdf-info-pagelinks "ext:pdf-info")
-(declare-function pdf-util-tooltip-arrow "ext:pdf-util")
+;; (declare-function pdf-util-tooltip-arrow "ext:pdf-util")
 (declare-function pdf-view-active-region "ext:pdf-view")
 (declare-function pdf-view-active-region-p "ext:pdf-view")
 (declare-function pdf-view-active-region-text "ext:pdf-view")
@@ -877,6 +877,51 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                             (eq window (posn-window (event-start event)))))
              (setq event (read-event "Click where you want the start of the note to be!")))
            (posn-point (event-start event)))))))))
+
+(defun pdf-util-tooltip-arrow (image-top &optional timeout image-left)
+  (pdf-util-assert-pdf-window)
+  (when (floatp image-top)
+    (setq image-top
+          (round (* image-top (cdr (pdf-view-image-size))))))
+  (when (floatp image-left)
+    (setq image-left
+          (round (* image-left (car (pdf-view-image-size))))))
+  (let* (x-gtk-use-system-tooltips ;allow for display property in tooltip
+	 (dx (if image-left
+		 image-left
+	       (+ (or (car (window-margins)) 0)
+		  (car (window-fringes)))))
+         (dy image-top)
+         (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
+         (vscroll
+          (pdf-util-required-vscroll pos))
+         (tooltip-frame-parameters
+          `((border-width . 0)
+            (internal-border-width . 0)
+            ,@tooltip-frame-parameters))
+         (tooltip-hide-delay (or timeout 3)))
+    (when vscroll
+      (image-set-window-vscroll vscroll))
+    (setq dy (max 0 (- dy
+                       (cdr (pdf-view-image-offset))
+                       (window-vscroll nil t)
+                       (frame-char-height))))
+    (when (overlay-get (pdf-view-current-overlay) 'before-string)
+      (let* ((e (window-inside-pixel-edges))
+             (xw (pdf-util-with-edges (e) e-width)))
+        (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2))))
+    (pdf-util-tooltip-in-window
+     (propertize
+      " " 'display (propertize
+                    "\u2192" ;;right arrow
+                    'display '(height 2)
+                    'face `(:foreground
+                            "orange red"
+                            :background
+                            ,(if (bound-and-true-p pdf-view-midnight-minor-mode)
+                                 (cdr pdf-view-midnight-colors)
+                               "white"))))
+     dx dy)))
 
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
