@@ -293,7 +293,7 @@ The title used will be the default one."
   "Timer for synchronizing notes after scrolling.")
 
 (defvar org-noter--arrow-location nil
-  "A vector [TIMER WINDOW TOP] that shows where the arrow should appear, when idling.")
+  "A vector [TIMER WINDOW TOP LEFT] that shows where the arrow should appear, when idling.")
 
 (defvar org-noter--completing-read-keymap (make-sparse-keymap)
   "A `completing-read' keymap that let's the user insert spaces.")
@@ -780,6 +780,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--parse-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (cond ((and (consp value) (integerp (car value)) (numberp (cdr value))) value)
+		  ((and (consp value) (integerp (car value)) (consp (cdr value)) (numberp (cadr value)) (numberp (cddr value))) value)
                   ((integerp value) (cons value 0))))))))
 
 (defun org-noter--pretty-print-location (location)
@@ -878,7 +879,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
              (setq event (read-event "Click where you want the start of the note to be!")))
            (posn-point (event-start event)))))))))
 
-(defun pdf-util-tooltip-arrow (image-top &optional timeout image-left)
+(defun pdf-util-tooltip-arrow-with-image-left (image-top &optional timeout image-left)
   (pdf-util-assert-pdf-window)
   (when (floatp image-top)
     (setq image-top
@@ -923,11 +924,13 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                                "white"))))
      dx dy)))
 
+;;(advice-add 'pdf-util-tooltip-arrow :override pdf-util-tooltip-arrow-with-image-left)
+
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
              (window-live-p (aref org-noter--arrow-location 1)))
     (with-selected-window (aref org-noter--arrow-location 1)
-      (pdf-util-tooltip-arrow (aref org-noter--arrow-location 2))))
+      (pdf-util-tooltip-arrow-with-image-left (aref org-noter--arrow-location 2) nil (aref org-noter--arrow-location 3))))
   (setq org-noter--arrow-location nil))
 
 (defun org-noter--doc-goto-location (location)
@@ -940,19 +943,27 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
         ((run-hook-with-args-until-success 'org-noter--doc-goto-location-hook mode location))
 
         ((memq mode '(doc-view-mode pdf-view-mode))
-         (if (eq mode 'doc-view-mode)
-             (doc-view-goto-page (car location))
-           (pdf-view-goto-page (car location))
-           ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
-           ;; so syncing multiple pages was slow
-           (when (>= org-noter-arrow-delay 0)
-             (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
-             (setq org-noter--arrow-location
-                   (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
-                           window
-                           (cdr location)))))
-         (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location))
-                             (window-vscroll))))
+	 (let (top
+	       (left 0))
+	   (if (listp (cdr location))
+	       (setq top (cadr location)
+		     left (cddr location))
+	     (setq top (cdr location)))
+	   
+           (if (eq mode 'doc-view-mode)
+               (doc-view-goto-page (car location))
+             (pdf-view-goto-page (car location))
+             ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
+             ;; so syncing multiple pages was slow
+             (when (>= org-noter-arrow-delay 0)
+               (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
+               (setq org-noter--arrow-location
+                     (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
+                             window
+			     top
+			     left))))
+           (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
+                               (window-vscroll)))))
 
         ((eq mode 'nov-mode)
          (setq nov-documents-index (car location))
