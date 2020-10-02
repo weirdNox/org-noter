@@ -734,8 +734,10 @@ properties, by a margin of NEWLINES-NUMBER."
 (defun org-noter--doc-approx-location-cons (&optional precise-info)
   (cond
    ((memq major-mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (numberp precise-info) precise-info 0)))
-
+    (cons (image-mode-window-get 'page) (if (and (consp precise-info)
+						 (numberp (car precise-info))
+						 (numberp (cdr precise-info)))
+					    precise-info 0)))
    ((eq major-mode 'nov-mode)
     (cons nov-documents-index (if (integerp precise-info)
                                   precise-info
@@ -788,7 +790,7 @@ properties, by a margin of NEWLINES-NUMBER."
    (or (run-hook-with-args-until-success 'org-noter--pretty-print-location-hook location)
        (format "%s" (cond
                      ((memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
-                      (if (or (not (cdr location)) (<= (cdr location) 0))
+		      (if (or (not (cdr location)) (and (<= (cadr location) 0) (<= (cddr location) 0)))
                           (car location)
                         location))
 
@@ -823,26 +825,35 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 (defun org-noter--doc-get-page-slice ()
   "Return (slice-top . slice-height)."
   (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
+	 (slice-left (float (nth 0 slice)))
          (slice-top (float (nth 1 slice)))
+	 (slice-width (float (nth 2 slice)))
          (slice-height (float (nth 3 slice))))
     (when (or (> slice-top 1)
               (> slice-height 1))
       (let ((height (cdr (image-size (image-mode-window-get 'image) t))))
         (setq slice-top (/ slice-top height)
               slice-height (/ slice-height height))))
-    (cons slice-top slice-height)))
+    (when (or (> slice-width 1)
+              (> slice-left 1))
+      (let ((width (car (image-size (image-mode-window-get 'image) t))))
+        (setq slice-width (/ slice-width height)
+              slice-left (/ slice-left height))))
+    (list slice-top slice-height slice-left slice-width)))
 
-(defun org-noter--conv-page-scroll-percentage (scroll)
+(defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
   (let* ((slice (org-noter--doc-get-page-slice))
-         (display-height (cdr (image-display-size (image-get-display-property))))
-         (display-percentage (/ scroll display-height))
-         (percentage (+ (car slice) (* (cdr slice) display-percentage))))
-    (max 0 (min 1 percentage))))
+         (display-size (image-display-size (image-get-display-property)))
+         (display-percentage-height (/ vscroll (cdr display-size)))
+         (hpercentage (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-height))))))
+    (if hscroll
+	(cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
+      (cons hpercentage 0))))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
   (let* ((slice (org-noter--doc-get-page-slice))
          (display-height (cdr (image-display-size (image-get-display-property))))
-         (display-percentage (min 1 (max 0 (/ (- percentage (car slice)) (cdr slice)))))
+         (display-percentage (min 1 (max 0 (/ (- percentage (nth 0 slice)) (nth 1 slice)))))
          (scroll (max 0 (floor (* display-percentage display-height)))))
     scroll))
 
@@ -857,12 +868,16 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 
         ((eq mode 'pdf-view-mode)
          (if (pdf-view-active-region-p)
-             (cadar (pdf-view-active-region))
+	     (let ((edges (pdf-view-active-region)))
+	       (cons
+		(cadar edges)
+		(caar edges)))
            (while (not (and (eq 'mouse-1 (car event))
                             (eq window (posn-window (event-start event)))))
              (setq event (read-event "Click where you want the start of the note to be!")))
-           (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
-                                                      (cdr (posn-col-row (event-start event)))))))
+	   (let ((col-row (posn-col-row (event-start event))))
+	     (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+						     (+ (window-hscroll) (car col-row))))))
 
         ((eq mode 'doc-view-mode)
          (while (not (and (eq 'mouse-1 (car event))
@@ -1013,7 +1028,9 @@ L2 or, when in the same page, if L1 is the _f_irst of the two."
         (t
          (setq l1 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l1) l1)
                l2 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l2) l2))
-         (org-noter--compare-location-cons comp l1 l2))))
+	 (if (numberp (cdr l2))
+             (org-noter--compare-location-cons comp l1 l2)
+	   (org-noter--compare-location-cons comp l1 (cons (car l2) (cadr l2)))))))
 
 (defun org-noter--show-note-entry (session note)
   "This will show the note entry and its children.
@@ -1836,7 +1853,7 @@ defines if the text should be inserted inside the note."
                (buffer-substring-no-properties (mark) (point))))))
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
-          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
+	  (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
 
      (let ((inhibit-quit t))
        (with-local-quit
