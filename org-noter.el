@@ -790,13 +790,13 @@ properties, by a margin of NEWLINES-NUMBER."
    (or (run-hook-with-args-until-success 'org-noter--pretty-print-location-hook location)
        (format "%s" (cond
                      ((memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
-		      (if (or (not (cdr location)) (and (<= (cadr location) 0) (<= (cddr location) 0)))
+		      (if (or (not (get-location-top location)) (<= (get-location-top location) 0))
                           (car location)
                         location))
 
                      ((eq (org-noter--session-doc-mode session) 'nov-mode)
-                      (if (or (not (cdr location)) (<= (cdr location) 1))
-                          (car location)
+                      (if (or (not (get-location-top location)) (<= (get-location-top location) 1))
+                          (get-location-page location)
                         location)))))))
 
 (defun org-noter--get-containing-heading (&optional include-root)
@@ -978,8 +978,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 	       (left (get-location-left location)))
 	   
            (if (eq mode 'doc-view-mode)
-               (doc-view-goto-page (car location))
-             (pdf-view-goto-page (car location))
+               (doc-view-goto-page (get-location-page location))
+             (pdf-view-goto-page (get-location-page location))
              ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
              ;; so syncing multiple pages was slow
              (when (>= org-noter-arrow-delay 0)
@@ -993,9 +993,9 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                                (window-vscroll)))))
 
         ((eq mode 'nov-mode)
-         (setq nov-documents-index (car location))
+         (setq nov-documents-index (get-location-page location))
          (nov-render-document)
-         (goto-char (cdr location))
+         (goto-char (get-location-top location))
          (recenter)))
        ;; NOTE(nox): This needs to be here, because it would be issued anyway after
        ;; everything and would run org-noter--nov-scroll-handler.
@@ -1163,7 +1163,7 @@ document property) will be opened."
    ((run-hook-with-args-until-success 'org-noter--relative-position-to-view-hook location view))
 
    ((eq (aref view 0) 'paged)
-    (let ((note-page (car location))
+    (let ((note-page (get-location-page location))
           (view-page (aref view 1)))
       (cond ((< note-page view-page) 'before)
             ((= note-page view-page) 'inside)
@@ -1947,7 +1947,7 @@ defines if the text should be inserted inside the note."
              (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
                    level)
                (when (zerop (length title))
-                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (car location))
+                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (get-location-page location))
                                                        org-noter-default-heading-title)))
 
                (if reference-element-cons
