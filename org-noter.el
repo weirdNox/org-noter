@@ -38,6 +38,7 @@
 (require 'org)
 (require 'org-element)
 (require 'cl-lib)
+(require 'pdf-tools)
 
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
