@@ -741,9 +741,13 @@ properties, by a margin of NEWLINES-NUMBER."
                                   precise-info
                                 (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
 
+   ((eq major-mode 'djvu-read-mode)
+    (cons djvu-doc-page (if (numberp precise-info) precise-info 0)))
+
    (t (error "Unknown document type %s" major-mode))))
 
 (defun org-noter--doc-approx-location (&optional precise-info force-new-ref)
+  "TODO"
   (let ((window (if (org-noter--valid-session org-noter--session)
                     (org-noter--get-doc-window)
                   (selected-window))))
