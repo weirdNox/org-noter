@@ -418,6 +418,12 @@ The title used will be the default one."
         (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
         (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t))
 
+       ;; NOTE(c1-g): Djvu
+
+       ((eq document-major-mode 'djvu-read-mode)
+        (setq-local djvu-doc (current-buffer))
+        (advice-add 'djvu-init-page :after 'org-noter--location-change-advice))
+
        (t (error "This document handler is not supported :/")))
 
       (org-noter-doc-mode 1)
@@ -1040,7 +1046,7 @@ document property) will be opened."
   (org-noter--with-valid-session
    (let ((mode (org-noter--session-doc-mode session)))
      (with-selected-window (org-noter--get-doc-window)
-       (cond ((memq mode '(doc-view-mode pdf-view-mode))
+       (cond ((memq mode '(doc-view-mode pdf-view-mode djvu-read-mode))
               (vector 'paged (car (org-noter--doc-approx-location-cons))))
              ((eq mode 'nov-mode)
               (vector 'nov
