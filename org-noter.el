@@ -796,7 +796,7 @@ properties, by a margin of NEWLINES-NUMBER."
   (org-noter--with-valid-session
    (or (run-hook-with-args-until-success 'org-noter--pretty-print-location-hook location)
        (format "%s" (cond
-                     ((memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
+                     ((memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode djvu-read-mode))
                       (if (or (not (cdr location)) (<= (cdr location) 0))
                           (car location)
                         location))
@@ -1786,6 +1786,10 @@ defines if the text should be inserted inside the note."
                (mapconcat 'identity (pdf-view-active-region-text) ? )))
 
             ((eq (org-noter--session-doc-mode session) 'nov-mode)
+             (when (region-active-p)
+               (buffer-substring-no-properties (mark) (point))))
+            
+            ((eq (org-noter--session-doc-mode session) 'djvu-read-mode)
              (when (region-active-p)
                (buffer-substring-no-properties (mark) (point))))))
           force-new
