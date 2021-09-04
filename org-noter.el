@@ -903,18 +903,19 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
        (cond
         ((run-hook-with-args-until-success 'org-noter--doc-goto-location-hook mode location))
 
-        ((memq mode '(doc-view-mode pdf-view-mode))
-         (if (eq mode 'doc-view-mode)
-             (doc-view-goto-page (car location))
-           (pdf-view-goto-page (car location))
-           ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
-           ;; so syncing multiple pages was slow
-           (when (>= org-noter-arrow-delay 0)
-             (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
-             (setq org-noter--arrow-location
-                   (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
-                           window
-                           (cdr location)))))
+        ((eq mode 'doc-view-mode)
+         (doc-view-goto-page (car location)))
+        
+        ((eq mode 'pdf-view-mode)
+         (pdf-view-goto-page (car location))
+         ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
+         ;; so syncing multiple pages was slow
+         (when (>= org-noter-arrow-delay 0)
+           (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
+           (setq org-noter--arrow-location
+                 (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
+                         window
+                         (cdr location))))
          (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location))
                              (window-vscroll))))
 
@@ -922,9 +923,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
          (setq nov-documents-index (car location))
          (nov-render-document)
          (goto-char (cdr location))
-         (recenter)))
+         (recenter))
        ;; NOTE(nox): This needs to be here, because it would be issued anyway after
        ;; everything and would run org-noter--nov-scroll-handler.
+
+        ((eq mode 'djvu-read-mode)
+         (djvu-goto-page (car location))))
        (redisplay)))))
 
 (defun org-noter--compare-location-cons (comp l1 l2)
