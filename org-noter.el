@@ -885,7 +885,16 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
            (while (not (and (eq 'mouse-1 (car event))
                             (eq window (posn-window (event-start event)))))
              (setq event (read-event "Click where you want the start of the note to be!")))
+           (posn-point (event-start event))))
+
+        ((eq mode 'djvu-read-mode)
+         (if (region-active-p)
+             (min (mark) (point))
+           (while (not (and (eq 'mouse-1 (car event))
+                            (eq window (posn-window (event-start event)))))
+             (setq event (read-event "Click where you want the start of the note to be!")))
            (posn-point (event-start event)))))))))
+
 
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
@@ -1793,8 +1802,15 @@ defines if the text should be inserted inside the note."
                (buffer-substring-no-properties (mark) (point))))
             
             ((eq (org-noter--session-doc-mode session) 'djvu-read-mode)
-             (when (region-active-p)
-               (buffer-substring-no-properties (mark) (point))))))
+             (if (region-active-p)
+                 (buffer-substring-no-properties (mark) (point))
+               (with-current-buffer (djvu-ref outline-buf)
+                 (djvu-goto-outline)
+                 (string-join
+                  (butlast
+                   (split-string
+                    (string-trim (thing-at-point 'line t))))
+                  " "))))))
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
           (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
