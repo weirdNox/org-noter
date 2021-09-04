@@ -4,6 +4,9 @@ Org-noter is an org-mode document annotator. It is a rewrite of another project,
 Read about org-noter’s feature/usage/customization in its README [[file:README-orig.org][here]] or go visit its repository at [[https://github.com/weirdNox/org-noter][github]].
 ** Why?
 I just want to use org-noter with djvu file.
+** Caveats
+*** Changed default keybindings
+The key @@html:<kbd>@@i@@html:</kbd>@@ (lowercase i) for inserting note in the document buffer has been changed to @@html:<kbd>@@I@@html:</kbd>@@ (uppercase i) since it interfered with Djview Image minor mode key.
 
 
 

@@ -2082,7 +2082,7 @@ As such, it will only work when the notes window exists."
   "Minor mode for the document buffer.
 Keymap:
 \\{org-noter-doc-mode-map}"
-  :keymap `((,(kbd   "i")   . org-noter-insert-note)
+  :keymap `((,(kbd   "I")   . org-noter-insert-note)
             (,(kbd "C-i")   . org-noter-insert-note-toggle-no-questions)
             (,(kbd "M-i")   . org-noter-insert-precise-note)
             (,(kbd   "q")   . org-noter-kill-session)
