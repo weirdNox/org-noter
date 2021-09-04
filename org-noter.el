@@ -356,7 +356,7 @@ The title used will be the default one."
          (document-buffer-name
           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
          (document-buffer
-          (if (eq document-major-mode 'nov-mode)
+          (if (memq document-major-mode '(nov-mode djvu-read-mode))
               document
             (make-indirect-buffer document document-buffer-name t)))
 
@@ -421,7 +421,6 @@ The title used will be the default one."
        ;; NOTE(c1-g): Djvu
 
        ((eq document-major-mode 'djvu-read-mode)
-        (setq-local djvu-doc (current-buffer))
         (advice-add 'djvu-init-page :after 'org-noter--location-change-advice))
 
        (t (error "This document handler is not supported :/")))
