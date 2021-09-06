@@ -1600,13 +1600,16 @@ want to kill."
             (set-frame-parameter nil 'name nil)))))))
 
 (defun org-noter-create-skeleton ()
-  "Create notes skeleton with the PDF outline or annotations.
-Only available with PDF Tools."
+  "Create notes skeleton based on the outline of the document."
   (interactive)
   (org-noter--with-valid-session
-   (cond
-    ((eq (org-noter--session-doc-mode session) 'pdf-view-mode)
-     (let* ((ast (org-noter--parse-root))
+   (pcase (org-noter--session-doc-mode session)
+     ('pdf-view-mode (org-noter-create-skeleton-pdf))
+     (_ (user-error "This command is not supported for %s" (org-noter--session-doc-mode session))))))
+
+(defun org-noter-create-skeleton-pdf ()
+  "Create notes skeleton with the PDF outline or annotations."
+  (let* ((ast (org-noter--parse-root))
             (top-level (org-element-property :level ast))
             (options '(("Outline" . (outline))
                        ("Annotations" . (annots))
@@ -1765,8 +1768,6 @@ Only available with PDF Tools."
            (goto-char (org-element-property :begin ast))
            (outline-hide-subtree)
            (org-show-children 2)))))
-
-    (t (user-error "This command is only supported on PDF Tools.")))))
 
 (defun org-noter-insert-note (&optional precise-info)
   "Insert note associated with the current location.
