@@ -3,11 +3,11 @@
 Org-noter is an org-mode document annotator. It is a rewrite of another project, [[https://github.com/rudolfochrist/interleave][Interleave]].
 Read about org-noter’s feature/usage/customization in its README [[file:README-orig.org][here]] or go visit its repository at [[https://github.com/weirdNox/org-noter][github]].
 ** Added features
- - `org-noter` can be used on djvu file.
- - `org-noter-create-skeleton` now works on djvu and pdf file.
+ - =org-noter= can be used on djvu file.
+ - =org-noter-create-skeleton= now works on djvu and pdf file.
 ** Goals
  - [ ] Precise location support
-   djvu.el have both graphical (via `djvu-image-mode`) and textual (default) modes so maybe
+   djvu.el have both graphical (via =djvu-image-mode=) and textual (default) modes so maybe
    the textual mode should handle precise location like nov.el and graphical mode should do it like pdf-tools.
 ** Caveats
 *** Changed default keybindings
