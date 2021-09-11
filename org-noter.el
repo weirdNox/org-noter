@@ -937,7 +937,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
        ;; everything and would run org-noter--nov-scroll-handler.
 
         ((eq mode 'djvu-read-mode)
-         (djvu-goto-page (car location))))
+         (djvu-goto-page (car location))
+         (goto-char (cdr location))))
        (redisplay)))))
 
 (defun org-noter--compare-location-cons (comp l1 l2)
