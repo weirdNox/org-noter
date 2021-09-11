@@ -1858,15 +1858,12 @@ defines if the text should be inserted inside the note."
                (buffer-substring-no-properties (mark) (point))))
             
             ((eq (org-noter--session-doc-mode session) 'djvu-read-mode)
+             (require 'thingatpt)
              (if (region-active-p)
                  (buffer-substring-no-properties (mark) (point))
                (with-current-buffer (djvu-ref outline-buf)
                  (djvu-goto-outline)
-                 (string-join
-                  (butlast
-                   (split-string
-                    (string-trim (thing-at-point 'line t))))
-                  " "))))))
+                 (string-trim-right (string-trim (thing-at-point 'line t)) " [[:digit:]]+"))))))
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
           (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
