@@ -1854,13 +1854,9 @@ defines if the text should be inserted inside the note."
               (when (pdf-view-active-region-p)
                 (mapconcat 'identity (pdf-view-active-region-text) ? )))
 
-             ('nov-mode
+             ((or 'nov-mode 'djvu-read-mode)
               (when (region-active-p)
-                (buffer-substring-no-properties (mark) (point))))
-            
-            ('djvu-read-mode
-             (when (region-active-p)
-               (buffer-substring-no-properties (mark) (point))))))
+                (buffer-substring-no-properties (mark) (point))))))
           
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
