@@ -1825,7 +1825,7 @@ want to kill."
          (outline-hide-subtree)
          (org-show-children 2))))))
 
-(defun org-noter-insert-note (&optional precise-info)
+(defun org-noter-insert-note (&optional precise-info note-title)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
@@ -1890,8 +1890,8 @@ defines if the text should be inserted inside the note."
                          default-begin begin))))))
 
            (setq collection (nreverse collection)
-                 title (if org-noter-insert-note-no-questions
-                           default
+                 title (if (or org-noter-insert-note-no-questions note-title)
+                           (or default note-title)
                          (completing-read "Note: " collection nil nil nil nil default))
                  selection (unless org-noter-insert-note-no-questions (cdr (assoc title collection))))
 
