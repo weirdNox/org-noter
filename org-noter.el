@@ -2194,7 +2194,7 @@ As such, it will only work when the notes window exists."
   (org-noter--with-selected-notes-window
    "No notes window exists"
    (if (string= (or (org-entry-get nil org-noter-property-doc-file t)
-                    (org-collect-keywords (list org-noter-property-doc-file)))
+                    (cadar (org-collect-keywords (list org-noter-property-doc-file))))
                 (org-noter--session-property-text session))
        (let ((location (org-noter--parse-location-property (org-noter--get-containing-heading))))
          (if location
