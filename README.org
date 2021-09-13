@@ -6,12 +6,16 @@ Read about org-noter’s feature/usage/customization in its README [[file:README
  - =org-noter= can be used on djvu file.
  - =org-noter-create-skeleton= now works on djvu and pdf file.
 ** Goals
- - [ ] Precise location support
-   djvu.el have both graphical (via =djvu-image-mode=) and textual (default) modes so maybe
-   the textual mode should handle precise location like nov.el and graphical mode should do it like pdf-tools.
+ - [ ] Precise location support djvu.el have both graphical (via
+   =djvu-image-mode=) and textual (default) modes so maybe the textual
+   mode should handle precise location like nov.el and graphical mode
+   should do it like pdf-tools.
 ** Caveats
-*** Changed default keybindings
-The key @@html:<kbd>@@i@@html:</kbd>@@ (lowercase i) for inserting note in the document buffer has been changed to @@html:<kbd>@@I@@html:</kbd>@@ (uppercase i) since it interfered with Djview Image minor mode key.
+*** Conflicting keybindings
+The key @@html:<kbd>@@i@@html:</kbd>@@ (lowercase i) for inserting
+note in the document buffer will conflict with the default key to
+enter =djvu-image-mode=. So either you rebind one of them or you can
+just enter =djvu-image-mode= manually via @@html:<kbd>@@M-x djvu-image-mode@@html:</kbd>@@
 
 
 
