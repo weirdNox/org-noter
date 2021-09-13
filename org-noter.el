@@ -38,6 +38,7 @@
 (require 'org)
 (require 'org-element)
 (require 'cl-lib)
+(require 'pdf-tools)
 
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
@@ -51,7 +52,7 @@
 (declare-function pdf-info-gettext "ext:pdf-info")
 (declare-function pdf-info-outline "ext:pdf-info")
 (declare-function pdf-info-pagelinks "ext:pdf-info")
-(declare-function pdf-util-tooltip-arrow "ext:pdf-util")
+;; (declare-function pdf-util-tooltip-arrow "ext:pdf-util")
 (declare-function pdf-view-active-region "ext:pdf-view")
 (declare-function pdf-view-active-region-p "ext:pdf-view")
 (declare-function pdf-view-active-region-text "ext:pdf-view")
@@ -293,7 +294,7 @@ The title used will be the default one."
   "Timer for synchronizing notes after scrolling.")
 
 (defvar org-noter--arrow-location nil
-  "A vector [TIMER WINDOW TOP] that shows where the arrow should appear, when idling.")
+  "A vector [TIMER WINDOW TOP LEFT] that shows where the arrow should appear, when idling.")
 
 (defvar org-noter--completing-read-keymap (make-sparse-keymap)
   "A `completing-read' keymap that let's the user insert spaces.")
@@ -739,8 +740,10 @@ properties, by a margin of NEWLINES-NUMBER."
 (defun org-noter--doc-approx-location-cons (&optional precise-info)
   (cond
    ((memq major-mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (numberp precise-info) precise-info 0)))
-
+    (cons (image-mode-window-get 'page) (if (and (consp precise-info)
+						 (numberp (car precise-info))
+						 (numberp (cdr precise-info)))
+					    precise-info 0)))
    ((eq major-mode 'nov-mode)
     (cons nov-documents-index (if (integerp precise-info)
                                   precise-info
@@ -789,6 +792,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--parse-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (cond ((and (consp value) (integerp (car value)) (numberp (cdr value))) value)
+		  ((and (consp value) (integerp (car value)) (consp (cdr value)) (numberp (cadr value)) (numberp (cddr value))) value)
                   ((integerp value) (cons value 0))))))))
 
 (defun org-noter--pretty-print-location (location)
@@ -796,13 +800,13 @@ properties, by a margin of NEWLINES-NUMBER."
    (or (run-hook-with-args-until-success 'org-noter--pretty-print-location-hook location)
        (format "%s" (cond
                      ((memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode djvu-read-mode))
-                      (if (or (not (cdr location)) (<= (cdr location) 0))
+		      (if (or (not (get-location-top location)) (<= (get-location-top location) 0))
                           (car location)
                         location))
 
                      ((eq (org-noter--session-doc-mode session) 'nov-mode)
-                      (if (or (not (cdr location)) (<= (cdr location) 1))
-                          (car location)
+                      (if (or (not (get-location-top location)) (<= (get-location-top location) 1))
+                          (get-location-page location)
                         location)))))))
 
 (defun org-noter--get-containing-heading (&optional include-root)
@@ -831,26 +835,35 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 (defun org-noter--doc-get-page-slice ()
   "Return (slice-top . slice-height)."
   (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
+	 (slice-left (float (nth 0 slice)))
          (slice-top (float (nth 1 slice)))
+	 (slice-width (float (nth 2 slice)))
          (slice-height (float (nth 3 slice))))
     (when (or (> slice-top 1)
               (> slice-height 1))
       (let ((height (cdr (image-size (image-mode-window-get 'image) t))))
         (setq slice-top (/ slice-top height)
               slice-height (/ slice-height height))))
-    (cons slice-top slice-height)))
+    (when (or (> slice-width 1)
+              (> slice-left 1))
+      (let ((width (car (image-size (image-mode-window-get 'image) t))))
+        (setq slice-width (/ slice-width height)
+              slice-left (/ slice-left height))))
+    (list slice-top slice-height slice-left slice-width)))
 
-(defun org-noter--conv-page-scroll-percentage (scroll)
+(defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
   (let* ((slice (org-noter--doc-get-page-slice))
-         (display-height (cdr (image-display-size (image-get-display-property))))
-         (display-percentage (/ scroll display-height))
-         (percentage (+ (car slice) (* (cdr slice) display-percentage))))
-    (max 0 (min 1 percentage))))
+         (display-size (image-display-size (image-get-display-property)))
+         (display-percentage-height (/ vscroll (cdr display-size)))
+         (hpercentage (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-height))))))
+    (if hscroll
+	(cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
+      (cons hpercentage 0))))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
   (let* ((slice (org-noter--doc-get-page-slice))
          (display-height (cdr (image-display-size (image-get-display-property))))
-         (display-percentage (min 1 (max 0 (/ (- percentage (car slice)) (cdr slice)))))
+         (display-percentage (min 1 (max 0 (/ (- percentage (nth 0 slice)) (nth 1 slice)))))
          (scroll (max 0 (floor (* display-percentage display-height)))))
     scroll))
 
@@ -865,12 +878,16 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 
         ((eq mode 'pdf-view-mode)
          (if (pdf-view-active-region-p)
-             (cadar (pdf-view-active-region))
+	     (let ((edges (pdf-view-active-region)))
+	       (cons
+		(cadar edges)
+		(caar edges)))
            (while (not (and (eq 'mouse-1 (car event))
                             (eq window (posn-window (event-start event)))))
              (setq event (read-event "Click where you want the start of the note to be!")))
-           (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
-                                                      (cdr (posn-col-row (event-start event)))))))
+	   (let ((col-row (posn-col-row (event-start event))))
+	     (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+						     (+ (window-hscroll) (car col-row))))))
 
         ((eq mode 'doc-view-mode)
          (while (not (and (eq 'mouse-1 (car event))
@@ -895,13 +912,75 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
              (setq event (read-event "Click where you want the start of the note to be!")))
            (posn-point (event-start event)))))))))
 
+(defun pdf-util-tooltip-arrow-with-image-left (image-top &optional timeout image-left)
+  (pdf-util-assert-pdf-window)
+  (when (floatp image-top)
+    (setq image-top
+          (round (* image-top (cdr (pdf-view-image-size))))))
+  (when (floatp image-left)
+    (setq image-left
+          (round (* image-left (car (pdf-view-image-size))))))
+  (let* (x-gtk-use-system-tooltips ;allow for display property in tooltip
+	 (dx (if image-left
+		 image-left
+	       (+ (or (car (window-margins)) 0)
+		  (car (window-fringes)))))
+         (dy image-top)
+         (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
+         (vscroll
+          (pdf-util-required-vscroll pos))
+         (tooltip-frame-parameters
+          `((border-width . 0)
+            (internal-border-width . 0)
+            ,@tooltip-frame-parameters))
+         (tooltip-hide-delay (or timeout 3)))
+    (when vscroll
+      (image-set-window-vscroll vscroll))
+    (setq dy (max 0 (- dy
+                       (cdr (pdf-view-image-offset))
+                       (window-vscroll nil t)
+                       (frame-char-height))))
+    (when (overlay-get (pdf-view-current-overlay) 'before-string)
+      (let* ((e (window-inside-pixel-edges))
+             (xw (pdf-util-with-edges (e) e-width)))
+        (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2))))
+    (pdf-util-tooltip-in-window
+     (propertize
+      " " 'display (propertize
+                    "\u2192" ;;right arrow
+                    'display '(height 2)
+                    'face `(:foreground
+                            "orange red"
+                            :background
+                            ,(if (bound-and-true-p pdf-view-midnight-minor-mode)
+                                 (cdr pdf-view-midnight-colors)
+                               "white"))))
+     dx dy)))
+
+;;(advice-add 'pdf-util-tooltip-arrow :override pdf-util-tooltip-arrow-with-image-left)
 
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
              (window-live-p (aref org-noter--arrow-location 1)))
     (with-selected-window (aref org-noter--arrow-location 1)
-      (pdf-util-tooltip-arrow (aref org-noter--arrow-location 2))))
+      (pdf-util-tooltip-arrow-with-image-left (aref org-noter--arrow-location 2) nil (aref org-noter--arrow-location 3))))
   (setq org-noter--arrow-location nil))
+
+(defun get-location-top (location)
+  "Get the top coordinate given a LOCATION vector of form [page top left] or [page top]."
+  (if (listp (cdr location))
+      (cadr location)
+    (cdr location)))
+
+(defun get-location-page (location)
+  "Get the page number given a LOCATION vector of form [page top left] or [page top]."
+  (car location))
+
+(defun get-location-left (location)
+  "Get the left coordinate given a LOCATION vector of form [page top left] or [page top]. If later form of vector is passed return 0."
+  (if (listp (cdr location))
+      (cddr location)
+    0))
 
 (defun org-noter--doc-goto-location (location)
   "Go to location specified by LOCATION."
@@ -912,29 +991,32 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
        (cond
         ((run-hook-with-args-until-success 'org-noter--doc-goto-location-hook mode location))
 
-        ((eq mode 'doc-view-mode)
-         (doc-view-goto-page (car location)))
-        
-        ((eq mode 'pdf-view-mode)
-         (pdf-view-goto-page (car location))
-         ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
-         ;; so syncing multiple pages was slow
-         (when (>= org-noter-arrow-delay 0)
-           (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
-           (setq org-noter--arrow-location
-                 (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
-                         window
-                         (cdr location))))
-         (image-scroll-up (- (org-noter--conv-page-percentage-scroll (cdr location))
-                             (window-vscroll))))
+        ((memq mode '(doc-view-mode pdf-view-mode))
+	 (let ((top (get-location-top location))
+	       (left (get-location-left location)))
+	   
+           (if (eq mode 'doc-view-mode)
+               (doc-view-goto-page (get-location-page location))
+             (pdf-view-goto-page (get-location-page location))
+             ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
+             ;; so syncing multiple pages was slow
+             (when (>= org-noter-arrow-delay 0)
+               (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
+               (setq org-noter--arrow-location
+                     (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
+                             window
+			     top
+			     left))))
+           (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
+                               (window-vscroll)))))
 
         ((eq mode 'nov-mode)
-         (setq nov-documents-index (car location))
+         (setq nov-documents-index (get-location-page location))
          (nov-render-document)
-         (goto-char (cdr location))
+         (goto-char (get-location-top location))
          (recenter))
-       ;; NOTE(nox): This needs to be here, because it would be issued anyway after
-       ;; everything and would run org-noter--nov-scroll-handler.
+        ;; NOTE(nox): This needs to be here, because it would be issued anyway after
+        ;; everything and would run org-noter--nov-scroll-handler.
 
         ((eq mode 'djvu-read-mode)
          (djvu-goto-page (car location))
@@ -946,28 +1028,44 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 See `org-noter--compare-locations'"
   (cl-assert (and (consp l1) (consp l2)))
   (cond ((eq comp '=)
-         (and (= (car l1) (car l2))
-              (= (cdr l1) (cdr l2))))
+         (and (= (get-location-page l1) (get-location-page l2))
+              (= (get-location-top l1) (get-location-top l2))
+              (= (get-location-left l1) (get-location-left l2))))
         ((eq comp '<)
-         (or (< (car l1) (car l2))
-             (and (= (car l1) (car l2))
-                  (< (cdr l1) (cdr l2)))))
+         (or (< (get-location-page l1) (get-location-page l2))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (< (get-location-top l1) (get-location-top l2)))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (= (get-location-top l1) (get-location-top l2))
+                  (< (get-location-left l1) (get-location-left l2)))))
         ((eq comp '<=)
-         (or (< (car l1) (car l2))
-             (and (=  (car l1) (car l2))
-                  (<= (cdr l1) (cdr l2)))))
+         (or (< (get-location-page l1) (get-location-page l2))
+             (and (=  (get-location-page l1) (get-location-page l2))
+                  (<= (get-location-top l1) (get-location-top l2)))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (= (get-location-top l1) (get-location-top l2))
+                  (<= (get-location-left l1) (get-location-left l2)))))
         ((eq comp '>)
-         (or (> (car l1) (car l2))
-             (and (= (car l1) (car l2))
-                  (> (cdr l1) (cdr l2)))))
+         (or (> (get-location-page l1) (get-location-page l2))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (> (get-location-top l1) (get-location-top l2)))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (= (get-location-top l1) (get-location-top l2))
+                  (> (get-location-left l1) (get-location-left l2)))))
         ((eq comp '>=)
-         (or (> (car l1) (car l2))
-             (and (= (car l1) (car l2))
-                  (>= (cdr l1) (cdr l2)))))
+         (or (> (get-location-page l1) (get-location-page l2))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (>= (get-location-top l1) (get-location-top l2)))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (= (get-location-top l1) (get-location-top l2))
+                  (>= (get-location-left l1) (get-location-left l2)))))
         ((eq comp '>f)
-         (or (> (car l1) (car l2))
-             (and (= (car l1) (car l2))
-                  (< (cdr l1) (cdr l2)))))
+         (or (> (get-location-page l1) (get-location-page l2))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (< (get-location-top l1) (get-location-top l2)))
+             (and (= (get-location-page l1) (get-location-page l2))
+                  (= (get-location-top l1) (get-location-top l2))
+                  (< (get-location-left l1) (get-location-left l2)))))
         (t (error "Comparison operator %s not known" comp))))
 
 (defun org-noter--compare-locations (comp l1 l2)
@@ -980,7 +1078,9 @@ L2 or, when in the same page, if L1 is the _f_irst of the two."
         (t
          (setq l1 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l1) l1)
                l2 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l2) l2))
-         (org-noter--compare-location-cons comp l1 l2))))
+	 (if (numberp (cdr l2))
+             (org-noter--compare-location-cons comp l1 l2)
+	   (org-noter--compare-location-cons comp l1 (cons (car l2) (cadr l2)))))))
 
 (defun org-noter--show-note-entry (session note)
   "This will show the note entry and its children.
@@ -1075,17 +1175,17 @@ document property) will be opened."
                                                           point location view))
       (cdr hook-result))
      ((eq (aref view 0) 'paged)
-      (> (cdr location) point))
+      (> (get-location-top location) point))
      ((eq (aref view 0) 'nov)
-      (> (cdr location) (+ (* point (- (cdr (aref view 2)) (cdr (aref view 1))))
-                           (cdr (aref view 1))))))))
+      (> (get-location-top location) (+ (* point (- (cdr (aref view 2)) (cdr (aref view 1))))
+                                        (cdr (aref view 1))))))))
 
 (defun org-noter--relative-position-to-view (location view)
   (cond
    ((run-hook-with-args-until-success 'org-noter--relative-position-to-view-hook location view))
 
    ((eq (aref view 0) 'paged)
-    (let ((note-page (car location))
+    (let ((note-page (get-location-page location))
           (view-page (aref view 1)))
       (cond ((< note-page view-page) 'before)
             ((= note-page view-page) 'inside)
@@ -1860,7 +1960,7 @@ defines if the text should be inserted inside the note."
           
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
-          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
+	  (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
 
      (let ((inhibit-quit t))
        (with-local-quit
@@ -1926,7 +2026,7 @@ defines if the text should be inserted inside the note."
              (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
                    level)
                (when (zerop (length title))
-                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (car location))
+                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (get-location-page location))
                                                        org-noter-default-heading-title)))
 
                (if reference-element-cons
