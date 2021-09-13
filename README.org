@@ -5,12 +5,18 @@ Read about org-noter’s feature/usage/customization in its README [[file:README
 ** Added features
  - =org-noter= can be used on djvu file.
  - =org-noter-create-skeleton= now works on djvu and pdf file.
+ - Allow :NOTER_DOCUMENT: to be in file-level :PROPERTIES: drawer
+   See the issue https://github.com/weirdNox/org-noter/issues/143 for details.
 ** Goals
  - [ ] Precise location support djvu.el have both graphical (via
    =djvu-image-mode=) and textual (default) modes so maybe the textual
    mode should handle precise location like nov.el and graphical mode
    should do it like pdf-tools.
 ** Caveats
+*** This is a fork of a fork 🍴
+The branch =djvu= (the only one I’d worked on so far) of this repository is based on Ahmed Shariff’s pull request of org-noter
+(See https://github.com/weirdNox/org-noter/pull/129).
+
 *** Conflicting keybindings
 The key @@html:<kbd>@@i@@html:</kbd>@@ (lowercase i) for inserting
 note in the document buffer will conflict with the default key to
