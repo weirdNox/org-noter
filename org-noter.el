@@ -61,7 +61,7 @@
 (defvar nov-file-name)
 
 ;; --------------------------------------------------------------------------------
-;; NOTE(nox): User variables
+;;; User variables
 (defgroup org-noter nil
   "A synchronized, external annotator"
   :group 'convenience
@@ -224,7 +224,7 @@ The title used will be the default one."
   :group 'org-noter)
 
 ;; --------------------------------------------------------------------------------
-;; NOTE(nox): Integration with other packages
+;;; Integration with other packages
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
   :group 'org-noter
@@ -271,7 +271,7 @@ The title used will be the default one."
   :type 'hook)
 
 ;; --------------------------------------------------------------------------------
-;; NOTE(nox): Private variables or constants
+;;; Private variables or constants
 (cl-defstruct org-noter--session
   id frame doc-buffer notes-buffer ast modified-tick doc-mode display-name notes-file-path property-text
   level num-notes-in-view window-behavior window-location doc-split-fraction auto-save-last-location
@@ -326,7 +326,7 @@ The title used will be the default one."
   "Text property used to mark the headings with open sessions.")
 
 ;; --------------------------------------------------------------------------------
-;; NOTE(nox): Utility functions
+;;; Utility functions
 (defun org-noter--get-new-id ()
   (catch 'break
     (while t
@@ -1335,7 +1335,7 @@ relative to."
         (throw 'other-frame frame)))))
 
 ;; --------------------------------------------------------------------------------
-;; NOTE(nox): User commands
+;;; User commands
 (defun org-noter-set-start-location (&optional arg)
   "When opening a session with this document, go to the current location.
 With a prefix ARG, remove start location."
