@@ -882,6 +882,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 	       (cons
 		(cadar edges)
 		(caar edges)))
+           
            (while (not (and (eq 'mouse-1 (car event))
                             (eq window (posn-window (event-start event)))))
              (setq event (read-event "Click where you want the start of the note to be!")))
@@ -898,15 +899,15 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 
         ((eq mode 'nov-mode)
          (if (region-active-p)
-             (min (mark) (point))
+             (cons (mark) (point))
            (while (not (and (eq 'mouse-1 (car event))
                             (eq window (posn-window (event-start event)))))
              (setq event (read-event "Click where you want the start of the note to be!")))
            (posn-point (event-start event))))
-`
+
         ((eq mode 'djvu-read-mode)
          (if (region-active-p)
-             (min (mark) (point))
+             (cons (mark) (point))
            (while (not (and (eq 'mouse-1 (car event))
                             (eq window (posn-window (event-start event)))))
              (setq event (read-event "Click where you want the start of the note to be!")))
@@ -962,17 +963,17 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
       (setq org-noter--arrow-location nil))))
 
 (defun get-location-top (location)
-  "Get the top coordinate given a LOCATION vector of form [page top left] or [page top]."
+  "Get the top coordinate given a LOCATION of form (page top . left) or (page . top)."
   (if (listp (cdr location))
       (cadr location)
     (cdr location)))
 
 (defun get-location-page (location)
-  "Get the page number given a LOCATION vector of form [page top left] or [page top]."
+  "Get the page number given a LOCATION of form (page top . left) or (page . top)."
   (car location))
 
 (defun get-location-left (location)
-  "Get the left coordinate given a LOCATION vector of form [page top left] or [page top]. If later form of vector is passed return 0."
+  "Get the left coordinate given a LOCATION of form (page top . left) or (page . top). If later form of vector is passed return 0."
   (if (listp (cdr location))
       (cddr location)
     0))
@@ -1015,7 +1016,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 
         ((eq mode 'djvu-read-mode)
          (djvu-goto-page (car location))
-         (goto-char (cdr location))))
+         (goto-char (get-location-top location))))
        (redisplay)))))
 
 (defun org-noter--compare-location-cons (comp l1 l2)
