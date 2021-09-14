@@ -101,6 +101,11 @@ This wrapper ignores the first argument passed to it and just call
   (org-noter-sync-current-page-or-chapter))
 
 (defun org-noter-nov-overlay-sync-current-note (_overlay)
+  "A wrapper function for `org-noter-nov-overlay-sync-current-note'
+used exclusively with overlays made with `org-noter-nov-make-overlay'
+
+This wrapper ignores the first argument passed to it and just call
+`org-noter-nov-overlay-sync-current-note'."
   (org-noter-sync-current-note))
 
 (add-hook 'org-noter-insert-heading-hook #'org-noter-nov-make-overlay)
