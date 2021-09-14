@@ -35,6 +35,15 @@
 
 Should be one of the element in `defined-colors'.")
 
+(defun org-noter-nov-make-overlays ()
+  (org-noter--with-selected-notes-window
+   (let* ((page (buffer-local-value 'nov-documents-index (org-noter--session-doc-buffer session)))
+          (regexp (org-re-property org-noter-property-note-location t nil (format ".*%s.*" page))))
+     (org-with-wide-buffer
+      (goto-char (point-min))
+      (while (re-search-forward regexp nil t)
+        (org-noter-nov-make-overlay-no-question))))))
+
 (defun org-noter-nov-make-overlay ()
   "TODO"
   (org-noter--with-selected-notes-window
@@ -84,7 +93,7 @@ This wrapper ignores the first argument passed to it and just call
 
 (add-hook 'org-noter-insert-heading-hook #'org-noter-nov-make-overlay)
 
-(add-hook 'nov-post-html-render-hook #'org-noter-nov-make-overlay-no-question)
+(add-hook 'nov-post-html-render-hook #'org-noter-nov-make-overlays)
 
 (provide 'org-noter-nov-overlay)
 ;;; org-noter-nov-ov.el ends here
