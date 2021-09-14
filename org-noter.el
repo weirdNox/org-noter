@@ -746,7 +746,10 @@ properties, by a margin of NEWLINES-NUMBER."
 						 (numberp (cdr precise-info)))
 					    precise-info 0)))
    ((eq major-mode 'nov-mode)
-    (cons nov-documents-index (if (integerp precise-info)
+    (cons nov-documents-index (if (or (numberp precise-info)
+                                   (and (consp precise-info)
+				        (numberp (car precise-info))
+				        (numberp (cdr precise-info))))
                                   precise-info
                                 (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
 
