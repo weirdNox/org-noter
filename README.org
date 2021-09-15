@@ -1,4 +1,4 @@
-* Org-noter + DJVU - A fork of [[https://github.com/weirdNox/org-noter][org-noter]] with, hopefully, [[https://elpa.gnu.org/packages/djvu.html][djvu.el]] support.
+* Org-noter + DJVU - A fork of [[https://github.com/weirdNox/org-noter][org-noter]] with [[https://elpa.gnu.org/packages/djvu.html][djvu.el]] support.
 ** What is org-noter?
 Org-noter is an org-mode document annotator. It is a rewrite of another project, [[https://github.com/rudolfochrist/interleave][Interleave]].
 Read about org-noter’s feature/usage/customization in its README [[file:README-orig.org][here]] or go visit its repository at [[https://github.com/weirdNox/org-noter][github]].
