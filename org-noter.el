@@ -509,8 +509,9 @@ If nil, the session used will be `org-noter--session'."
            (catch 'break
 	         (org-back-to-heading t)
 	         (while t
-		   (when (string= (or (org-entry-get nil org-noter-property-doc-file)
-                                      (cadar (org-collect-keywords (list org-noter-property-doc-file)))) wanted-prop)
+		   (when (string= (or (org-entry-get nil org-noter-property-doc-file t)
+                                      (cadar (org-collect-keywords (list org-noter-property-doc-file))))
+                                  wanted-prop)
                  (setq root-pos (copy-marker (point))))
                (unless (org-up-heading-safe) (throw 'break t))))))))
 
@@ -779,7 +780,8 @@ properties, by a margin of NEWLINES-NUMBER."
 
 (defsubst org-noter--doc-file-property (headline)
   (or (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline)
-      (cadar (org-collect-keywords (list org-noter-property-doc-file)))))
+      (cadar (org-collect-keywords (list org-noter-property-doc-file)))
+      (org-entry-get nil org-noter-property-doc-file t)))
 
 (defun org-noter--check-location-property (arg)
   (let ((property (if (stringp arg) arg
