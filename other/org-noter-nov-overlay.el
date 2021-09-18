@@ -38,11 +38,16 @@ Should be one of the element in `defined-colors'.")
 (defun org-noter-nov-make-overlays ()
   (org-noter--with-selected-notes-window
    (let* ((page (buffer-local-value 'nov-documents-index (org-noter--session-doc-buffer session)))
-          (regexp (org-re-property org-noter-property-note-location t nil (format ".*%s.*" page))))
+          (regexp (org-re-property org-noter-property-note-location t)))
      (org-with-wide-buffer
       (goto-char (point-min))
       (while (re-search-forward regexp nil t)
-        (org-noter-nov-make-overlay-no-question))))))
+        (when-let ((location (org-entry-get nil org-noter-property-note-location nil t)))
+          (when (eq (if (consp (read location))
+                        (car (read location))
+                      (read location))
+                    page)
+            (org-noter-nov-make-overlay-no-question))))))))
 
 (defun org-noter-nov-make-overlay ()
   "TODO"
