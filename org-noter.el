@@ -1846,7 +1846,7 @@ defines if the text should be inserted inside the note."
              (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
                    level)
                (when (zerop (length title))
-                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (car location))
+                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (org-noter-pdftools--location-page location))
                                                        org-noter-default-heading-title)))
 
                (if reference-element-cons
