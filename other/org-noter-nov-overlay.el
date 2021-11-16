@@ -109,8 +109,6 @@ This wrapper ignores the first argument passed to it and just call
 `org-noter-nov-overlay-sync-current-note'."
   (org-noter-sync-current-note))
 
-(add-hook 'org-noter-insert-heading-hook #'org-noter-nov-make-overlay)
-
 (add-hook 'nov-post-html-render-hook #'org-noter-nov-make-overlays)
 
 (provide 'org-noter-nov-overlay)
