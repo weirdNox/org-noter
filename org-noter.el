@@ -1712,6 +1712,7 @@ want to kill."
    (pcase (org-noter--session-doc-mode session)
      ('pdf-view-mode (org-noter-create-skeleton-pdf))
      ('djvu-read-mode (org-noter-create-skeleton-djvu))
+     ('nov-mode (org-noter-create-skeleton-epub))
      (_ (user-error "This command is not supported for %s" (org-noter--session-doc-mode session))))))
 
 (defun org-noter-create-skeleton-pdf ()
@@ -1905,7 +1906,6 @@ want to kill."
          (let (last-absolute-level
                title location relative-level contents
                level)
-
            
            (dolist (data (nreverse output-data))
              (setq title          (aref data 0)
@@ -1929,6 +1929,62 @@ want to kill."
          (goto-char (org-element-property :begin ast))
          (outline-hide-subtree)
          (org-show-children 2))))))
+
+;; Shamelessly stolen code from Yuchen Li.
+;; This code is originally from org-noter-plus package.
+;; At https://github.com/yuchen-lea/org-noter-plus
+
+(defun org-noter--handle-nov-toc-item (ol depth)
+  (require 'dom)
+  (mapcar (lambda (li)
+            (mapcar (lambda (a-or-ol)
+                      (pcase-exhaustive (dom-tag a-or-ol)
+                        ('a
+                         (vector :depth depth
+                                 :title (dom-text a-or-ol)
+                                 :href (dom-attr a-or-ol 'href)))
+                        ('ol
+                         (org-noter--handle-nov-toc-item a-or-ol
+                                                              (1+ depth)))))
+                    (dom-children li)))
+          (dom-children ol)))
+
+(defun org-noter--nov-outline-info ()
+  "Epub outline with nov link."
+  (require 'esxml)
+  (require 'nov)
+  (require 'dom)
+  (org-noter--with-valid-session
+   (with-current-buffer (org-noter--session-doc-buffer session)
+     (let* ((toc-path (cdr (aref nov-documents 0)))
+            (toc-tree (with-temp-buffer
+                        (insert (nov-ncx-to-html toc-path))
+                        (replace-regexp "\n"
+                                        ""
+                                        nil
+                                        (point-min)
+                                        (point-max))
+                        (libxml-parse-html-region (point-min)
+                                                  (point-max))))
+            output-data
+            (origin-index nov-documents-index)
+            (origin-point (point)))
+       (dolist (item
+                (flatten-tree (org-noter--handle-nov-toc-item toc-tree 1)))
+         ;; TODO vector or alist?
+         (let ((depth  (aref item 1))
+               (title  (aref item 3))
+               (url (aref item 5)))
+           (apply 'nov-visit-relative-file
+                  (nov-url-filename-and-target url))
+           (when (not (integerp nov-documents-index))
+             (setq nov-documents-index 0))
+           (push (vector title depth nov-documents-index (point)) output-data)))
+       (nov-goto-document origin-index)
+       (goto-char origin-point)
+       (nreverse output-data)))))
+
+
 
 (defun org-noter-insert-note (&optional precise-info note-title)
   "Insert note associated with the current location.
