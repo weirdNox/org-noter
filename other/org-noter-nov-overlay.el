@@ -38,25 +38,24 @@ Should be one of the element in `defined-colors'.")
 (defun org-noter-nov-make-overlays ()
   (org-noter--with-selected-notes-window
    (let* ((page (buffer-local-value 'nov-documents-index (org-noter--session-doc-buffer session)))
-          (regexp (org-re-property org-noter-property-note-location t)))
+          (regexp (org-re-property org-noter-property-note-location t nil
+                                   (rx "(" (+ space) "%d" (+ space)
+                                       (+ digit) (+ space) "."  (+ space)
+                                       (+ digit) (+ space) ")"))))
      (org-with-wide-buffer
       (goto-char (point-min))
       (while (re-search-forward regexp nil t)
         (when-let ((location (org-entry-get nil org-noter-property-note-location nil t)))
-          (when (eq (if (consp (read location))
-                        (car (read location))
-                      (read location))
-                    page)
-            (org-noter-nov-make-overlay-no-question))))))))
+          (org-noter-nov-make-overlay-no-question)))))))
 
 (defun org-noter-nov-make-overlay ()
   "TODO"
   (org-noter--with-selected-notes-window
    "No notes window exists"
    (when (eq (org-noter--session-doc-mode session) 'nov-mode)
-     (when-let* ((location-property (org-entry-get nil org-noter-property-note-location nil t))
+     (let* ((location-property (org-entry-get nil org-noter-property-note-location nil t))
                  (location-cons (cdr (read location-property)))
-                 (beg (and (consp location-cons) (car location-cons)))
+                 (beg (car location-cons))
                  (end (cdr location-cons))
                  (ov-pair (list (make-overlay beg end (org-noter--session-doc-buffer session))))
                  (hl-color (or (org-entry-get nil org-noter-nov-overlay-color-property nil t)
