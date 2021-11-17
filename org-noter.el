@@ -440,12 +440,12 @@ The title used will be the default one."
       (unless target-location
         (setq target-location (org-noter--parse-location-property (org-noter--get-containing-heading t)))))
 
-    (org-noter--setup-windows session)
-
     ;; NOTE(nox): This timer is for preventing reflowing too soon.
     (run-with-idle-timer
      0.05 nil
      (lambda ()
+       ;; NOTE(ahmed-shariff): setup-window run here to avoid crash when notes buffer not setup in time
+       (org-noter--setup-windows session)
        (with-current-buffer document-buffer
          (let ((org-noter--inhibit-location-change-handler t))
            (when target-location (org-noter--doc-goto-location target-location)))
