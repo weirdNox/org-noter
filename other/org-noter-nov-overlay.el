@@ -24,13 +24,13 @@
 
 ;;; Code:
 (require 'org-noter)
-(require 'nov nil t)
+(require 'nov)
 (require 'seq)
 
 (defcustom org-noter-nov-overlay-color-property "NOTER_OVERLAY"
   "A property that specifies the overlay color for `org-noter-nov-make-ov'.")
 
-(defcustom org-noter-nov-overlay-default-color "yellow"
+(defcustom org-noter-nov-overlay-default-color "SkyBlue"
   "Name of the default background color of the overlay `org-noter-nov-make-ov' makes.
 
 Should be one of the element in `defined-colors'.")
@@ -39,9 +39,10 @@ Should be one of the element in `defined-colors'.")
   (org-noter--with-selected-notes-window
    (let* ((page (buffer-local-value 'nov-documents-index (org-noter--session-doc-buffer session)))
           (regexp (org-re-property org-noter-property-note-location t nil
-                                   (rx "(" (+ space) "%d" (+ space)
-                                       (+ digit) (+ space) "."  (+ space)
-                                       (+ digit) (+ space) ")"))))
+                                   (format (rx "(" (* space) "%d" (+ space)
+                                               (+ digit) (+ space) "."  (+ space)
+                                               (+ digit) (* space) ")")
+                                           page))))
      (org-with-wide-buffer
       (goto-char (point-min))
       (while (re-search-forward regexp nil t)
