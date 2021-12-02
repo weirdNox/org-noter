@@ -507,11 +507,10 @@ If nil, the session used will be `org-noter--session'."
         (with-current-buffer notes-buffer
           (org-with-wide-buffer
            (catch 'break
-	         (org-back-to-heading t)
-	         (while t
-		   (when (string= (or (org-entry-get nil org-noter-property-doc-file t)
-                                      (cadar (org-collect-keywords (list org-noter-property-doc-file))))
-                                  wanted-prop)
+	     (while t
+               (when (string= (or (org-entry-get nil org-noter-property-doc-file t)
+                                  (cadar (org-collect-keywords (list org-noter-property-doc-file))))
+                              wanted-prop)
                  (setq root-pos (copy-marker (point))))
                (unless (org-up-heading-safe) (throw 'break t))))))))
 
@@ -533,6 +532,8 @@ If nil, the session used will be `org-noter--session'."
       (with-current-buffer (marker-buffer root-pos)
         (org-with-wide-buffer
          (goto-char (marker-position root-pos))
+         (when (org-before-first-heading-p)
+           (org-next-visible-heading 1))
          (org-narrow-to-subtree)
          (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
          (when (and (not (vectorp info)) (org-noter--valid-session session))
@@ -2391,9 +2392,7 @@ notes file, even if it finds one."
   (cond
    ;; NOTE(nox): Creating the session from notes file
    ((eq major-mode 'org-mode)
-    (when (org-before-first-heading-p)
-      (user-error "`org-noter' must be issued inside a heading"))
-
+    
     (let* ((notes-file-path (buffer-file-name))
            (document-property (org-noter--get-or-read-document-property (not (equal arg '(4)))
                                                                         (equal arg '(16))))
