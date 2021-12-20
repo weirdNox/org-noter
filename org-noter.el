@@ -146,6 +146,15 @@ When nil, it will use the real buffer."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-swap-window nil
+  "By default `org-noter' will make a session by setting the buffer of the selected window
+to the document buffer then split with the window of the notes buffer on the right.
+
+If this variable is non-nil, the buffers of the two windows will be the other way around."
+  :group 'org-noter
+  :type 'boolean)
+
+
 (defcustom org-noter-suggest-from-attachments t
   "When non-nil, org-noter will suggest files from the attachments
 when creating a session, if the document is missing."
@@ -694,16 +703,41 @@ properties, by a margin of NEWLINES-NUMBER."
       (let* ((doc-buffer (org-noter--session-doc-buffer session))
              (doc-window (selected-window))
              (notes-buffer (org-noter--session-notes-buffer session))
+             (window-location (org-noter--session-window-location session))
              notes-window)
 
         (set-window-buffer doc-window doc-buffer)
-        (set-window-dedicated-p doc-window t)
 
         (with-current-buffer notes-buffer
           (unless org-noter-disable-narrowing
             (org-noter--narrow-to-root (org-noter--parse-root session)))
           (setq notes-window (org-noter--get-notes-window 'start))
-          (org-noter--set-notes-scroll notes-window))))))
+          (org-noter--set-notes-scroll notes-window))
+
+        (when org-noter-swap-window
+          (cl-labels ((swap-windows (window1 window2)
+                                    "Swap the buffers of WINDOW1 and WINDOW2."
+                                    (let ((buffer1 (window-buffer window1))
+                                          (buffer2 (window-buffer window2)))
+                                      (set-window-buffer window1 buffer2)
+                                      (set-window-buffer window2 buffer1)
+                                      (select-window window2))))
+            (let ((frame (window-frame notes-window)))
+              (when (and (frame-live-p frame)
+                         (not (eq frame (selected-frame))))
+                (select-frame-set-input-focus (window-frame notes-window)))
+              (when (and (window-live-p notes-window)
+                         (not (eq notes-window doc-window)))
+                (swap-windows notes-window doc-window))))
+
+          (if (eq window-location 'horizontal-split)
+              (shrink-window (- (window-total-width) (ceiling (* (car (org-noter--session-doc-split-fraction session))
+                                                                 (window-total-width))))
+                             t)
+            (shrink-window (- (window-total-width) (ceiling (* (cdr (org-noter--session-doc-split-fraction session))
+                                                               (window-total-height)))))))
+        
+        (set-window-dedicated-p doc-window t)))))
 
 (defmacro org-noter--with-selected-notes-window (error-str &rest body)
   (declare (debug ([&optional stringp] body)))
