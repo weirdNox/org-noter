@@ -736,8 +736,13 @@ properties, by a margin of NEWLINES-NUMBER."
                              t)
             (shrink-window (- (window-total-width) (ceiling (* (cdr (org-noter--session-doc-split-fraction session))
                                                                (window-total-height)))))))
-        
-        (set-window-dedicated-p doc-window t)))))
+
+        (if org-noter-swap-window
+            ;; the variable NOTES-WINDOW here is really
+            ;; the document window since the two got swapped
+            (set-window-dedicated-p notes-window t)
+          ;; It's not swapped so set it normally
+          (set-window-dedicated-p doc-window t))))))
 
 (defmacro org-noter--with-selected-notes-window (error-str &rest body)
   (declare (debug ([&optional stringp] body)))
