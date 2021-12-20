@@ -134,6 +134,11 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-disable-narrowing nil
+  "Disable narrowing in notes/org buffer."
+  :group 'org-noter
+  :type 'boolean)
+
 (defcustom org-noter-use-indirect-buffer t
   "When non-nil, org-noter will create an indirect buffer of the calling
 org file as a note buffer of the session.
@@ -695,7 +700,8 @@ properties, by a margin of NEWLINES-NUMBER."
         (set-window-dedicated-p doc-window t)
 
         (with-current-buffer notes-buffer
-          (org-noter--narrow-to-root (org-noter--parse-root session))
+          (unless org-noter-disable-narrowing
+            (org-noter--narrow-to-root (org-noter--parse-root session)))
           (setq notes-window (org-noter--get-notes-window 'start))
           (org-noter--set-notes-scroll notes-window))))))
 
