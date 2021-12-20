@@ -134,6 +134,13 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-use-indirect-buffer t
+  "When non-nil, org-noter will create an indirect buffer of the calling
+org file as a note buffer of the session.
+When nil, it will use the real buffer."
+  :group 'org-noter
+  :type 'boolean)
+
 (defcustom org-noter-suggest-from-attachments t
   "When non-nil, org-noter will suggest files from the attachments
 when creating a session, if the document is missing."
@@ -362,9 +369,11 @@ The title used will be the default one."
             (make-indirect-buffer document document-buffer-name t)))
 
          (notes-buffer
-          (make-indirect-buffer
-           (or (buffer-base-buffer) (current-buffer))
-           (generate-new-buffer-name (concat "Notes of " display-name)) t))
+          (if org-noter-use-indirect-buffer
+              (make-indirect-buffer
+               (or (buffer-base-buffer) (current-buffer))
+               (generate-new-buffer-name (concat "Notes of " display-name)) t)
+            (current-buffer)))
 
          (session
           (make-org-noter--session
