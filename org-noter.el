@@ -593,9 +593,10 @@ If nil, the session used will be `org-noter--session'."
        (add-text-properties begin (1- title-begin) `(read-only t front-sticky t ,org-noter--id-text-property ,id))
        (add-text-properties (1- title-begin) title-begin '(read-only t rear-nonsticky t))
        ;; (add-text-properties (1- contents-begin) (1- properties-end) '(read-only t))
-       (add-text-properties (1- properties-end) properties-end
-                            '(read-only t rear-nonsticky t))
-       (set-buffer-modified-p modified)))))
+       (when properties-end
+         (add-text-properties (1- properties-end) properties-end
+                              '(read-only t rear-nonsticky t))
+         (set-buffer-modified-p modified))))))
 
 (defun org-noter--unset-text-properties (ast)
   (when ast
@@ -604,9 +605,11 @@ If nil, the session used will be `org-noter--session'."
             (end (org-noter--get-properties-end ast t))
             (inhibit-read-only t)
             (modified (buffer-modified-p)))
-       (remove-list-of-text-properties (max 1 (1- begin)) end
-                                       `(read-only front-sticky rear-nonsticky ,org-noter--id-text-property))
-       (set-buffer-modified-p modified)))))
+       (when end
+         (remove-list-of-text-properties (max 1 (1- begin)) end
+                                         `(read-only front-sticky rear-nonsticky ,org-noter--id-text-property))
+
+         (set-buffer-modified-p modified))))))
 
 (defun org-noter--set-notes-scroll (window &rest ignored)
   (when window
