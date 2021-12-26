@@ -708,7 +708,7 @@ properties, by a margin of NEWLINES-NUMBER."
                     (if horizontal
                         (split-window-right (ceiling (* (car (org-noter--session-doc-split-fraction session))
                                                         (window-total-width))))
-                      (split-window-below (ceiling (* (cdr (org-noter--session-doc-split-fraction session))
+                      (split-window-below (ceiling (* (cadr (org-noter--session-doc-split-fraction session))
                                                       (window-total-height)))))))))
 
              (set-window-buffer notes-window notes-buffer))
@@ -750,11 +750,12 @@ properties, by a margin of NEWLINES-NUMBER."
                 (swap-windows notes-window doc-window))))
 
           (if (eq window-location 'horizontal-split)
-              (shrink-window (- (window-total-width) (ceiling (* (car (org-noter--session-doc-split-fraction session))
-                                                                 (window-total-width))))
-                             t)
-            (shrink-window (- (window-total-width) (ceiling (* (cdr (org-noter--session-doc-split-fraction session))
-                                                               (window-total-height)))))))
+              (enlarge-window (- (ceiling (* (- 1 (car (org-noter--session-doc-split-fraction session)))
+                                             (frame-width)))
+                                 (window-total-width)) t)
+            (enlarge-window (- (ceiling (* (- 1 (cadr (org-noter--session-doc-split-fraction session)))
+                                           (frame-height)))
+                               (window-total-height)))))
 
         (if org-noter-swap-window
             ;; the variable NOTES-WINDOW here is really
