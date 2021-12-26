@@ -594,7 +594,8 @@ If nil, the session used will be `org-noter--session'."
   (when ast
     (let* ((contents (org-element-contents ast))
            (section (org-element-map contents 'section 'identity nil t 'headline))
-           (properties (org-element-map section 'property-drawer 'identity nil t))
+           (properties (or (org-element-map section 'property-drawer 'identity nil t)
+                           (org-element-map contents 'property-drawer 'identity nil t)))
            properties-end)
       (if (not properties)
           (org-element-property :contents-begin ast)
