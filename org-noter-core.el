@@ -615,13 +615,18 @@ If nil, the session used will be `org-noter--session'."
             (properties-end (org-noter--get-properties-end ast t))
             (inhibit-read-only t)
             (modified (buffer-modified-p)))
-       (add-text-properties (max 1 (1- begin)) begin '(read-only t))
-       (add-text-properties begin (1- title-begin) `(read-only t front-sticky t ,org-noter--id-text-property ,id))
-       (add-text-properties (1- title-begin) title-begin '(read-only t rear-nonsticky t))
-       ;; (add-text-properties (1- contents-begin) (1- properties-end) '(read-only t))
-       (when properties-end
-         (add-text-properties (1- properties-end) properties-end
-                              '(read-only t rear-nonsticky t))
+       (if (= level 0)
+           (when properties-end
+             (add-text-properties contents-begin properties-end
+                                  `(read-only t rear-nonsticky t ,org-noter--id-text-property ,id))
+             (set-buffer-modified-p modified))
+         (add-text-properties (max 1 (1- begin)) begin '(read-only t))
+         (add-text-properties begin (1- title-begin) `(read-only t front-sticky t ,org-noter--id-text-property ,id))
+         (add-text-properties (1- title-begin) title-begin '(read-only t rear-nonsticky t))
+         ;; (add-text-properties (1- contents-begin) (1- properties-end) '(read-only t))
+         (when properties-end
+           (add-text-properties (1- properties-end) properties-end
+                                '(read-only t rear-nonsticky t)))
          (set-buffer-modified-p modified))))))
 
 (defun org-noter--unset-text-properties (ast)
