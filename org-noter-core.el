@@ -430,7 +430,7 @@ Otherwise return the maximum value for point."
            :notes-file-path notes-file-path
            :doc-buffer document-buffer
            :notes-buffer notes-buffer
-           :level (org-element-property :level ast)
+           :level (or (org-element-property :level ast) 0)
            :window-behavior (org-noter--property-or-default notes-window-behavior)
            :window-location (org-noter--property-or-default notes-window-location)
            :doc-split-fraction (org-noter--property-or-default doc-split-fraction)
@@ -608,7 +608,7 @@ If nil, the session used will be `org-noter--session'."
 (defun org-noter--set-text-properties (ast id)
   (org-with-wide-buffer
    (when ast
-     (let* ((level (org-element-property :level ast))
+     (let* ((level (or (org-element-property :level ast) 0))
             (begin (org-element-property :begin ast))
             (title-begin (+ 1 level begin))
             (contents-begin (org-element-property :contents-begin ast))
@@ -1804,7 +1804,7 @@ want to kill."
   "Create notes skeleton with the PDF outline or annotations."
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root))
-          (top-level (org-element-property :level ast))
+          (top-level (or (org-element-property :level ast) 0))
           (options '(("Outline" . (outline))
                      ("Annotations" . (annots))
                      ("Both" . (outline annots))))
@@ -1966,7 +1966,7 @@ want to kill."
 (defun org-noter-create-skeleton-djvu ()
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root))
-          (top-level (org-element-property :level ast))
+          (top-level (or (org-element-property :level ast) 0))
           output-data)
      (require 'thingatpt)
      (with-current-buffer (djvu-ref outline-buf)
@@ -2040,7 +2040,7 @@ want to kill."
   (require 'dom)
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root))
-          (top-level (org-element-property :level ast))
+          (top-level (or (org-element-property :level ast) 0))
           output-data)
      (with-current-buffer (org-noter--session-doc-buffer session)
        (let* ((toc-path (cdr (aref nov-documents 0)))
