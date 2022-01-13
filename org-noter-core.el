@@ -231,6 +231,22 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-find-additional-notes-functions nil
+  "Functions that when given a document file path as argument, give out
+an org note file path.
+
+The functions in this list must accept 1 argument, a file name.
+The argument will be given by `org-noter'.
+
+The return value must be a path to an org file. No matter if it's
+an absolute or relative path, the file name will be expanded to
+each directory set in `org-noter-notes-search-path' to test if it exists.
+
+If it exists, it will be listed as a candidate that `org-noter' will have
+the user select to use as the note file of the document."
+  :group 'org-noter
+  :type 'hook)
+
 (defface org-noter-no-notes-exist-face
   '((t
      :foreground "chocolate"
