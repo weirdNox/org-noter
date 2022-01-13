@@ -35,7 +35,13 @@
 ;; https://github.com/rudolfochrist/interleave
 
 ;;; Code:
+(require 'org-element)
+(require 'cl-lib)
+
 (require 'org-noter-core)
+
+(declare-function org-entry-put "org")
+(declare-function org-with-wide-buffer "org-macs")
 
 ;;;###autoload
 (defun org-noter (&optional arg)
@@ -82,38 +88,46 @@ notes file, even if it finds one."
   (cond
    ;; NOTE(nox): Creating the session from notes file
    ((eq major-mode 'org-mode)
-    
     (let* ((notes-file-path (buffer-file-name))
-           (document-property (org-noter--get-or-read-document-property (not (equal arg '(4)))
-                                                                        (equal arg '(16))))
+           (document-property (org-noter--get-or-read-document-property
+                               (not (equal arg '(4)))
+                               (equal arg '(16))))
            (org-noter-always-create-frame
-            (if (and (numberp arg) (= arg 0)) (not org-noter-always-create-frame) org-noter-always-create-frame))
-           (ast (org-noter--parse-root (vector (current-buffer) document-property))))
+            (if (and (numberp arg) (= arg 0))
+                (not org-noter-always-create-frame)
+              org-noter-always-create-frame))
+           (ast (org-noter--parse-root (vector (current-buffer) document-property)))
+           (session-id (get-text-property (org-element-property :begin ast) org-noter--id-text-property))
+           session)
 
-      (when (catch 'should-continue
-              (when (or (numberp arg) (eq arg '-))
-                (cond ((> (prefix-numeric-value arg) 0)
-                       (find-file document-property)
-                       (throw 'should-continue nil))
-                      ((< (prefix-numeric-value arg) 0)
-                       (find-file (file-name-directory document-property))
-                       (throw 'should-continue nil))))
+      ;; Check for prefix value
+      (if (or (numberp arg) (eq arg '-))
+          ;; Yes, user's given a prefix value.
+          (cond ((> (prefix-numeric-value arg) 0)
+                 ;; Is the prefix value greater than 0?
+                 (find-file document-property))
+                ;; Open the document like `find-file'.
 
-              ;; NOTE(nox): Check if it is an existing session
-              (let ((id (get-text-property (org-element-property :begin ast) org-noter--id-text-property))
-                    session)
-                (when id
-                  (setq session (cl-loop for test-session in org-noter--sessions
-                                         when (= (org-noter--session-id test-session) id)
-                                         return test-session))
-                  (when session
-                    (let* ((org-noter--session session)
-                           (location (org-noter--parse-location-property (org-noter--get-containing-heading))))
-                      (org-noter--setup-windows session)
-                      (when location (org-noter--doc-goto-location location))
-                      (select-frame-set-input-focus (org-noter--session-frame session)))
-                    (throw 'should-continue nil))))
-              t)
+                ;; Is the prefix value less than 0?
+                ((< (prefix-numeric-value arg) 0)
+                 ;; Open the folder containing the document.
+                 (find-file (file-name-directory document-property))))
+
+        ;; No, user didn't give a prefix value
+        ;; NOTE(nox): Check if it is an existing session
+        (when session-id
+          (setq session (cl-loop for session in org-noter--sessions
+                                 when (= (org-noter--session-id session) session-id)
+                                 return session))))
+
+      (if session
+          (let* ((org-noter--session session)
+                 (location (org-noter--parse-location-property
+                            (org-noter--get-containing-heading))))
+            (org-noter--setup-windows session)
+            (when location (org-noter--doc-goto-location location))
+            (select-frame-set-input-focus (org-noter--session-frame session)))
+        ;; It's not an existing session, create a new session.
         (org-noter--create-session ast document-property notes-file-path))))
 
    ;; NOTE(nox): Creating the session from the annotated document
