@@ -681,7 +681,7 @@ properties, by a margin of NEWLINES-NUMBER."
     (run-hooks 'org-noter-insert-heading-hook)))
 
 (defun org-noter--narrow-to-root (ast)
-  (when ast
+  (when (and ast (not (org-noter--no-heading-p)))
     (save-excursion
       (goto-char (org-element-property :contents-begin ast))
       (org-show-entry)
@@ -1201,7 +1201,8 @@ document property) will be opened."
    (if (org-noter--session-hide-other session)
        (save-excursion
          (goto-char (org-element-property :begin (org-noter--parse-root)))
-         (outline-hide-subtree))
+         (unless (org-noter--no-heading-p)
+           (outline-hide-subtree)))
      (org-cycle-hide-drawers 'all))
 
    (let* ((notes-cons (org-noter--view-info-notes view-info))
@@ -2134,10 +2135,10 @@ defines if the text should be inserted inside the note."
              ((or 'nov-mode 'djvu-read-mode)
               (when (region-active-p)
                 (buffer-substring-no-properties (mark) (point))))))
-          
+
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
-	  (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
+          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
 
      (let ((inhibit-quit t))
        (with-local-quit
@@ -2225,7 +2226,7 @@ defines if the text should be inserted inside the note."
                  (setq level (1+ (org-element-property :level ast))))
 
                ;; NOTE(nox): This is needed to insert in the right place
-               (outline-show-entry)
+               (unless (org-noter--no-heading-p) (outline-show-entry))
                (org-noter--insert-heading level title empty-lines-number location)
                (when (org-noter--session-hide-other session) (org-overview))
 
