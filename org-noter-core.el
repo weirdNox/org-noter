@@ -263,6 +263,26 @@ the user select to use as the note file of the document."
 
 ;; --------------------------------------------------------------------------------
 ;;; Integration with other packages
+
+(defcustom org-noter-parse-document-property-hook nil
+  "The list of functions that return a file name for the value of
+the property `org-noter-property-doc-file'
+
+This is used by `org-noter--get-or-read-document-property' and
+`org-noter--doc-file-property'.
+
+This is added for integration with other packages.
+
+For example, the module `org-noter-citar' adds the function
+`org-noter-citar-find-document-from-refs' to this list which when
+the property \"NOTER_DOCUMENT\" (the default value of
+`org-noter-property-doc-file') of an org file passed to it is a
+citation key, it will return the path to the note file associated
+with the citation key and that path will be used for other
+operations instead of the real value of the property."
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
   :group 'org-noter
@@ -870,9 +890,11 @@ properties, by a margin of NEWLINES-NUMBER."
     (setq org-noter--nov-timer (run-with-timer 0.25 nil 'org-noter--doc-location-change-handler))))
 
 (defsubst org-noter--doc-file-property (headline)
-  (or (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline)
-      (cadar (org-collect-keywords (list org-noter-property-doc-file)))
-      (org-entry-get nil org-noter-property-doc-file t)))
+  (let ((doc-prop (or (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline)
+                      (cadar (org-collect-keywords (list org-noter-property-doc-file)))
+                      (org-entry-get nil org-noter-property-doc-file t))))
+    (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
+        doc-prop)))
 
 (defun org-noter--check-location-property (arg)
   (let ((property (if (stringp arg) arg
@@ -1503,6 +1525,10 @@ relative to."
 (defun org-noter--get-or-read-document-property (inherit-prop &optional force-new)
   (let ((doc-prop (and (not force-new) (or (org-entry-get nil org-noter-property-doc-file inherit-prop)
                                            (cadar (org-collect-keywords (list org-noter-property-doc-file)))))))
+
+    (setq doc-prop (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
+                       doc-prop))
+    
     (unless (org-noter--check-doc-prop doc-prop)
       (setq doc-prop nil)
 

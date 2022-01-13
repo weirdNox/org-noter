@@ -21,6 +21,21 @@
 ;;; Code:
 (require 'citar)
 
+(defun org-noter-citar-find-document-from-refs (cite-key)
+  "Return a note file associated with CITE-KEY.
+When there is more than one note files associated with CITE-KEY, have
+user select one of them."
+  (require 'orb-utils)
+  (when (and (stringp cite-key) (string-match orb-utils-citekey-re cite-key))
+    (let* ((key (match-string 1 cite-key))
+           (files (citar-file--files-for-multiple-entries
+                   (citar--ensure-entries (list key))
+                   (append citar-library-paths citar-notes-paths) nil)))
+      (cond ((= (length files) 1)
+             (car files))
+            ((> (length files) 1)
+             (completing-read (format "Which file from %s?: " key) files))))))
+
 (defun org-noter-citar-find-key-from-this-file (filename)
   (let* ((entry-alist (mapcan (lambda (entry)
                                 (when-let ((file (citar-get-value citar-file-variable entry)))
@@ -29,7 +44,9 @@
          (key (alist-get filename entry-alist nil nil (lambda (s regexp)
                                                         (string-match-p regexp s)))))
     (when key
-      (concat key ".org"))))
+      (file-name-with-extension key "org"))))
+
+(add-to-list 'org-noter-parse-document-property-hook #'org-noter-citar-find-document-from-refs)
 
 (add-to-list 'org-noter-find-additional-notes-functions #'org-noter-citar-find-key-from-this-file)
 
