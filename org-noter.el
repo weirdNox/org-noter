@@ -244,21 +244,20 @@ notes file, even if it finds one."
                                                  (file-name-directory (car notes-files)))))
             (setq notes-files-annotating notes-files)))
 
-        (when (> (length (cl-delete-duplicates notes-files-annotating :test 'equal)) 1)
+        (when (> (length (delete-dups notes-files-annotating)) 1)
           (setq notes-files-annotating (list (completing-read "Which notes file should we open? "
                                                               notes-files-annotating nil t))))
 
         (with-current-buffer (find-file-noselect (car notes-files-annotating))
-          (org-with-wide-buffer
-           (catch 'break
-             (goto-char (point-min))
-             (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
-               (when (file-equal-p (expand-file-name (match-string 3)
-                                                     (file-name-directory (car notes-files-annotating)))
-                                   document-path)
-                 (let ((org-noter--start-location-override document-location))
-                   (org-noter))
-                 (throw 'break t)))))))))))
+          (org-with-point-at (point-min)
+            (catch 'break
+              (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
+                (when (file-equal-p (expand-file-name (match-string 3)
+                                                      (file-name-directory (car notes-files-annotating)))
+                                    document-path)
+                  (let ((org-noter--start-location-override document-location))
+                    (org-noter arg))
+                  (throw 'break t)))))))))))
 
 (provide 'org-noter)
 
