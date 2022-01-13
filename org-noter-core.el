@@ -365,6 +365,13 @@ the user select to use as the note file of the document."
 
 ;; --------------------------------------------------------------------------------
 ;;; Utility functions
+
+(defun org-noter--no-heading-p ()
+  "Return nil if the current buffer has atleast one heading.
+Otherwise return the maximum value for point."
+  (save-excursion
+    (and (org-before-first-heading-p) (org-next-visible-heading 1))))
+
 (defun org-noter--get-new-id ()
   (catch 'break
     (while t
