@@ -574,18 +574,21 @@ If nil, the session used will be `org-noter--session'."
                (when pos (setq root-pos (copy-marker pos)))))))))
 
     (unless ast
-      (unless root-pos (error "Root heading not found"))
+      (unless root-pos (if (org-noter--no-heading-p)
+                           (setq root-pos (copy-marker (point-min)))
+                         (error "Root heading not found")))
       (with-current-buffer (marker-buffer root-pos)
-        (org-with-wide-buffer
-         (goto-char (marker-position root-pos))
-         (when (org-before-first-heading-p)
-           (org-next-visible-heading 1))
-         (org-narrow-to-subtree)
-         (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
-         (when (and (not (vectorp info)) (org-noter--valid-session session))
-           (setf (org-noter--session-ast session) ast
-                 (org-noter--session-modified-tick session) (buffer-chars-modified-tick))))))
-    ast))
+        (org-with-point-at (marker-position root-pos)
+          (unless (org-noter--no-heading-p)
+            (when (org-before-first-heading-p)
+              (org-next-visible-heading 1))
+            (org-narrow-to-subtree))
+          
+          (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
+          (when (and (not (vectorp info)) (org-noter--valid-session session))
+            (setf (org-noter--session-ast session) ast
+                  (org-noter--session-modified-tick session) (buffer-chars-modified-tick)))))
+      ast))
 
 (defun org-noter--get-properties-end (ast &optional force-trim)
   (when ast
