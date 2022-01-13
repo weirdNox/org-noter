@@ -198,8 +198,7 @@ notes file, even if it finds one."
                     (when (file-exists-p file-name)
                       (setq file-name (propertize file-name 'display
                                                   (concat file-name
-                                                          (propertize " -- Exists!"
-                                                                      'face '(foreground-color . "green")))))
+                                                          (propertize " -- Exists!" 'face '(:foregorund "green")))))
                       (push file-name list-of-possible-targets)
                       (throw 'break nil))
 
@@ -219,8 +218,7 @@ notes file, even if it finds one."
                       (when (file-exists-p file-name)
                         (setq file-name (propertize file-name 'display
                                                     (concat file-name
-                                                            (propertize " -- Exists!"
-                                                                        'face '(foreground-color . "green"))))))
+                                                            (propertize " -- Exists!" 'face '(:foreground "green"))))))
                       (push file-name list-of-possible-targets)))))
 
               (setq target (completing-read "Where do you want to save it? " list-of-possible-targets
