@@ -580,6 +580,7 @@ If nil, the session used will be `org-noter--session'."
                          (setq root-pos (copy-marker (point)))))
       (with-current-buffer (marker-buffer root-pos)
         (org-with-point-at (marker-position root-pos)
+          (org-back-to-heading-or-point-min t)
           (if (org-at-heading-p)
               (org-narrow-to-subtree)
             (org-hide-drawer-toggle 'force))
