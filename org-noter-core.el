@@ -588,7 +588,7 @@ If nil, the session used will be `org-noter--session'."
           (when (and (not (vectorp info)) (org-noter--valid-session session))
             (setf (org-noter--session-ast session) ast
                   (org-noter--session-modified-tick session) (buffer-chars-modified-tick)))))
-      ast))
+      ast)))
 
 (defun org-noter--get-properties-end (ast &optional force-trim)
   (when ast
