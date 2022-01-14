@@ -554,7 +554,7 @@ If nil, the session used will be `org-noter--session'."
           (org-with-wide-buffer
            (catch 'break
 	     (while t
-               (when (string= (or (org-entry-get nil org-noter-property-doc-file t)
+               (when (string= (or (org-noter--get-or-read-document-property t)
                                   (cadar (org-collect-keywords (list org-noter-property-doc-file))))
                               wanted-prop)
                  (setq root-pos (copy-marker (point))))
