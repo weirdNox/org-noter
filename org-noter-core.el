@@ -1326,7 +1326,10 @@ the best heading to serve as a reference to create the new one
 relative to."
   (when view
     (org-noter--with-valid-session
-     (let ((contents (org-element-contents (org-noter--parse-root)))
+     (let ((contents (if (= 0 (org-noter--session-level session))
+                         (org-element-contents
+                          (org-element-property :parent (org-noter--parse-root)))
+                       (org-element-contents (org-noter--parse-root))))
            (preamble t)
            notes-in-view regions-in-view
            reference-for-insertion reference-location
