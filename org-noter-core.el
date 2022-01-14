@@ -121,6 +121,15 @@ This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
   :group 'org-noter
   :type 'boolean)
 
+(defcustom org-noter-prefer-root-as-file-level nil
+  "When non-nil, org-noter will always try to return the file-level property drawer
+even when there are headings.
+
+With the default value nil, org-noter will always use the first heading as root when
+there is at least one heading."
+  :group 'org-noter
+  :type 'boolean)
+
 (defcustom org-noter-hide-other t
   "When non-nil, hide all headings not related to the command used.
 For example, when scrolling to pages with notes, collapse all the
@@ -577,7 +586,10 @@ If nil, the session used will be `org-noter--session'."
                (when (string= (or (org-noter--get-or-read-document-property t)
                                   (cadar (org-collect-keywords (list org-noter-property-doc-file))))
                               wanted-prop)
-                 (setq root-pos (copy-marker (point))))
+                 (setq root-pos (copy-marker (if (and org-noter-prefer-root-as-file-level
+                                                      (eq 'property-drawer (org-element-type (org-element-at-point 1))))
+                                                 (point-min)
+                                               (point)))))
                (unless (org-up-heading-safe) (throw 'break t))))))))
 
      ((org-noter--valid-session session)
@@ -594,7 +606,7 @@ If nil, the session used will be `org-noter--session'."
                (when pos (setq root-pos (copy-marker pos)))))))))
 
     (unless ast
-      (unless root-pos (if (org-noter--no-heading-p)
+      (unless root-pos (if (or org-noter-prefer-root-as-file-level (org-noter--no-heading-p))
                            (setq root-pos (copy-marker (point-min)))
                          (org-next-visible-heading 1)
                          (setq root-pos (copy-marker (point)))))
