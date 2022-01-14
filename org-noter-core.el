@@ -1348,10 +1348,7 @@ the best heading to serve as a reference to create the new one
 relative to."
   (when view
     (org-noter--with-valid-session
-     (let ((contents (if (= 0 (org-noter--session-level session))
-                         (org-element-contents
-                          (org-element-property :parent (org-noter--parse-root)))
-                       (org-element-contents (org-noter--parse-root))))
+     (let ((root-pos (org-element-property :begin (org-noter--session-ast session)))
            (preamble t)
            notes-in-view regions-in-view
            reference-for-insertion reference-location
@@ -1362,32 +1359,35 @@ relative to."
            ignore-until-level
            current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END REGIONS-LIST-NAME]
 
-       (org-element-map contents 'headline
-         (lambda (headline)
-           (let ((doc-file (org-noter--doc-file-property headline))
-                 (location (org-noter--parse-location-property headline)))
-             (when (and ignore-until-level (<= (org-element-property :level headline) ignore-until-level))
+       (with-current-buffer (if org-noter-use-indirect-buffer
+                                (buffer-base-buffer (org-noter--session-notes-buffer session))
+                              (org-noter--session-notes-buffer session))
+        (org-element-cache-map
+         (lambda (element)
+           (let ((doc-file (org-noter--doc-file-property element))
+                 (location (org-noter--parse-location-property element)))
+             (when (and ignore-until-level (<= (or (org-element-property :level element) 0) ignore-until-level))
                (setq ignore-until-level nil))
 
              (cond
               (ignore-until-level) ;; NOTE(nox): This heading is ignored, do nothing
 
               ((and doc-file (not (string= doc-file (org-noter--session-property-text session))))
-               (org-noter--view-region-finish current-region-info headline)
-               (setq ignore-until-level (org-element-property :level headline))
+               (org-noter--view-region-finish current-region-info element)
+               (setq ignore-until-level (or (org-element-property :level element) 0))
                (when (and preamble new-location
                           (or (not reference-for-insertion)
-                              (>= (org-element-property :begin headline)
+                              (>= (org-element-property :begin element)
                                   (org-element-property :end (cdr reference-for-insertion)))))
-                 (setq reference-for-insertion (cons 'after headline))))
+                 (setq reference-for-insertion (cons 'after element))))
 
               (location
                (let ((relative-position (org-noter--relative-position-to-view location view)))
                  (cond
                   ((eq relative-position 'inside)
-                   (push (cons headline nil) notes-in-view)
+                   (push (cons element nil) notes-in-view)
 
-                   (org-noter--view-region-add current-region-info regions-in-view headline)
+                   (org-noter--view-region-add current-region-info regions-in-view element)
 
                    (setq all-after-tipping-point
                          (and all-after-tipping-point (org-noter--note-after-tipping-point
@@ -1399,49 +1399,51 @@ relative to."
                                                        (car notes-in-view))
                                                       ((eq (aref current-region-info 3) 'closest-notes-regions)
                                                        (car closest-notes)))))
-                       (when (< (org-element-property :begin headline)
-                                (org-element-property :end   (car note-cons-to-change)))
-                         (setcdr note-cons-to-change headline))))
+                       (when (< (org-element-property :begin element)
+                                (org-element-property :end (car note-cons-to-change)))
+                         (setcdr note-cons-to-change element))))
 
                    (let ((eligible-for-before (and closest-tipping-point all-after-tipping-point
-                                                   (eq relative-position 'before))))
+                                                   (eq relative-position 'before)
+                                                   (not (= root-pos (org-element-property :begin element))))))
                      (cond ((and eligible-for-before
                                  (org-noter--compare-locations '> location closest-notes-location))
-                            (setq closest-notes (list (cons headline nil))
+                            (setq closest-notes (list (cons element nil))
                                   closest-notes-location location
                                   current-region-info nil
                                   closest-notes-regions nil)
-                            (org-noter--view-region-add current-region-info closest-notes-regions headline))
+                            (org-noter--view-region-add current-region-info closest-notes-regions element))
 
                            ((and eligible-for-before (equal location closest-notes-location))
-                            (push (cons headline nil) closest-notes)
-                            (org-noter--view-region-add current-region-info closest-notes-regions headline))
+                            (push (cons element nil) closest-notes)
+                            (org-noter--view-region-add current-region-info closest-notes-regions element))
 
-                           (t (org-noter--view-region-finish current-region-info headline)))))))
+                           (t (org-noter--view-region-finish current-region-info element)))))))
 
                (when new-location
                  (setq preamble nil)
                  (cond ((and (org-noter--compare-locations '<= location new-location)
                              (or (eq (car reference-for-insertion) 'before)
                                  (org-noter--compare-locations '>= location reference-location)))
-                        (setq reference-for-insertion (cons 'after headline)
+                        (setq reference-for-insertion (cons 'after element)
                               reference-location location))
 
                        ((and (eq (car reference-for-insertion) 'after)
-                             (< (org-element-property :begin headline)
-                                (org-element-property :end   (cdr reference-for-insertion)))
+                             (< (org-element-property :begin element)
+                                (org-element-property :end (cdr reference-for-insertion)))
                              (org-noter--compare-locations '>= location new-location))
-                        (setq reference-for-insertion (cons 'before headline)
+                        (setq reference-for-insertion (cons 'before element)
                               reference-location location)))))
 
               (t
                (when (and preamble new-location
                           (or (not reference-for-insertion)
-                              (>= (org-element-property :begin headline)
+                              (>= (org-element-property :begin element)
                                   (org-element-property :end (cdr reference-for-insertion)))))
-                 (setq reference-for-insertion (cons 'after headline)))))))
-         nil nil org-noter--note-search-no-recurse)
-
+                 (setq reference-for-insertion (cons 'after element)))))))
+         :granularity 'element
+         :restrict-elements '(headline special-block)))
+       
        (org-noter--view-region-finish current-region-info)
 
        (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
