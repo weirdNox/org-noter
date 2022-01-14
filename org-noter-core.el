@@ -576,14 +576,13 @@ If nil, the session used will be `org-noter--session'."
     (unless ast
       (unless root-pos (if (org-noter--no-heading-p)
                            (setq root-pos (copy-marker (point-min)))
-                         (error "Root heading not found")))
+                         (org-next-visible-heading 1)
+                         (setq root-pos (copy-marker (point)))))
       (with-current-buffer (marker-buffer root-pos)
         (org-with-point-at (marker-position root-pos)
-          (unless (org-noter--no-heading-p)
-            (when (org-before-first-heading-p)
-              (org-next-visible-heading 1))
-            (org-narrow-to-subtree))
-          
+          (if (org-at-heading-p)
+              (org-narrow-to-subtree)
+            (org-hide-drawer-toggle 'force))
           (setq ast (car (org-element-contents (org-element-parse-buffer 'greater-element))))
           (when (and (not (vectorp info)) (org-noter--valid-session session))
             (setf (org-noter--session-ast session) ast
