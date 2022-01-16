@@ -1371,9 +1371,8 @@ relative to."
            ignore-until-level
            current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END REGIONS-LIST-NAME]
 
-       (with-current-buffer (if org-noter-use-indirect-buffer
-                                (buffer-base-buffer (org-noter--session-notes-buffer session))
-                              (org-noter--session-notes-buffer session))
+       (with-current-buffer (or (buffer-base-buffer (org-noter--session-notes-buffer session))
+                                (org-noter--session-notes-buffer session))
         (org-element-cache-map
          (lambda (element)
            (let ((doc-file (org-noter--doc-file-property element))
