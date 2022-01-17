@@ -2054,8 +2054,7 @@ want to kill."
              (push (vector (string-trim-right (string-trim (thing-at-point 'line t)) " [[:digit:]]+")
                            (list (string-trim-left (string-trim (thing-at-point 'line t)) ".* "))
                            (+ 2 (how-many "  " (point-at-bol) (point-at-eol)))) output-data)
-             (next-line)
-             (move-beginning-of-line 1)))))
+             (forward-line)))))
 
      (with-current-buffer (org-noter--session-notes-buffer session)
        ;; NOTE(nox): org-with-wide-buffer can't be used because we want to reset the
