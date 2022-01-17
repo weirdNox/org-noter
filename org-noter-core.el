@@ -272,6 +272,17 @@ the user select to use as the note file of the document."
 
 ;; --------------------------------------------------------------------------------
 ;;; Integration with other packages
+(defcustom org-noter--get-location-property-hook nil
+  "The list of functions that will return the note location of an org element.
+
+These functions must accept one argument, an org element.
+These functions is used by `org-noter--parse-location-property' and
+`org-noter--check-location-property' when they can't find the note location
+of the org element given to them, that org element will be passed to
+the functions in this list."
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading)
   "The list of functions that will be called by
 `org-noter--get-containing-element' to get the org element of the note
@@ -916,7 +927,10 @@ properties, by a margin of NEWLINES-NUMBER."
 
 (defun org-noter--check-location-property (arg)
   (let ((property (if (stringp arg) arg
-                    (org-element-property (intern (concat ":" org-noter-property-note-location)) arg))))
+                    (or (org-element-property
+                         (intern (concat ":" org-noter-property-note-location)) arg)
+                        (run-hook-with-args-until-success
+                         'org-noter--get-location-property-hook arg)))))
     (when (and (stringp property) (> (length property) 0))
       (or (run-hook-with-args-until-success 'org-noter--check-location-property-hook property)
           (let ((value (car (read-from-string property))))
@@ -925,7 +939,10 @@ properties, by a margin of NEWLINES-NUMBER."
 
 (defun org-noter--parse-location-property (arg)
   (let ((property (if (stringp arg) arg
-                    (org-element-property (intern (concat ":" org-noter-property-note-location)) arg))))
+                    (or (org-element-property
+                         (intern (concat ":" org-noter-property-note-location)) arg)
+                        (run-hook-with-args-until-success
+                         'org-noter--get-location-property-hook arg)))))
     (when (and (stringp property) (> (length property) 0))
       (or (run-hook-with-args-until-success 'org-noter--parse-location-property-hook property)
           (let ((value (car (read-from-string property))))
