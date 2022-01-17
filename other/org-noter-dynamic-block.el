@@ -193,6 +193,26 @@ defines if the text should be inserted inside the note."
        (select-window origin-window)))
     (insert content)))
 
+(defun org-noter--get-location-dynamic-block (dblock)
+  (let ((params (read (concat "(" (org-element-property :arguments dblock) ")"))))
+    (format "%S" (plist-get params (intern (concat ":" org-noter-property-note-location))))))
+
+(defun org-noter-get-containing-dynamic-block (&optional _include-root)
+  (org-noter--with-valid-session
+   (org-with-wide-buffer
+    (let ((elt (org-element-at-point)))
+      (catch 'break
+        (while (org-element-property :parent elt)
+          (cond
+           ((eq (org-element-type elt) 'dynamic-block)
+            (throw 'break elt))
+           (t
+            (setq elt (org-element-property :parent elt))))))))))
+
+(add-hook 'org-noter--get-containing-element-hook #'org-noter-get-containing-dynamic-block)
+
+(add-hook 'org-noter--get-location-property-hook #'org-noter--get-location-dynamic-block)
+
 (provide 'org-noter-dynamic-block)
 ;;; org-noter-dynamic-block.el ends here
 
