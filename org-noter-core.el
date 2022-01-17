@@ -386,8 +386,8 @@ operations instead of the real value of the property."
 (defconst org-noter--property-closest-tipping-point "NOTER_CLOSEST_TIPPING_POINT"
   "Property for overriding global `org-noter-closest-tipping-point'.")
 
-(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
-  "List of elements that shouldn't be recursed into when searching for notes.")
+(defconst org-noter--note-search-element-type '(headline)
+  "List of elements that should be searched for notes.")
 
 (defconst org-noter--id-text-property 'org-noter-session-id
   "Text property used to mark the headings with open sessions.")
@@ -1453,7 +1453,7 @@ relative to."
                                   (org-element-property :end (cdr reference-for-insertion)))))
                  (setq reference-for-insertion (cons 'after element)))))))
          :granularity 'element
-         :restrict-elements '(headline special-block)))
+         :restrict-elements org-noter--note-search-element-type))
        
        (org-noter--view-region-finish current-region-info)
 
