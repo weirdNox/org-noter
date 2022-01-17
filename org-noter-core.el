@@ -730,11 +730,11 @@ properties, by a margin of NEWLINES-NUMBER."
     (run-hooks 'org-noter-insert-heading-hook)))
 
 (defun org-noter--narrow-to-root (ast)
-  (when (and ast (not (org-noter--no-heading-p)))
+  (when ast
     (save-excursion
       (goto-char (org-element-property :contents-begin ast))
       (org-show-entry)
-      (org-narrow-to-subtree)
+      (when (org-at-heading-p) (org-narrow-to-subtree))
       (org-cycle-hide-drawers 'all))))
 
 (defun org-noter--get-doc-window ()
@@ -2092,7 +2092,7 @@ want to kill."
          (setq ast (org-noter--parse-root))
          (org-noter--narrow-to-root ast)
          (goto-char (org-element-property :begin ast))
-         (outline-hide-subtree)
+         (when (org-at-heading-p) (outline-hide-subtree))
          (org-show-children 2))))))
 
 ;; Shamelessly stolen code from Yuchen Li.
