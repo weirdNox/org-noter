@@ -142,13 +142,7 @@ defines if the text should be inserted inside the note."
                                                (concat ":" org-noter-property-note-location
                                                        (format " %S" location))
                                              ""))
-                                   (if selected-text
-                                       (org-make-link-string
-                                        (concat "extract:"
-                                                (let ((buffer-read-only t))
-                                                  (bir-extract-region 0 0 selected-text)))
-                                        selected-text)
-                                     "")
+                                   (or selected-text "")
                                    "#+END:")
                              "\n")
                 "\n")
