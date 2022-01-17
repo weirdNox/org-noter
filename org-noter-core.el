@@ -272,6 +272,12 @@ the user select to use as the note file of the document."
 
 ;; --------------------------------------------------------------------------------
 ;;; Integration with other packages
+(defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading)
+  "The list of functions that will be called by
+`org-noter--get-containing-element' to get the org element of the note
+at point."
+  :group 'org-noter
+  :type 'hook)
 
 (defcustom org-noter-parse-document-property-hook nil
   "The list of functions that return a file name for the value of
@@ -518,7 +524,7 @@ Otherwise return the maximum value for point."
       (org-noter--set-text-properties (org-noter--parse-root (vector notes-buffer document-property-value))
                                       (org-noter--session-id session))
       (unless target-location
-        (setq target-location (org-noter--parse-location-property (org-noter--get-containing-heading t)))))
+        (setq target-location (org-noter--parse-location-property (org-noter--get-containing-element t)))))
 
     ;; NOTE(nox): This timer is for preventing reflowing too soon.
     (run-with-idle-timer
@@ -940,6 +946,10 @@ properties, by a margin of NEWLINES-NUMBER."
                       (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
                           (org-noter--get-location-page location)
                         location)))))))
+
+;; TODO: Documentation
+(defun org-noter--get-containing-element (&optional include-root)
+  (run-hook-with-args-until-success 'org-noter--get-containing-element-hook include-root))
 
 (defun org-noter--get-containing-heading (&optional include-root)
   "Get smallest containing heading that encloses the point and has location property.
@@ -2388,7 +2398,7 @@ As such, it will only work when the notes window exists."
    "No notes window exists"
    (let ((org-noter--inhibit-location-change-handler t)
          (contents (org-element-contents (org-noter--parse-root)))
-         (current-begin (org-element-property :begin (org-noter--get-containing-heading)))
+         (current-begin (org-element-property :begin (org-noter--get-containing-element)))
          previous)
      (when current-begin
        (org-noter--map-ignore-headings-with-doc-file
@@ -2416,7 +2426,7 @@ As such, it will only work when the notes window exists."
    (if (string= (or (org-entry-get nil org-noter-property-doc-file t)
                     (cadar (org-collect-keywords (list org-noter-property-doc-file))))
                 (org-noter--session-property-text session))
-       (let ((location (org-noter--parse-location-property (org-noter--get-containing-heading))))
+       (let ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
          (if location
              (org-noter--doc-goto-location location)
            (user-error "No note selected")))
