@@ -865,9 +865,9 @@ properties, by a margin of NEWLINES-NUMBER."
 (defun org-noter--doc-approx-location-cons (&optional precise-info)
   (cond
    ((memq major-mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (and (consp precise-info)
+    (cons (image-mode-window-get 'page) (if (and (listp precise-info)
 						 (numberp (car precise-info))
-						 (numberp (cdr precise-info)))
+						 (numberp (cadr precise-info)))
 					    precise-info 0)))
    ((eq major-mode 'nov-mode)
     (cons nov-documents-index (if (or (numberp precise-info)
@@ -1011,9 +1011,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
         ((eq mode 'pdf-view-mode)
          (if (pdf-view-active-region-p)
 	     (let ((edges (pdf-view-active-region)))
-	       (cons
-		(cadar edges)
-		(caar edges)))
+               (car edges))
            
            (while (not (and (eq 'mouse-1 (car event))
                             (eq window (posn-window (event-start event)))))
@@ -1107,7 +1105,9 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 (defun org-noter--get-location-left (location)
   "Get the left coordinate given a LOCATION of form (page top . left) or (page . top). If later form of vector is passed return 0."
   (if (listp (cdr location))
-      (cddr location)
+      (if (listp (cddr location))
+          (caddr location)
+        (cddr location))
     0))
 
 (defun org-noter--doc-goto-location (location)
