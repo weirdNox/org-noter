@@ -23,6 +23,8 @@
 ;; 
 
 ;;; Code:
+(require 'org-noter-core)
+
 (defun org-noter-insert-precise-dynamic-block (&optional toggle-no-questions)
   "Insert note associated with a specific location.
 This will ask you to click where you want to scroll to when you
