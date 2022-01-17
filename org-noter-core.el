@@ -895,7 +895,12 @@ properties, by a margin of NEWLINES-NUMBER."
                                 (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
 
    ((eq major-mode 'djvu-read-mode)
-    (cons djvu-doc-page (if (numberp precise-info) precise-info 0)))
+    (cons djvu-doc-page (if (or (numberp precise-info)
+                                (and (consp precise-info)
+                                     (numberp (car precise-info))
+                                     (numberp (cdr precise-info))))
+                            precise-info
+                          (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
 
    (t (error "Unknown document type %s" major-mode))))
 
