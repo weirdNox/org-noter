@@ -1856,10 +1856,11 @@ want to kill."
         (restore-buffer-modified-p nil))
       (kill-buffer notes-buffer)
 
-      (with-current-buffer base-buffer
-        (org-noter--unset-text-properties ast)
-        (set-buffer-modified-p notes-modified))
-
+      (when base-buffer
+        (with-current-buffer base-buffer
+          (org-noter--unset-text-properties ast)
+          (set-buffer-modified-p notes-modified)))
+      
       (with-current-buffer doc-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t))
       (kill-buffer doc-buffer)
