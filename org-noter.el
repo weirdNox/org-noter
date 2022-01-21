@@ -38,6 +38,7 @@
 (require 'org)
 (require 'org-element)
 (require 'cl-lib)
+(require 'org-roam-bibtex nil t)
 
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
@@ -57,6 +58,7 @@
 (declare-function pdf-view-active-region-text "ext:pdf-view")
 (declare-function pdf-view-goto-page "ext:pdf-view")
 (declare-function pdf-view-mode "ext:pdf-view")
+(declare-function orb-find-note-file "ext:orb-utils")
 (defvar nov-documents-index)
 (defvar nov-file-name)
 
@@ -1320,7 +1322,7 @@ With a prefix ARG, remove start location."
   (org-noter--with-valid-session
    (let ((inhibit-read-only t)
          (ast (org-noter--parse-root))
-         (location (org-noter--doc-approx-location 'interactive)))
+         (location (org-noter--doc-approx-location (when (called-interactively-p 'any) 'interactive))))
      (with-current-buffer (org-noter--session-notes-buffer session)
        (org-with-wide-buffer
         (goto-char (org-element-property :begin ast))
@@ -2206,6 +2208,11 @@ notes file, even if it finds one."
               (unless (member file notes-files) (push file notes-files))
               (when (org-noter--check-if-document-is-annotated-on-file document-path file)
                 (push file notes-files-annotating)))))
+
+        (when (fboundp #'orb-find-note-file)
+          (when-let ((file-name (orb-find-note-file document-base)))
+            (push file-name notes-files)
+            (push file-name notes-files-annotating)))
 
         (setq search-names (nreverse search-names))
 
