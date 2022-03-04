@@ -464,10 +464,7 @@ Otherwise return the maximum value for point."
          (document-major-mode (buffer-local-value 'major-mode document))
          (document-buffer-name
           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
-         (document-buffer
-          (if (memq document-major-mode '(nov-mode djvu-read-mode))
-              document
-            (make-indirect-buffer document document-buffer-name t)))
+         (document-buffer document)
 
          (notes-buffer
           (if org-noter-use-indirect-buffer
