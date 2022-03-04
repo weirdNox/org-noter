@@ -42,6 +42,8 @@
 
 (require 'org-noter-nov)
 (require 'org-noter-pdf)
+(require 'org-noter-djvu)
+
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
 (declare-function image-get-display-property "image-mode")
@@ -953,17 +955,7 @@ properties, by a margin of NEWLINES-NUMBER."
 
 (defun org-noter--pretty-print-location (location)
   (org-noter--with-valid-session
-   (or (run-hook-with-args-until-success 'org-noter--pretty-print-location-hook location)
-       (format "%s" (cond
-                     ((memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode djvu-read-mode))
-		      (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
-                          (car location)
-                        location))
-
-                     ((eq (org-noter--session-doc-mode session) 'nov-mode)
-                      (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
-                          (org-noter--get-location-page location)
-                        location)))))))
+   (run-hook-with-args-until-success 'org-noter--pretty-print-location-hook major-mode location)))
 
 ;; TODO: Documentation
 (defun org-noter--get-containing-element (&optional include-root)

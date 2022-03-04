@@ -44,5 +44,12 @@
     (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
     (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)))
 
+(defun org-noter-nov--pretty-print-location (location)
+  (when (eq (org-noter--session-doc-mode session) 'nov-mode)
+    (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
+        (org-noter--get-location-page location)
+      location)))
+
+
 (provide 'org-noter-nov)
 ;;; org-noter-nov.el ends here

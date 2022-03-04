@@ -43,5 +43,11 @@
     (doc-view-mode)
     (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice)))
 
+(defun org-noter-pdf--pretty-print-location (location)
+  (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
+    (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
+        (car location)
+      location)))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
