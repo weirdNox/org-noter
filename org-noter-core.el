@@ -40,6 +40,7 @@
 (require 'cl-lib)
 (require 'pdf-tools)
 
+(require 'org-noter-nov)
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
 (declare-function image-get-display-property "image-mode")
