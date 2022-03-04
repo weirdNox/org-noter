@@ -24,8 +24,8 @@
 
 ;;; Code:
 
-(defun org-noter-djvu--pretty-print-location (location)
-  (when (eq (org-noter--session-doc-mode session) '(djvu-read-mode))
+(defun org-noter-djvu--pretty-print-location (major-mode location)
+  (when (eq major-mode '(djvu-read-mode))
     (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
         (car location)
       location)))
