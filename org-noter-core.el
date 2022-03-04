@@ -328,7 +328,10 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-set-up-document-handler '(org-noter-nov-setup-handler)
+(defcustom org-noter-set-up-document-handler
+  '(org-noter-nov-setup-handler
+    org-noter-pdf-view-setup-handler
+    org-noter-doc-view-setup-handler)
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -518,17 +521,6 @@ Otherwise return the maximum value for point."
            'org-noter-set-up-document-handler
            document-major-mode)
           (cond
-           ;; NOTE(nox): PDF Tools
-           ((eq document-major-mode 'pdf-view-mode)
-            (setq buffer-file-name document-path)
-            (pdf-view-mode)
-            (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t))
-
-           ;; NOTE(nox): DocView
-           ((eq document-major-mode 'doc-view-mode)
-            (setq buffer-file-name document-path)
-            (doc-view-mode)
-            (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice))
            ;; NOTE(c1-g): Djvu
 
            ((eq document-major-mode 'djvu-read-mode)

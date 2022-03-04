@@ -31,5 +31,17 @@
                                                  (numberp (cadr precise-info)))
                                             precise-info 0))))
 
+(defun org-noter-pdf-view-setup-handler (major-mode)
+  (when (eq document-major-mode 'pdf-view-mode)
+    (setq buffer-file-name document-path)
+    (pdf-view-mode)
+    (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t)))
+
+(defun org-noter-doc-view-setup-handler (major-mode)
+  (when (eq document-major-mode 'doc-view-mode)
+    (setq buffer-file-name document-path)
+    (doc-view-mode)
+    (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice)))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
