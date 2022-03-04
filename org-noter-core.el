@@ -388,10 +388,11 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--get-precise-info-hook '(org-noter-nov--get-precise-info
-                                              org-noter-djvu--get-precise-info
-                                              org-noter-pdf--get-precise-info
-                                              org-noter-doc--get-precise-info)
+(defcustom org-noter--get-precise-info-hook
+  '(org-noter-nov--get-precise-info
+    org-noter-djvu--get-precise-info
+    org-noter-pdf--get-precise-info
+    org-noter-doc--get-precise-info)
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -404,8 +405,6 @@ major modes uses the `buffer-file-name' variable."
   "TODO"
   :group 'org-noter
   :type 'hook)
-
-
 
 (defcustom org-noter--doc-approx-location-hook
   '(org-noter-nov-approx-location-cons
