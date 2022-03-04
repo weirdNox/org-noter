@@ -95,5 +95,10 @@
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (vector 'paged (car (org-noter--doc-approx-location-cons)))))
 
+(defun org-noter-pdf--get-selected-text (mode)
+  (when (and (eq mode 'pdf-view-mode)
+             (pdf-view-active-region-p))
+    (mapconcat 'identity (pdf-view-active-region-text) ? )))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here

@@ -56,5 +56,10 @@
   (when (eq mode 'djvu-read-mode)
     (vector 'paged (car (org-noter--doc-approx-location-cons)))))
 
+(defun org-noter-djvu--get-selected-text (mode)
+  (when (and (eq mode 'djvu-read-mode)
+             (region-active-p))
+    (buffer-substring-no-properties (mark) (point))))
+
 (provide 'org-noter-djvu)
 ;;; org-noter-djvu.el ends here

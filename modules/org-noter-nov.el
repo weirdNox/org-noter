@@ -74,6 +74,10 @@
             (org-noter--doc-approx-location-cons (window-start))
             (org-noter--doc-approx-location-cons (window-end nil t)))))
 
+(defun org-noter-nov--get-selected-text (mode)
+  (when (and (eq mode 'nov-mode) (region-active-p))
+    (buffer-substring-no-properties (mark) (point))))
+
 
 (provide 'org-noter-nov)
 ;;; org-noter-nov.el ends here

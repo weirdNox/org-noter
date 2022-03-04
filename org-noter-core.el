@@ -338,6 +338,14 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-get-selected-text-hook
+  '(org-noter-nov--get-selected-text
+    org-noter-pdf--get-selected-text
+    org-noter-djvu--get-selected-text)
+  "TODO"
+  :group 'org-noter
+  :type 'hook)
+
 
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
@@ -2141,14 +2149,9 @@ defines if the text should be inserted inside the note."
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
           (selected-text
-           (pcase (org-noter--session-doc-mode session)
-             ('pdf-view-mode
-              (when (pdf-view-active-region-p)
-                (mapconcat 'identity (pdf-view-active-region-text) ? )))
-
-             ((or 'nov-mode 'djvu-read-mode)
-              (when (region-active-p)
-                (buffer-substring-no-properties (mark) (point))))))
+           (run-hook-with-args-until-success
+            'org-noter-get-selected-text-hook
+            (org-noter--session-doc-mode session)))
 
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
