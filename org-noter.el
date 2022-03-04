@@ -131,7 +131,7 @@ notes file, even if it finds one."
         (org-noter--create-session ast document-property notes-file-path))))
 
    ;; NOTE(nox): Creating the session from the annotated document
-   ((memq major-mode '(doc-view-mode pdf-view-mode nov-mode djvu-read-mode))
+   ((memq major-mode org-noter-supported-modes)
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))

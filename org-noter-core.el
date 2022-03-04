@@ -68,6 +68,11 @@
   :group 'convenience
   :version "25.3.1")
 
+(defcustom org-noter-supported-modes '(doc-view-mode pdf-view-mode nov-mode djvu-read-mode)
+  "Major modes that are supported by org-noter."
+  :group 'org-noter
+  :type '(repeat symbol))
+
 (defcustom org-noter-property-doc-file "NOTER_DOCUMENT"
   "Name of the property that specifies the document."
   :group 'org-noter
