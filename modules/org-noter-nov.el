@@ -68,6 +68,12 @@
     ;; everything and would run org-noter--nov-scroll-handler.
     (recenter)))
 
+(defun org-noter-nov--get-current-view (mode)
+  (when (eq mode 'nov-mode)
+    (vector 'nov
+            (org-noter--doc-approx-location-cons (window-start))
+            (org-noter--doc-approx-location-cons (window-end nil t)))))
+
 
 (provide 'org-noter-nov)
 ;;; org-noter-nov.el ends here

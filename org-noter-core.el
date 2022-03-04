@@ -388,6 +388,17 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
+
+(defcustom org-noter--get-current-view-hook
+  '(org-noter-nov--get-current-view
+    org-noter-djvu--get-current-view
+    org-noter-pdf--get-current-view)
+  "TODO"
+  :group 'org-noter
+  :type 'hook)
+
+
+
 (defcustom org-noter--doc-approx-location-hook
   '(org-noter-nov-approx-location-cons
     org-noter-pdf-approx-location-cons
@@ -1254,13 +1265,8 @@ document property) will be opened."
   (org-noter--with-valid-session
    (let ((mode (org-noter--session-doc-mode session)))
      (with-selected-window (org-noter--get-doc-window)
-       (cond ((memq mode '(doc-view-mode pdf-view-mode djvu-read-mode))
-              (vector 'paged (car (org-noter--doc-approx-location-cons))))
-             ((eq mode 'nov-mode)
-              (vector 'nov
-                      (org-noter--doc-approx-location-cons (window-start))
-                      (org-noter--doc-approx-location-cons (window-end nil t))))
-             (t (error "Unknown document type")))))))
+       (or (run-hook-with-args-until-success 'org-noter--get-current-view-hook)
+           (error "Unknown document type"))))))
 
 (defun org-noter--note-after-tipping-point (point location view)
   ;; NOTE(nox): This __assumes__ the note is inside the view!

@@ -52,5 +52,9 @@
     (djvu-goto-page (car location))
     (goto-char (org-noter--get-location-top location))))
 
+(defun org-noter-djvu--get-current-view (mode)
+  (when (eq mode 'djvu-read-mode)
+    (vector 'paged (car (org-noter--doc-approx-location-cons)))))
+
 (provide 'org-noter-djvu)
 ;;; org-noter-djvu.el ends here

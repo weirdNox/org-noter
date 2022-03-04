@@ -91,5 +91,9 @@
       (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
                           (window-vscroll))))))
 
+(defun org-noter-pdf--get-current-view (mode)
+  (when (memq mode '(doc-view-mode pdf-view-mode))
+    (vector 'paged (car (org-noter--doc-approx-location-cons)))))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
