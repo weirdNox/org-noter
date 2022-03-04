@@ -41,6 +41,7 @@
 (require 'pdf-tools)
 
 (require 'org-noter-nov)
+(require 'org-noter-pdf)
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
 (declare-function image-get-display-property "image-mode")
@@ -898,11 +899,6 @@ properties, by a margin of NEWLINES-NUMBER."
 
 (defun org-noter--doc-approx-location-cons (&optional precise-info)
   (cond
-   ((memq major-mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (and (listp precise-info)
-						 (numberp (car precise-info))
-						 (numberp (cadr precise-info)))
-					    precise-info 0)))
    ((eq major-mode 'djvu-read-mode)
     (cons djvu-doc-page (if (or (numberp precise-info)
                                 (and (consp precise-info)
