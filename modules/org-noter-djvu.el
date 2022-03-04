@@ -30,6 +30,14 @@
         (car location)
       location)))
 
+(defun org-noter-djvu-approx-location-cons (major-mode &optional precise-info _force-new-ref)
+  (cons djvu-doc-page (if (or (numberp precise-info)
+                              (and (consp precise-info)
+                                   (numberp (car precise-info))
+                                   (numberp (cdr precise-info))))
+                          precise-info
+                        (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
+
 (defun org-noter-djvu--get-precise-info (major-mode)
   (when (eq mode 'djvu-read-mode)
     (if (region-active-p)

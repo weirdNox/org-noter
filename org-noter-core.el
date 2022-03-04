@@ -385,7 +385,10 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--doc-approx-location-hook nil
+(defcustom org-noter--doc-approx-location-hook
+  '(org-noter-nov-approx-location-cons
+    org-noter-pdf-approx-location-cons
+    org-noter-djvu-approx-location-cons)
   "TODO"
   :group 'org-noter
   :type 'hook)
