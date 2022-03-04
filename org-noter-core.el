@@ -377,7 +377,10 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--get-precise-info-hook nil
+(defcustom org-noter--get-precise-info-hook '(org-noter-nov--get-precise-info
+                                              org-noter-djvu--get-precise-info
+                                              org-noter-pdf--get-precise-info
+                                              org-noter-doc--get-precise-info)
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -1030,43 +1033,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
          (mode (org-noter--session-doc-mode session))
          event)
      (with-selected-window window
-       (cond
-        ((run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode))
-
-        ((eq mode 'pdf-view-mode)
-         (if (pdf-view-active-region-p)
-	     (let ((edges (pdf-view-active-region)))
-               (car edges))
-           
-           (while (not (and (eq 'mouse-1 (car event))
-                            (eq window (posn-window (event-start event)))))
-             (setq event (read-event "Click where you want the start of the note to be!")))
-	   (let ((col-row (posn-col-row (event-start event))))
-	     (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
-						     (+ (window-hscroll) (car col-row))))))
-
-        ((eq mode 'doc-view-mode)
-         (while (not (and (eq 'mouse-1 (car event))
-                          (eq window (posn-window (event-start event)))))
-           (setq event (read-event "Click where you want the start of the note to be!")))
-         (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
-                                                    (cdr (posn-col-row (event-start event))))))
-
-        ((eq mode 'nov-mode)
-         (if (region-active-p)
-             (cons (mark) (point))
-           (while (not (and (eq 'mouse-1 (car event))
-                            (eq window (posn-window (event-start event)))))
-             (setq event (read-event "Click where you want the start of the note to be!")))
-           (posn-point (event-start event))))
-
-        ((eq mode 'djvu-read-mode)
-         (if (region-active-p)
-             (cons (mark) (point))
-           (while (not (and (eq 'mouse-1 (car event))
-                            (eq window (posn-window (event-start event)))))
-             (setq event (read-event "Click where you want the start of the note to be!")))
-           (posn-point (event-start event)))))))))
+       (run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode)))))
 
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location

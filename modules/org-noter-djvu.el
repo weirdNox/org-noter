@@ -30,5 +30,14 @@
         (car location)
       location)))
 
+(defun org-noter-djvu--get-precise-info (major-mode)
+  (when (eq mode 'djvu-read-mode)
+    (if (region-active-p)
+        (cons (mark) (point))
+      (while (not (and (eq 'mouse-1 (car event))
+                       (eq window (posn-window (event-start event)))))
+        (setq event (read-event "Click where you want the start of the note to be!")))
+      (posn-point (event-start event)))))
+
 (provide 'org-noter-djvu)
 ;;; org-noter-djvu.el ends here

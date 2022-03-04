@@ -50,6 +50,15 @@
         (org-noter--get-location-page location)
       location)))
 
+(defun org-noter-nov--get-precise-info (major-mode)
+  (when (eq major-mode 'nov-mode)
+    (if (region-active-p)
+        (cons (mark) (point))
+      (while (not (and (eq 'mouse-1 (car event))
+                       (eq window (posn-window (event-start event)))))
+        (setq event (read-event "Click where you want the start of the note to be!")))
+      (posn-point (event-start event)))))
+
 
 (provide 'org-noter-nov)
 ;;; org-noter-nov.el ends here

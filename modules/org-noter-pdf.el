@@ -49,5 +49,26 @@
         (car location)
       location)))
 
+(defun org-noter-pdf--get-precise-info (major-mode)
+  (when (eq major-mode 'pdf-view-mode)
+    (if (pdf-view-active-region-p)
+        (let ((edges (pdf-view-active-region)))
+          (car edges))
+
+      (while (not (and (eq 'mouse-1 (car event))
+                       (eq window (posn-window (event-start event)))))
+        (setq event (read-event "Click where you want the start of the note to be!")))
+      (let ((col-row (posn-col-row (event-start event))))
+        (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+                                                (+ (window-hscroll) (car col-row)))))))
+
+(defun org-noter-doc--get-precise-info (major-mode)
+  (when (eq major-mode 'doc-view-mode)
+    (while (not (and (eq 'mouse-1 (car event))
+                     (eq window (posn-window (event-start event)))))
+      (setq event (read-event "Click where you want the start of the note to be!")))
+    (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
+                                               (cdr (posn-col-row (event-start event)))))))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
