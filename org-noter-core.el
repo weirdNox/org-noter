@@ -327,7 +327,7 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-set-up-document-handler nil
+(defcustom org-noter-set-up-document-handler '(org-noter-nov-setup-handler)
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -911,7 +911,7 @@ properties, by a margin of NEWLINES-NUMBER."
                             precise-info
                           (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
 
-(defun org-noter--doc-approx-location (&optional precise-info force-new-ref)
+(defun org-noter--doc-approx-location (&optional major-mode precise-info force-new-ref)
   "TODO"
   (let ((window (if (org-noter--valid-session org-noter--session)
                     (org-noter--get-doc-window)
