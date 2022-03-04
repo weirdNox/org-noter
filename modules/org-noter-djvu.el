@@ -47,6 +47,11 @@
         (setq event (read-event "Click where you want the start of the note to be!")))
       (posn-point (event-start event)))))
 
+(defun org-noter-djvu-setup-handler (major-mode)
+  (when (eq major-mode 'djvu-read-mode)
+    (advice-add 'djvu-init-page :after 'org-noter--location-change-advice)
+    t))
+
 (defun org-noter-djvu-goto-location (mode location)
   (when (eq mode 'djvu-read-mode)
     (djvu-goto-page (car location))

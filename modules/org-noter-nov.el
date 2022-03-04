@@ -42,7 +42,8 @@
   (when (eq major-mode 'nov-mode)
     (rename-buffer document-buffer-name)
     (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
-    (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)))
+    (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)
+    t))
 
 (defun org-noter-nov--pretty-print-location (major-mode location)
   (when (eq major-mode 'nov-mode)

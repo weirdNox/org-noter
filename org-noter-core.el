@@ -333,7 +333,8 @@ major modes uses the `buffer-file-name' variable."
 (defcustom org-noter-set-up-document-handler
   '(org-noter-nov-setup-handler
     org-noter-pdf-view-setup-handler
-    org-noter-doc-view-setup-handler)
+    org-noter-doc-view-setup-handler
+    org-noter-djvu-setup-handler)
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -549,16 +550,8 @@ Otherwise return the maximum value for point."
     (push session org-noter--sessions)
 
     (with-current-buffer document-buffer
-      (or (run-hook-with-args-until-success
-           'org-noter-set-up-document-handler
-           document-major-mode)
-          (cond
-           ;; NOTE(c1-g): Djvu
-
-           ((eq document-major-mode 'djvu-read-mode)
-            (advice-add 'djvu-init-page :after 'org-noter--location-change-advice))
-
-           (error "This document handler is not supported :/")))
+      (or (run-hook-with-args-until-success 'org-noter-set-up-document-handler document-major-mode)
+          (error "This document handler is not supported :/"))
 
       (org-noter-doc-mode 1)
       (setq org-noter--session session)
@@ -1272,7 +1265,7 @@ document property) will be opened."
   (org-noter--with-valid-session
    (let ((mode (org-noter--session-doc-mode session)))
      (with-selected-window (org-noter--get-doc-window)
-       (or (run-hook-with-args-until-success 'org-noter--get-current-view-hook)
+       (or (run-hook-with-args-until-success 'org-noter--get-current-view-hook mode)
            (error "Unknown document type"))))))
 
 (defun org-noter--note-after-tipping-point (point location view)
