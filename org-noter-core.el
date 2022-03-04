@@ -349,7 +349,10 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--pretty-print-location-hook nil
+(defcustom org-noter--pretty-print-location-hook
+  '(org-noter-nov--pretty-print-location
+    org-noter-pdf--pretty-print-location
+    org-noter-djvu--pretty-print-location)
   "TODO"
   :group 'org-noter
   :type 'hook)
