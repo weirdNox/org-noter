@@ -314,6 +314,19 @@ operations instead of the real value of the property."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov)
+  "Functions that when passed a major mode, will return the current buffer file name.
+
+This is used by the `org-noter' command to determine the file name when
+user calls `org-noter' on a document buffer.
+
+For example, `nov-mode', a renderer for EPUB documents uses a unique variable
+called `nov-file-name' to store the file name of its document while the other
+major modes uses the `buffer-file-name' variable."
+  :group 'org-noter
+  :type 'hook)
+
+
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
   :group 'org-noter

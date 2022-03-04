@@ -138,7 +138,8 @@ notes file, even if it finds one."
 
       ;; NOTE(nox): `buffer-file-truename' is a workaround for modes that delete
       ;; `buffer-file-name', and may not have the same results
-      (let* ((buffer-file-name (or buffer-file-name (bound-and-true-p nov-file-name)))
+      (let* ((buffer-file-name (or (run-hook-with-args-until-success 'org-noter-get-buffer-file-name-hook major-mode)
+                                   buffer-file-name))
              (document-path (or buffer-file-name buffer-file-truename
                                 (error "This buffer does not seem to be visiting any file")))
              (document-name (file-name-nondirectory document-path))
