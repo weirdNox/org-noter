@@ -327,6 +327,11 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-set-up-document-handler nil
+  "TODO"
+  :group 'org-noter
+  :type 'hook)
+
 
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
@@ -508,31 +513,27 @@ Otherwise return the maximum value for point."
     (push session org-noter--sessions)
 
     (with-current-buffer document-buffer
-      (cond
-       ;; NOTE(nox): PDF Tools
-       ((eq document-major-mode 'pdf-view-mode)
-        (setq buffer-file-name document-path)
-        (pdf-view-mode)
-        (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t))
+      (or (run-hook-with-args-until-success
+           'org-noter-set-up-document-handler
+           document-major-mode)
+          (cond
+           ;; NOTE(nox): PDF Tools
+           ((eq document-major-mode 'pdf-view-mode)
+            (setq buffer-file-name document-path)
+            (pdf-view-mode)
+            (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t))
 
-       ;; NOTE(nox): DocView
-       ((eq document-major-mode 'doc-view-mode)
-        (setq buffer-file-name document-path)
-        (doc-view-mode)
-        (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice))
+           ;; NOTE(nox): DocView
+           ((eq document-major-mode 'doc-view-mode)
+            (setq buffer-file-name document-path)
+            (doc-view-mode)
+            (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice))
+           ;; NOTE(c1-g): Djvu
 
-       ;; NOTE(nox): Nov.el
-       ((eq document-major-mode 'nov-mode)
-        (rename-buffer document-buffer-name)
-        (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
-        (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t))
+           ((eq document-major-mode 'djvu-read-mode)
+            (advice-add 'djvu-init-page :after 'org-noter--location-change-advice))
 
-       ;; NOTE(c1-g): Djvu
-
-       ((eq document-major-mode 'djvu-read-mode)
-        (advice-add 'djvu-init-page :after 'org-noter--location-change-advice))
-
-       (t (error "This document handler is not supported :/")))
+           (error "This document handler is not supported :/")))
 
       (org-noter-doc-mode 1)
       (setq org-noter--session session)
