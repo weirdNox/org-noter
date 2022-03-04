@@ -59,6 +59,15 @@
         (setq event (read-event "Click where you want the start of the note to be!")))
       (posn-point (event-start event)))))
 
+(defun org-noter-nov-goto-location (mode location)
+  (when (eq mode 'nov-mode)
+    (setq nov-documents-index (org-noter--get-location-page location))
+    (nov-render-document)
+    (goto-char (org-noter--get-location-top location))
+    ;; NOTE(nox): This needs to be here, because it would be issued anyway after
+    ;; everything and would run org-noter--nov-scroll-handler.
+    (recenter)))
+
 
 (provide 'org-noter-nov)
 ;;; org-noter-nov.el ends here

@@ -362,7 +362,10 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--doc-goto-location-hook nil
+(defcustom org-noter--doc-goto-location-hook
+  '(org-noter-pdf-goto-location
+    org-noter-nov-goto-location
+    org-noter-djvu-goto-location)
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -1111,39 +1114,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
    (let ((window (org-noter--get-doc-window))
          (mode (org-noter--session-doc-mode session)))
      (with-selected-window window
-       (cond
-        ((run-hook-with-args-until-success 'org-noter--doc-goto-location-hook mode location))
-
-        ((memq mode '(doc-view-mode pdf-view-mode))
-	 (let ((top (org-noter--get-location-top location))
-	       (left (org-noter--get-location-left location)))
-	   
-           (if (eq mode 'doc-view-mode)
-               (doc-view-goto-page (org-noter--get-location-page location))
-             (pdf-view-goto-page (org-noter--get-location-page location))
-             ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
-             ;; so syncing multiple pages was slow
-             (when (>= org-noter-arrow-delay 0)
-               (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
-               (setq org-noter--arrow-location
-                     (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
-                             window
-			     top
-			     left))))
-           (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
-                               (window-vscroll)))))
-
-        ((eq mode 'nov-mode)
-         (setq nov-documents-index (org-noter--get-location-page location))
-         (nov-render-document)
-         (goto-char (org-noter--get-location-top location))
-         (recenter))
-        ;; NOTE(nox): This needs to be here, because it would be issued anyway after
-        ;; everything and would run org-noter--nov-scroll-handler.
-
-        ((eq mode 'djvu-read-mode)
-         (djvu-goto-page (car location))
-         (goto-char (org-noter--get-location-top location))))
+       (run-hook-with-args-until-success 'org-noter--doc-goto-location-hook mode location)
        (redisplay)))))
 
 (defun org-noter--compare-location-cons (comp l1 l2)

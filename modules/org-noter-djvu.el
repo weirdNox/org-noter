@@ -47,5 +47,10 @@
         (setq event (read-event "Click where you want the start of the note to be!")))
       (posn-point (event-start event)))))
 
+(defun org-noter-djvu-goto-location (mode location)
+  (when (eq mode 'djvu-read-mode)
+    (djvu-goto-page (car location))
+    (goto-char (org-noter--get-location-top location))))
+
 (provide 'org-noter-djvu)
 ;;; org-noter-djvu.el ends here

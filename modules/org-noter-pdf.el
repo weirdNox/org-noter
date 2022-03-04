@@ -70,5 +70,26 @@
     (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
                                                (cdr (posn-col-row (event-start event)))))))
 
+
+(defun org-noter-pdf-goto-location (mode location)
+  (when (memq mode '(doc-view-mode pdf-view-mode))
+    (let ((top (org-noter--get-location-top location))
+          (left (org-noter--get-location-left location)))
+
+      (if (eq mode 'doc-view-mode)
+          (doc-view-goto-page (org-noter--get-location-page location))
+        (pdf-view-goto-page (org-noter--get-location-page location))
+        ;; NOTE(nox): This timer is needed because the tooltip may introduce a delay,
+        ;; so syncing multiple pages was slow
+        (when (>= org-noter-arrow-delay 0)
+          (when org-noter--arrow-location (cancel-timer (aref org-noter--arrow-location 0)))
+          (setq org-noter--arrow-location
+                (vector (run-with-idle-timer org-noter-arrow-delay nil 'org-noter--show-arrow)
+                        window
+                        top
+                        left))))
+      (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
+                          (window-vscroll))))))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
