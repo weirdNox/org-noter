@@ -908,9 +908,7 @@ properties, by a margin of NEWLINES-NUMBER."
                                      (numberp (car precise-info))
                                      (numberp (cdr precise-info))))
                             precise-info
-                          (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
-
-   (t (error "Unknown document type %s" major-mode))))
+                          (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
 
 (defun org-noter--doc-approx-location (&optional precise-info force-new-ref)
   "TODO"
@@ -919,9 +917,10 @@ properties, by a margin of NEWLINES-NUMBER."
                   (selected-window))))
     (cl-assert window)
     (with-selected-window window
-      (or (run-hook-with-args-until-success 'org-noter--doc-approx-location-hook major-mode
-                                            precise-info force-new-ref)
-          (org-noter--doc-approx-location-cons precise-info)))))
+      (or (run-hook-with-args-until-success
+           'org-noter--doc-approx-location-hook major-mode
+           precise-info force-new-ref)
+          (error "Unknown document type %s" major-mode)))))
 
 (defun org-noter--location-change-advice (&rest _)
   (org-noter--with-valid-session (org-noter--doc-location-change-handler)))
