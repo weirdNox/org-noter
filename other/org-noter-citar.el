@@ -21,12 +21,18 @@
 ;;; Code:
 (require 'citar)
 
+;; Regexp stolen from org-roam-bibtex; orb-utils-citekey-re.
+(defvar org-noter-citar-cite-key-re
+  "\\(?2:\\(?:Autocite[*s]?\\|Cite\\(?:a\\(?:l\\(?:[pt]\\*\\|[pt]\\)\\|uthor\\*?\\)\\|[pt]\\*\\|[pst]\\)?\\|Notecite\\|P\\(?:arencites?\\|notecite\\)\\|Smartcites?\\|Textcites?\\|autocite[*s]?\\|bibentry\\|cite\\(?:a\\(?:l\\(?:[pt]\\*\\|[pt]\\)\\|uthor\\*?\\)\\|date\\*?\\|num\\|p\\*\\|t\\(?:\\*\\|ext\\|itle\\*?\\)\\|url\\|year\\(?:\\*\\|par\\)?\\|[*pst]\\)?\\|f\\(?:notecite\\|oot\\(?:cite\\(?:s\\|texts?\\)?\\|fullcite\\)\\|ullcite\\)\\|no\\(?:\\(?:te\\)?cite\\)\\|p\\(?:arencite[*s]?\\|notecite\\)\\|s\\(?:martcites?\\|upercites?\\)\\|textcites?\\)\\):\\(?:\\(?1:[.0-:A-Z_a-z-]+\\)\\|[^&]*?&\\(?1:[!#-+./:<>-@^-`{-~[:word:]-]+\\)\\)\\|@\\(?1:[!#-+./:<>-@^-`{-~[:word:]-]+\\)"
+  "Universal regexp to match citations in ROAM_REFS.
+
+Supports Org-ref v2 and v3 and Org-cite.")
+
 (defun org-noter-citar-find-document-from-refs (cite-key)
   "Return a note file associated with CITE-KEY.
 When there is more than one note files associated with CITE-KEY, have
 user select one of them."
-  (require 'orb-utils)
-  (when (and (stringp cite-key) (string-match orb-utils-citekey-re cite-key))
+  (when (and (stringp cite-key) (string-match org-noter-citar-cite-key-re cite-key))
     (let* ((key (match-string 1 cite-key))
            (files (citar-file--files-for-multiple-entries
                    (citar--ensure-entries (list key))

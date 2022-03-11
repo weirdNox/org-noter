@@ -1576,7 +1576,8 @@ With a prefix ARG, remove start location."
   (org-noter--with-valid-session
    (let ((inhibit-read-only t)
          (ast (org-noter--parse-root))
-         (location (org-noter--doc-approx-location 'interactive)))
+         (location (org-noter--doc-approx-location
+                    (when (called-interactively-p 'any) 'interactive))))
      (with-current-buffer (org-noter--session-notes-buffer session)
        (org-with-wide-buffer
         (goto-char (org-element-property :begin ast))
@@ -1816,13 +1817,14 @@ want to kill."
       (with-current-buffer notes-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
         (restore-buffer-modified-p nil))
-      (kill-buffer notes-buffer)
+      (unless org-noter-use-indirect-buffer
+        (kill-buffer notes-buffer))
 
       (when base-buffer
         (with-current-buffer base-buffer
           (org-noter--unset-text-properties ast)
           (set-buffer-modified-p notes-modified)))
-      
+
       (with-current-buffer doc-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t))
       (kill-buffer doc-buffer)
