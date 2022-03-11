@@ -45,11 +45,12 @@
     (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice)
     t))
 
-(defun org-noter-pdf--pretty-print-location (major-mode location)
-  (when (memq major-mode '(doc-view-mode pdf-view-mode))
-    (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
-        (car location)
-      location)))
+(defun org-noter-pdf--pretty-print-location (location)
+  (org-noter--with-valid-session
+   (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
+     (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
+         (car location)
+       location))))
 
 (defun org-noter-pdf--get-precise-info (major-mode)
   (when (eq major-mode 'pdf-view-mode)
@@ -95,7 +96,7 @@
 
 (defun org-noter-pdf--get-current-view (mode)
   (when (memq mode '(doc-view-mode pdf-view-mode))
-    (vector 'paged (car (org-noter--doc-approx-location-cons)))))
+    (vector 'paged (car (org-noter-pdf-approx-location-cons mode)))))
 
 (defun org-noter-pdf--get-selected-text (mode)
   (when (and (eq mode 'pdf-view-mode)

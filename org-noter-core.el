@@ -979,8 +979,7 @@ properties, by a margin of NEWLINES-NUMBER."
 (defun org-noter--pretty-print-location (location)
   (org-noter--with-valid-session
    (run-hook-with-args-until-success
-    'org-noter--pretty-print-location-hook
-    (org-noter--session-doc-mode session) location)))
+    'org-noter--pretty-print-location-hook location)))
 
 ;; TODO: Documentation
 (defun org-noter--get-containing-element (&optional include-root)

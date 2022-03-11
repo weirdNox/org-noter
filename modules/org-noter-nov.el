@@ -45,11 +45,12 @@
     (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)
     t))
 
-(defun org-noter-nov--pretty-print-location (major-mode location)
-  (when (eq major-mode 'nov-mode)
-    (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
-        (org-noter--get-location-page location)
-      location)))
+(defun org-noter-nov--pretty-print-location (location)
+  (org-noter--with-valid-session
+   (when (eq (org-noter--session-doc-mode session) 'nov-mode)
+     (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
+         (org-noter--get-location-page location)
+       location))))
 
 (defun org-noter-nov--get-precise-info (major-mode)
   (when (eq major-mode 'nov-mode)
