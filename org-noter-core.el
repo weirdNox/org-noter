@@ -1823,7 +1823,8 @@ want to kill."
       (with-current-buffer notes-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
         (restore-buffer-modified-p nil))
-      (kill-buffer notes-buffer)
+      (unless org-noter-use-indirect-buffer
+        (kill-buffer notes-buffer))
 
       (with-current-buffer base-buffer
         (org-noter--unset-text-properties ast)
