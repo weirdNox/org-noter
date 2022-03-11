@@ -495,26 +495,46 @@ Otherwise return the maximum value for point."
              (prop-value)
              (t ,variable)))))
 
+(defun org-noter-parse-link (s)
+  (pcase (with-temp-buffer
+           (let ((org-inhibit-startup nil))
+             (insert s)
+             (org-mode)
+             (goto-char (point-min))
+             (org-element-link-parser)))
+    (`nil nil)
+    (link link)))
+
 (defun org-noter--create-session (ast document-property-value notes-file-path)
   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
+         (link-p (string-match-p org-bracket-link-regexp document-property-value))
          (display-name (if raw-value-not-empty
                            (org-element-property :raw-value ast)
-                         (file-name-nondirectory document-property-value)))
-         (frame-name (format "Emacs Org-noter - %s" display-name))
+                         (if link-p
+                             document-property-value
+                           (file-name-nondirectory document-property-value))))
 
-         (document (find-file-noselect document-property-value))
-         (document-path (expand-file-name document-property-value))
-         (document-major-mode (buffer-local-value 'major-mode document))
+         (frame-name (format "Emacs Org-noter - %s" display-name))
+         (document (if link-p
+                       (progn (org-link-open-from-string document-property-value)
+                              (current-buffer))
+                     (find-file-noselect document-property-value)))
+         (document-major-mode (if link-p
+                                  (org-element-property
+                                   :type (org-noter-parse-link document-property-value))
+                                (buffer-local-value 'major-mode document)))
          (document-buffer-name
           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
          (document-buffer document)
 
          (notes-buffer
-          (if org-noter-use-indirect-buffer
-              (make-indirect-buffer
-               (or (buffer-base-buffer) (current-buffer))
-               (generate-new-buffer-name (concat "Notes of " display-name)) t)
-            (current-buffer)))
+          (progn (when (and org-window-config-before-follow-link link-p)
+                   (set-window-configuration org-window-config-before-follow-link))
+                 (if org-noter-use-indirect-buffer
+                     (make-indirect-buffer
+                      (or (buffer-base-buffer) (current-buffer))
+                      (generate-new-buffer-name (concat "Notes of " display-name)) t)
+                   (current-buffer))))
 
          (session
           (make-org-noter--session
