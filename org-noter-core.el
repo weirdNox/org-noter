@@ -647,7 +647,8 @@ If nil, the session used will be `org-noter--session'."
 	  ;; the specified property
       (let ((notes-buffer (aref info 0))
             (wanted-prop  (aref info 1)))
-        (unless (and (buffer-live-p notes-buffer) (stringp wanted-prop)
+        (unless (and (buffer-live-p notes-buffer) (or (stringp wanted-prop)
+                                                      (eq 'link (org-element-type wanted-prop)))
                      (eq (buffer-local-value 'major-mode notes-buffer) 'org-mode))
           (error "Error parsing root with invalid arguments"))
 
@@ -1524,7 +1525,8 @@ relative to."
             (throw 'break t)))))))
 
 (defsubst org-noter--check-doc-prop (doc-prop)
-  (and doc-prop (not (file-directory-p doc-prop)) (file-readable-p doc-prop)))
+  (and doc-prop (or (string-match-p org-link-bracket-re doc-prop)
+                    (and (not (file-directory-p doc-prop)) (file-readable-p doc-prop)))))
 
 (defun org-noter--get-or-read-document-property (inherit-prop &optional force-new)
   (let ((doc-prop (and (not force-new) (or (org-entry-get nil org-noter-property-doc-file inherit-prop)
