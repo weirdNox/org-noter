@@ -1826,9 +1826,10 @@ want to kill."
       (unless org-noter-use-indirect-buffer
         (kill-buffer notes-buffer))
 
-      (with-current-buffer base-buffer
-        (org-noter--unset-text-properties ast)
-        (set-buffer-modified-p notes-modified))
+      (when base-buffer
+        (with-current-buffer base-buffer
+          (org-noter--unset-text-properties ast)
+          (set-buffer-modified-p notes-modified)))
 
       (with-current-buffer doc-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t))
