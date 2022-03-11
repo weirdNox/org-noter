@@ -532,7 +532,8 @@ Otherwise return the maximum value for point."
                    (set-window-configuration org-window-config-before-follow-link))
                  (if org-noter-use-indirect-buffer
                      (make-indirect-buffer
-                      (or (buffer-base-buffer) (current-buffer))
+                      (or (buffer-base-buffer)
+                          (current-buffer))
                       (generate-new-buffer-name (concat "Notes of " display-name)) t)
                    (current-buffer))))
 
@@ -1299,7 +1300,7 @@ document property) will be opened."
       (> (org-noter--get-location-top location) point))
      ((eq (aref view 0) 'nov)
       (> (org-noter--get-location-top location) (+ (* point (- (cdr (aref view 2)) (cdr (aref view 1))))
-                                        (cdr (aref view 1))))))))
+                                                   (cdr (aref view 1))))))))
 
 (defun org-noter--relative-position-to-view (location view)
   (cond
