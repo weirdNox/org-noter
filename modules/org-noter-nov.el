@@ -30,13 +30,14 @@
 
 
 (defun org-noter-nov-approx-location-cons (major-mode &optional precise-info _force-new-ref)
-  (when (eq major-mode 'nov-mode)
-    (cons nov-documents-index (if (or (numberp precise-info)
-                                      (and (consp precise-info)
-                                           (numberp (car precise-info))
-                                           (numberp (cdr precise-info))))
-                                  precise-info
-                                (max 1 (/ (+ (window-start) (window-end nil t)) 2))))))
+  (org-noter--with-valid-session
+   (when (eq (org-noter--session-doc-mode session) 'nov-mode)
+     (cons nov-documents-index (if (or (numberp precise-info)
+                                       (and (consp precise-info)
+                                            (numberp (car precise-info))
+                                            (numberp (cdr precise-info))))
+                                   precise-info
+                                 (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
 
 (defun org-noter-nov-setup-handler (major-mode)
   (when (eq major-mode 'nov-mode)
