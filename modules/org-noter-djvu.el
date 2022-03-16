@@ -27,9 +27,9 @@
 (defun org-noter-djvu--pretty-print-location (location)
   (org-noter--with-valid-session
    (when (eq (org-noter--session-doc-mode session) 'djvu-read-mode)
-     (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
-         (car location)
-       location))))
+     (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
+                      (car location)
+                    location)))))
 
 (defun org-noter-djvu-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (cons djvu-doc-page (if (or (numberp precise-info)

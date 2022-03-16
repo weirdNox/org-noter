@@ -48,9 +48,9 @@
 (defun org-noter-pdf--pretty-print-location (location)
   (org-noter--with-valid-session
    (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
-     (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
-         (car location)
-       location))))
+     (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
+                      (car location)
+                    location)))))
 
 (defun org-noter-pdf--get-precise-info (major-mode)
   (when (eq major-mode 'pdf-view-mode)

@@ -48,9 +48,9 @@
 (defun org-noter-nov--pretty-print-location (location)
   (org-noter--with-valid-session
    (when (eq (org-noter--session-doc-mode session) 'nov-mode)
-     (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
-         (org-noter--get-location-page location)
-       location))))
+     (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
+                      (org-noter--get-location-page location)
+                    location)))))
 
 (defun org-noter-nov--get-precise-info (major-mode)
   (when (eq major-mode 'nov-mode)
@@ -73,8 +73,8 @@
 (defun org-noter-nov--get-current-view (mode)
   (when (eq mode 'nov-mode)
     (vector 'nov
-            (org-noter--doc-approx-location-cons (window-start))
-            (org-noter--doc-approx-location-cons (window-end nil t)))))
+            (org-noter-nov-approx-location-cons mode (window-start))
+            (org-noter-nov-approx-location-cons mode (window-end nil t)))))
 
 (defun org-noter-nov--get-selected-text (mode)
   (when (and (eq mode 'nov-mode) (region-active-p))
