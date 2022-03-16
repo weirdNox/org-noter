@@ -470,6 +470,25 @@ major modes uses the `buffer-file-name' variable."
 (defconst org-noter--id-text-property 'org-noter-session-id
   "Text property used to mark the headings with open sessions.")
 
+(defvar org-noter--url-regexp
+  (concat
+   "\\b\\(\\(www\\.\\|\\(s?https?\\|ftp\\|file\\|gopher\\|"
+   "nntp\\|news\\|telnet\\|wais\\|mailto\\|info\\):\\)"
+   "\\(//[-a-z0-9_.]+:[0-9]*\\)?"
+   (let ((chars "-a-z0-9_=#$@~%&*+\\/[:word:]")
+         (punct "!?:;.,"))
+     (concat
+      "\\(?:"
+      ;; Match paired parentheses, e.g. in Wikipedia URLs:
+      ;; http://thread.gmane.org/47B4E3B2.3050402@gmail.com
+      "[" chars punct "]+" "(" "[" chars punct "]+" ")"
+      "\\(?:" "[" chars punct "]+" "[" chars "]" "\\)?"
+      "\\|"
+      "[" chars punct "]+" "[" chars "]"
+      "\\)"))
+   "\\)")
+  "Regular expression that matches URLs.")
+
 ;; --------------------------------------------------------------------------------
 ;;; Utility functions
 
@@ -507,7 +526,8 @@ Otherwise return the maximum value for point."
 
 (defun org-noter--create-session (ast document-property-value notes-file-path)
   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
-         (link-p (string-match-p org-bracket-link-regexp document-property-value))
+         (link-p (or (string-match-p org-bracket-link-regexp document-property-value)
+                     (string-match-p org-noter--url-regexp document-property-value)))
          (display-name (if raw-value-not-empty
                            (org-element-property :raw-value ast)
                          (if link-p
