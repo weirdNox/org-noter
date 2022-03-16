@@ -1537,6 +1537,7 @@ relative to."
 
 (defsubst org-noter--check-doc-prop (doc-prop)
   (and doc-prop (or (string-match-p org-link-bracket-re doc-prop)
+                    (string-match-p org-noter--url-regexp doc-prop)
                     (and (not (file-directory-p doc-prop)) (file-readable-p doc-prop)))))
 
 (defun org-noter--get-or-read-document-property (inherit-prop &optional force-new)
