@@ -956,16 +956,6 @@ properties, by a margin of NEWLINES-NUMBER."
     (when (and (stringp property) (> (length property) 0))
       (ignore-errors (string-to-number property)))))
 
-(defun org-noter--doc-approx-location-cons (&optional precise-info)
-  (cond
-   ((eq major-mode 'djvu-read-mode)
-    (cons djvu-doc-page (if (or (numberp precise-info)
-                                (and (consp precise-info)
-                                     (numberp (car precise-info))
-                                     (numberp (cdr precise-info))))
-                            precise-info
-                          (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
-
 (defun org-noter--doc-approx-location (&optional major-mode precise-info force-new-ref)
   "TODO"
   (let ((window (if (org-noter--valid-session org-noter--session)
