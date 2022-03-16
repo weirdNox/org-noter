@@ -123,7 +123,7 @@ notes file, even if it finds one."
       (if session
           (let* ((org-noter--session session)
                  (location (org-noter--parse-location-property
-                            (org-noter--get-containing-heading))))
+                            (org-noter--get-containing-element))))
             (org-noter--setup-windows session)
             (when location (org-noter--doc-goto-location location))
             (select-frame-set-input-focus (org-noter--session-frame session)))
