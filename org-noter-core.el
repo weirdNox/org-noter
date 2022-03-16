@@ -540,8 +540,7 @@ Otherwise return the maximum value for point."
                               (current-buffer))
                      (find-file-noselect document-property-value)))
          (document-major-mode (if link-p
-                                  (org-element-property
-                                   :type (org-noter-parse-link document-property-value))
+                                  document-property-value
                                 (buffer-local-value 'major-mode document)))
          (document-buffer-name
           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
