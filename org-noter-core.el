@@ -963,17 +963,18 @@ properties, by a margin of NEWLINES-NUMBER."
     (when (and (stringp property) (> (length property) 0))
       (ignore-errors (string-to-number property)))))
 
-(defun org-noter--doc-approx-location (&optional major-mode precise-info force-new-ref)
+(defun org-noter--doc-approx-location (&optional mode precise-info force-new-ref)
   "TODO"
   (let ((window (if (org-noter--valid-session org-noter--session)
                     (org-noter--get-doc-window)
                   (selected-window))))
     (cl-assert window)
     (with-selected-window window
+      (setq mode (or mode major-mode))
       (or (run-hook-with-args-until-success
-           'org-noter--doc-approx-location-hook major-mode
+           'org-noter--doc-approx-location-hook mode
            precise-info force-new-ref)
-          (error "Unknown document type %s" major-mode)))))
+          (error "Unknown document type %s" mode)))))
 
 (defun org-noter--location-change-advice (&rest _)
   (org-noter--with-valid-session (org-noter--doc-location-change-handler)))
