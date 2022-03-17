@@ -415,6 +415,12 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-open-document-functions nil
+  "Functions that gives a buffer when passed with a document property.
+Used by `org-noter--create-session' when creating a new session."
+  :group 'org-noter
+  :type 'hook)
+
 ;; --------------------------------------------------------------------------------
 ;;; Private variables or constants
 (cl-defstruct org-noter--session
@@ -535,10 +541,11 @@ Otherwise return the maximum value for point."
                            (file-name-nondirectory document-property-value))))
 
          (frame-name (format "Emacs Org-noter - %s" display-name))
-         (document (if link-p
-                       (progn (org-link-open-from-string document-property-value)
-                              (current-buffer))
-                     (find-file-noselect document-property-value)))
+         (document (or (run-hook-with-args-until-success 'org-noter-open-document-functions document-property-value)
+                       (if link-p
+                           (progn (org-link-open-from-string document-property-value)
+                                  (current-buffer))
+                         (find-file-noselect document-property-value))))
          (document-major-mode (if link-p
                                   document-property-value
                                 (buffer-local-value 'major-mode document)))
