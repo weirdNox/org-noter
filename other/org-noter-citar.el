@@ -34,13 +34,16 @@ When there is more than one note files associated with CITE-KEY, have
 user select one of them."
   (when (and (stringp cite-key) (string-match org-noter-citar-cite-key-re cite-key))
     (let* ((key (match-string 1 cite-key))
+           (entries (citar--ensure-entries (list key)))
            (files (citar-file--files-for-multiple-entries
-                   (citar--ensure-entries (list key))
-                   (append citar-library-paths citar-notes-paths) nil)))
-      (cond ((= (length files) 1)
-             (car files))
-            ((> (length files) 1)
-             (completing-read (format "Which file from %s?: " key) files))))))
+                   entries
+                   (append citar-library-paths citar-notes-paths) nil))
+           (url (list (citar-get-link (car entries))))
+           (documents (flatten-list (append files url))))
+      (cond ((= (length documents) 1)
+             (car documents))
+            ((> (length documents) 1)
+             (completing-read (format "Which document from %s?: " key) documents))))))
 
 (defun org-noter-citar-find-key-from-this-file (filename)
   (let* ((entry-alist (mapcan (lambda (entry)
