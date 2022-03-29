@@ -40,7 +40,7 @@
                         (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
 
 (defun org-noter-djvu--get-precise-info (major-mode)
-  (when (eq mode 'djvu-read-mode)
+  (when (eq major-mode 'djvu-read-mode)
     (if (region-active-p)
         (cons (mark) (point))
       (while (not (and (eq 'mouse-1 (car event))
@@ -60,7 +60,7 @@
 
 (defun org-noter-djvu--get-current-view (mode)
   (when (eq mode 'djvu-read-mode)
-    (vector 'paged (car (org-noter--doc-approx-location-cons)))))
+    (vector 'paged (car (org-noter-djvu-approx-location-cons mode)))))
 
 (defun org-noter-djvu--get-selected-text (mode)
   (when (and (eq mode 'djvu-read-mode)
