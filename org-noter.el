@@ -90,16 +90,18 @@ at the moment."
 
 When the list contains:
 - `start', the window will be created when starting a `org-noter' session.
-- `scroll', it will be created when you go to a location with an associated note.
-- `only-prev', it will be created when you go to a location without notes, but that
-   has previous notes that are shown."
+- `scroll', it will be created when you go to a location with an associated
+   note.
+- `only-prev', it will be created when you go to a location without notes,
+   but that has previous notes that are shown."
   :group 'org-noter
   :type '(set (const :tag "Session start" start)
               (const :tag "Scroll to location with notes" scroll)
               (const :tag "Scroll to location with previous notes only" only-prev)))
 
 (defcustom org-noter-notes-window-location 'horizontal-split
-  "Whether the notes should appear in the main frame (horizontal or vertical split) or in a separate frame.
+  "Whether the notes should appear in the main frame
+(horizontal or vertical split) or in a separate frame.
 
 Note that this will only have effect on session startup if `start'
 is member of `org-noter-notes-window-behavior' (which see)."
@@ -116,7 +118,8 @@ This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
   :type '(cons (number :tag "Horizontal fraction") (number :tag "Vertical fraction")))
 
 (defcustom org-noter-auto-save-last-location nil
-  "When non-nil, save the last visited location automatically; when starting a new session, go to that location."
+  "When non-nil, save the last visited location automatically;
+when starting a new session, go to that location."
   :group 'org-noter
   :type 'boolean)
 
@@ -129,7 +132,8 @@ notes that are not annotating the current page."
 
 (defcustom org-noter-always-create-frame t
   "When non-nil, org-noter will always create a new frame for the session.
-When nil, it will use the selected frame if it does not belong to any other session."
+When nil, it will use the selected frame if it does not belong to
+any other session."
   :group 'org-noter
   :type 'boolean)
 
@@ -145,7 +149,8 @@ when creating a session, if the document is missing."
   :type 'boolean)
 
 (defcustom org-noter-insert-selected-text-inside-note t
-  "When non-nil, it will automatically append the selected text into an existing note."
+  "When non-nil, it will automatically append the selected text
+into an existing note."
   :group 'org-noter
   :type 'boolean)
 
@@ -170,7 +175,8 @@ This setting may be overridden in a document with the function
   :type 'number)
 
 (defcustom org-noter-default-notes-file-names '("Notes.org")
-  "List of possible names for the default notes file, in increasing order of priority."
+  "List of possible names for the default notes file,
+in increasing order of priority."
   :group 'org-noter
   :type '(repeat string))
 
@@ -180,7 +186,8 @@ This setting may be overridden in a document with the function
   :type '(repeat string))
 
 (defcustom org-noter-arrow-delay 0.2
-  "Number of seconds from when the command was invoked until the tooltip arrow appears.
+  "Number of seconds from when the command was invoked until
+the tooltip arrow appears.
 
 When set to a negative number, the arrow tooltip is disabled.
 This is needed in order to keep Emacs from hanging when doing many syncs."
@@ -194,13 +201,15 @@ This makes moving notes out of the root heading easier."
   :type 'boolean)
 
 (defcustom org-noter-insert-note-no-questions nil
-  "When non-nil, `org-noter-insert-note' won't ask for a title and will always insert a new note.
+  "When non-nil, `org-noter-insert-note' won't ask for a title
+and will always insert a new note.
 The title used will be the default one."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-kill-frame-at-session-end t
-  "If non-nil, `org-noter-kill-session' will delete the frame if others exist on the current display.'"
+  "If non-nil, `org-noter-kill-session' will delete the frame
+if others exist on the current display.'"
   :group 'org-noter
   :type 'boolean)
 
@@ -293,7 +302,8 @@ The title used will be the default one."
   "Timer for synchronizing notes after scrolling.")
 
 (defvar org-noter--arrow-location nil
-  "A vector [TIMER WINDOW TOP] that shows where the arrow should appear, when idling.")
+  "A vector [TIMER WINDOW TOP] that shows where the arrow should appear,
+when idling.")
 
 (defvar org-noter--completing-read-keymap (make-sparse-keymap)
   "A `completing-read' keymap that let's the user insert spaces.")
@@ -483,7 +493,10 @@ The title used will be the default one."
 
 (defun org-noter--parse-root (&optional info)
   "Parse and return the root AST.
-When used, the INFO argument may be an org-noter session or a vector [NotesBuffer PropertyText].
+
+When used, the INFO argument may be an org-noter session or a vector
+[NotesBuffer PropertyText].
+
 If nil, the session used will be `org-noter--session'."
   (let* ((arg-is-session (org-noter--session-p info))
          (session (or (and arg-is-session info) org-noter--session))
@@ -491,7 +504,7 @@ If nil, the session used will be `org-noter--session'."
     (cond
      ((and (not arg-is-session) (vectorp info))
       ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
-	  ;; the specified property
+    ;; the specified property
       (let ((notes-buffer (aref info 0))
             (wanted-prop  (aref info 1)))
         (unless (and (buffer-live-p notes-buffer) (stringp wanted-prop)
@@ -501,9 +514,9 @@ If nil, the session used will be `org-noter--session'."
         (with-current-buffer notes-buffer
           (org-with-wide-buffer
            (catch 'break
-	         (org-back-to-heading t)
-	         (while t
-		       (when (string= (org-entry-get nil org-noter-property-doc-file) wanted-prop)
+           (org-back-to-heading t)
+           (while t
+           (when (string= (org-entry-get nil org-noter-property-doc-file) wanted-prop)
                  (setq root-pos (copy-marker (point))))
                (unless (org-up-heading-safe) (throw 'break t))))))))
 
@@ -797,8 +810,12 @@ properties, by a margin of NEWLINES-NUMBER."
                         location)))))))
 
 (defun org-noter--get-containing-heading (&optional include-root)
-  "Get smallest containing heading that encloses the point and has location property.
-If the point isn't inside any heading with location property, return the outer heading.
+  "Get smallest containing heading that encloses the point and has
+location property.
+
+If the point isn't inside any heading with location property,
+return the outer heading.
+
 When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
    (org-with-wide-buffer
@@ -1905,7 +1922,8 @@ See `org-noter-insert-note' docstring for more."
 
 (defun org-noter-insert-note-toggle-no-questions ()
   "Insert note associated with the current location.
-This is like `org-noter-insert-note', except it will toggle `org-noter-insert-note-no-questions'"
+This is like `org-noter-insert-note', except it will toggle
+`org-noter-insert-note-no-questions'"
   (interactive)
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
@@ -1928,7 +1946,8 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
        nil ,match-first org-noter--note-search-no-recurse)))
 
 (defun org-noter-sync-prev-page-or-chapter ()
-  "Show previous page or chapter that has notes, in relation to the current page or chapter.
+  "Show previous page or chapter that has notes, in relation to
+the current page or chapter.
 This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
@@ -1960,7 +1979,8 @@ This will force the notes window to popup."
      (org-noter--doc-location-change-handler))))
 
 (defun org-noter-sync-next-page-or-chapter ()
-  "Show next page or chapter that has notes, in relation to the current page or chapter.
+  "Show next page or chapter that has notes, in relation to
+the current page or chapter.
 This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
@@ -2086,7 +2106,7 @@ There are two modes of operation. You may create the session from:
 - The Org notes file
 - The document to be annotated (PDF, EPUB, ...)
 
-- Creating the session from notes file -----------------------------------------
+- Creating the session from notes file ---------------------------------------
 This will open a session for taking your notes, with indirect
 buffers to the document and the notes side by side. Your current
 window configuration won't be changed, because this opens in a
@@ -2107,9 +2127,10 @@ With a prefix number ARG:
 -     Equal to 0: Create session with `org-noter-always-create-frame' toggled
 -    Less than 0: Open the folder containing the document
 
-- Creating the session from the document ---------------------------------------
+- Creating the session from the document -------------------------------------
 This will try to find a notes file in any of the parent folders.
-The names it will search for are defined in `org-noter-default-notes-file-names'.
+The names it will search for are defined in
+`org-noter-default-notes-file-names'.
 It will also try to find a notes file with the same name as the
 document, giving it the maximum priority.
 
