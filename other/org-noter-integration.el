@@ -37,31 +37,36 @@ Can be one of highlight/underline/strikeout/squiggly."
   :type 'float)
 
 (defcustom org-noter-use-pdftools-link-location t
-  "When non-nil, org-pdftools link is used instead of location-cons when inserting notes."
+  "When non-nil, org-pdftools link is used instead of location-cons when
+inserting notes."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-use-org-id t
-  "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
+  "When non-nil, an org-id is generated for each heading for linking with
+PDF annotations and record entry parents."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-export-to-pdf t
-  "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
+  "When non-nil, PDF annotation contents will include both org-id of
+original notes and org-id of its parent.
 
 To use this, `org-noter-use-org-id' has to be t."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-export-to-pdf-with-structure t
-  "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
+  "When non-nil, PDF annotation contents will include both org-id of
+original notes and org-id of its parent.
 
 To use this, `org-noter-use-org-id' has to be t."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-use-unique-org-id t
-  "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
+  "When non-nil, an org-id is generated for each heading for linking with
+PDF annotations and record entry parents."
   :group 'org-noter
   :type 'boolean)
 
@@ -154,7 +159,7 @@ To use this, `org-noter-use-org-id' has to be t."
           (org-pdftools-markup-pointer-color org-noter-markup-pointer-color)
           (org-pdftools-markup-pointer-opacity org-noter-markup-pointer-opacity)
           (org-pdftools-markup-pointer-function org-noter-markup-pointer-function))
-      (org-noter-pdftools--parse-link (org-pdftools-get-link t)))))
+      (org-noter-pdftools--parse-link (org-pdftools-get-link)q))))
 
 (defun org-noter-pdftools--doc-approx-location (mode precise-info force-new-ref)
   (org-noter--with-valid-session
