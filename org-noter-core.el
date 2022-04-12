@@ -611,6 +611,7 @@ Otherwise return the maximum value for point."
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t))
 
     (with-current-buffer notes-buffer
+      (org-noter-doc-mode -1)
       (org-noter-notes-mode 1)
       ;; NOTE(nox): This is needed because a session created in an indirect buffer would use the point of
       ;; the base buffer (as this buffer is indirect to the base!)
