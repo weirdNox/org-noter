@@ -563,6 +563,11 @@ Otherwise return the maximum value for point."
                       (generate-new-buffer-name (concat "Notes of " display-name)) t)
                    (current-buffer))))
 
+         (single (eq (or (buffer-base-buffer document-buffer)
+                         document-buffer)
+                     (or (buffer-base-buffer notes-buffer)
+                         notes-buffer)))
+
          (session
           (make-org-noter--session
            :id (org-noter--get-new-id)
@@ -621,15 +626,16 @@ Otherwise return the maximum value for point."
         (setq target-location (org-noter--parse-location-property (org-noter--get-containing-element t)))))
 
     ;; NOTE(nox): This timer is for preventing reflowing too soon.
-    (run-with-idle-timer
-     0.05 nil
-     (lambda ()
-       ;; NOTE(ahmed-shariff): setup-window run here to avoid crash when notes buffer not setup in time
-       (org-noter--setup-windows session)
-       (with-current-buffer document-buffer
-         (let ((org-noter--inhibit-location-change-handler t))
-           (when target-location (org-noter--doc-goto-location target-location)))
-         (org-noter--doc-location-change-handler))))))
+    (unless single
+      (run-with-idle-timer
+       0.05 nil
+       (lambda ()
+         ;; NOTE(ahmed-shariff): setup-window run here to avoid crash when notes buffer not setup in time
+         (org-noter--setup-windows session)
+         (with-current-buffer document-buffer
+           (let ((org-noter--inhibit-location-change-handler t))
+             (when target-location (org-noter--doc-goto-location target-location)))
+           (org-noter--doc-location-change-handler)))))))
 
 (defun org-noter--valid-session (session)
   (when session
