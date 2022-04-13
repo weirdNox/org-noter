@@ -365,6 +365,11 @@ The title used will be the default one."
            (or (buffer-base-buffer) (current-buffer))
            (generate-new-buffer-name (concat "Notes of " display-name)) t))
 
+         ;; NOTE(2e0byo): `make-frame' can modify point, possibly by calling a
+         ;; hook.  Thus we save the point before making the frame in case it
+         ;; moves.
+         (starting-point (point))
+
          (session
           (make-org-noter--session
            :id (org-noter--get-new-id)
@@ -392,8 +397,7 @@ The title used will be the default one."
            :closest-tipping-point (org-noter--property-or-default closest-tipping-point)
            :modified-tick -1))
 
-         (target-location org-noter--start-location-override)
-         (starting-point (point)))
+         (target-location org-noter--start-location-override))
 
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
     (push session org-noter--sessions)
