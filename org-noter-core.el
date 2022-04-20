@@ -1867,60 +1867,8 @@ want to kill."
   (interactive)
   (org-noter--with-valid-session
    (pcase (org-noter--session-doc-mode session)
-     ('djvu-read-mode (org-noter-create-skeleton-djvu))
      ('nov-mode (org-noter-create-skeleton-epub))
      (_ (user-error "This command is not supported for %s" (org-noter--session-doc-mode session))))))
-
-(defun org-noter-create-skeleton-djvu ()
-  (org-noter--with-valid-session
-   (let* ((ast (org-noter--parse-root))
-          (top-level (or (org-element-property :level ast) 0))
-          output-data)
-     (require 'thingatpt)
-     (with-current-buffer (djvu-ref outline-buf)
-       (unless (string= (buffer-string) "")
-         (push (vector "Skeleton" nil 1) output-data)
-         (save-excursion
-           (goto-char (point-min))
-           (while (not (looking-at "^$"))
-             (push (vector (string-trim-right (string-trim (thing-at-point 'line t)) " [[:digit:]]+")
-                           (list (string-trim-left (string-trim (thing-at-point 'line t)) ".* "))
-                           (+ 2 (how-many "  " (point-at-bol) (point-at-eol)))) output-data)
-             (forward-line)))))
-
-     (with-current-buffer (org-noter--session-notes-buffer session)
-       ;; NOTE(nox): org-with-wide-buffer can't be used because we want to reset the
-       ;; narrow region to include the new headings
-       (widen)
-       (save-excursion
-         (goto-char (org-element-property :end ast))
-
-         (let (last-absolute-level
-               title location relative-level contents
-               level)
-           
-           (dolist (data (nreverse output-data))
-             (setq title          (aref data 0)
-                   location       (aref data 1)
-                   relative-level (aref data 2))
-
-             (setq last-absolute-level (+ top-level relative-level)
-                   level last-absolute-level)
-
-             (org-noter--insert-heading level title)
-
-             (when location
-               (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
-
-             (when org-noter-doc-property-in-notes
-               (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
-               (org-entry-put nil org-noter--property-auto-save-last-location "nil"))))
-
-         (setq ast (org-noter--parse-root))
-         (org-noter--narrow-to-root ast)
-         (goto-char (org-element-property :begin ast))
-         (when (org-at-heading-p) (outline-hide-subtree))
-         (org-show-children 2))))))
 
 ;; Shamelessly stolen code from Yuchen Li.
 ;; This code is originally from org-noter-plus package.
