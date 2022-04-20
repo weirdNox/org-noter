@@ -415,6 +415,16 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-create-skeleton-functions nil
+  "Function that inserts a tree of headlines according to the outline of the document.
+
+The functions will be given a major mode of the document and must
+return a non-nil value when the outline is created.
+
+Used by `org-noter-create-skeleton'."
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter-open-document-functions nil
   "Functions that gives a buffer when passed with a document property.
 Used by `org-noter--create-session' when creating a new session."
@@ -1866,6 +1876,10 @@ want to kill."
   "Create notes skeleton based on the outline of the document."
   (interactive)
   (org-noter--with-valid-session
+   (or (run-hook-with-args-until-success 'org-noter-create-skeleton-functions
+                                         (org-noter--session-doc-mode session))
+       (user-error "This command is not supported for %s"
+                   (org-noter--session-doc-mode session)))))
 
 (defun org-noter-insert-note (&optional precise-info note-title)
   "Insert note associated with the current location.
