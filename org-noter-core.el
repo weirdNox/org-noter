@@ -702,13 +702,17 @@ If nil, the session used will be `org-noter--session'."
           (org-with-wide-buffer
            (catch 'break
 	     (while t
-               (when (string= (or (org-noter--get-or-read-document-property t)
-                                  (cadar (org-collect-keywords (list org-noter-property-doc-file))))
-                              wanted-prop)
-                 (setq root-pos (copy-marker (if (and org-noter-prefer-root-as-file-level
-                                                      (eq 'property-drawer (org-element-type (org-element-at-point 1))))
-                                                 (point-min)
-                                               (point)))))
+               (let ((document-property (or (org-entry-get nil org-noter-property-doc-file t)
+                                            (cadar (org-collect-keywords (list org-noter-property-doc-file))))))
+                 (when (string= (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook document-property)
+                                    document-property)
+                                wanted-prop)
+                   (setq root-pos (copy-marker (if (and org-noter-prefer-root-as-file-level
+                                                        (save-excursion
+                                                          (goto-char (point-min))
+                                                          (eq 'property-drawer (org-element-type (org-element-at-point)))))
+                                                   (point-min)
+                                                 (point))))))
                (unless (org-up-heading-safe) (throw 'break t))))))))
 
      ((org-noter--valid-session session)
