@@ -292,7 +292,8 @@ the functions in this list."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading)
+(defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading
+                                                    org-noter--get-containing-property-drawer)
   "The list of functions that will be called by
 `org-noter--get-containing-element' to get the org element of the note
 at point."
@@ -1064,6 +1065,19 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                 (throw 'break (if include-root heading previous)))
 
               (setq previous heading)))))))))
+
+(defun org-noter--get-containing-property-drawer (&optional include-root)
+  "Get smallest containing heading that encloses the point and has location property.
+If the point isn't inside any heading with location property, return the outer heading.
+When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
+  (org-noter--with-valid-session
+   (org-with-point-at (point-min)
+    (when (org-before-first-heading-p)
+      (let ((prop (org-entry-get nil org-noter-property-note-location))
+            (at-root (equal (org-noter--session-id session)
+                            (get-text-property (point) org-noter--id-text-property))))
+        (when (and (org-noter--check-location-property prop) (or include-root (not at-root)))
+          prop))))))
 
 (defun org-noter--doc-get-page-slice ()
   "Return (slice-top . slice-height)."
