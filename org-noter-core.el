@@ -1115,8 +1115,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 (defun org-noter--get-precise-info ()
   (org-noter--with-valid-session
    (let ((window (org-noter--get-doc-window))
-         (mode (org-noter--session-doc-mode session))
-         event)
+         (mode (org-noter--session-doc-mode session)))
      (with-selected-window window
        (run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode)))))
 
