@@ -20,10 +20,33 @@
 
 ;;; Code:
 (require 'citar)
+(require 'org-ref)
 
 ;; Regexp stolen from org-roam-bibtex; orb-utils-citekey-re.
 (defvar org-noter-citar-cite-key-re
-  "\\(?2:\\(?:Autocite[*s]?\\|Cite\\(?:a\\(?:l\\(?:[pt]\\*\\|[pt]\\)\\|uthor\\*?\\)\\|[pt]\\*\\|[pst]\\)?\\|Notecite\\|P\\(?:arencites?\\|notecite\\)\\|Smartcites?\\|Textcites?\\|autocite[*s]?\\|bibentry\\|cite\\(?:a\\(?:l\\(?:[pt]\\*\\|[pt]\\)\\|uthor\\*?\\)\\|date\\*?\\|num\\|p\\*\\|t\\(?:\\*\\|ext\\|itle\\*?\\)\\|url\\|year\\(?:\\*\\|par\\)?\\|[*pst]\\)?\\|f\\(?:notecite\\|oot\\(?:cite\\(?:s\\|texts?\\)?\\|fullcite\\)\\|ullcite\\)\\|no\\(?:\\(?:te\\)?cite\\)\\|p\\(?:arencite[*s]?\\|notecite\\)\\|s\\(?:martcites?\\|upercites?\\)\\|textcites?\\)\\):\\(?:\\(?1:[.0-:A-Z_a-z-]+\\)\\|[^&]*?&\\(?1:[!#-+./:<>-@^-`{-~[:word:]-]+\\)\\)\\|@\\(?1:[!#-+./:<>-@^-`{-~[:word:]-]+\\)"
+  (rx
+   (or
+    (seq (group-n 2 (regexp
+                     ;; If Org-ref is available, use its types
+                     ;; default to "cite"
+                     (if (boundp 'org-ref-cite-types)
+                         (regexp-opt
+                          (mapcar
+                           (lambda (el)
+                             ;; Org-ref v3 cite type is a list of strings
+                             ;; Org-ref v2 cite type is a plain string
+                             (or (car-safe el) el))
+                           org-ref-cite-types))
+                       "cite")))
+         ":"
+         (or
+          ;; Org-ref v2 style `cite:links'
+          (group-n 1 (+ (any "a-zA-Z0-9_:.-")))
+          ;; Org-ref v3 style `cite:Some&key'
+          (seq (*? (not "&")) "&"
+               (group-n 1 (+ (any "!#-+./:<>-@^-`{-~-" word))))))
+    ;; Org-cite [cite/@citations]
+    (seq "@" (group-n 1 (+ (any "!#-+./:<>-@^-`{-~-" word))))))
   "Universal regexp to match citations in ROAM_REFS.
 
 Supports Org-ref v2 and v3 and Org-cite.")
