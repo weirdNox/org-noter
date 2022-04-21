@@ -23,6 +23,7 @@
 ;; 
 
 ;;; Code:
+(require 'org-noter)
 
 (defun org-noter-djvu--pretty-print-location (location)
   (org-noter--with-valid-session
@@ -31,6 +32,8 @@
                       (car location)
                     location)))))
 
+(add-to-list 'org-noter--pretty-print-location-hook #'org-noter-djvu--pretty-print-location)
+
 (defun org-noter-djvu-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (cons djvu-doc-page (if (or (numberp precise-info)
                               (and (consp precise-info)
@@ -38,6 +41,8 @@
                                    (numberp (cdr precise-info))))
                           precise-info
                         (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
+
+(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-djvu-approx-location-cons)
 
 (defun org-noter-djvu--get-precise-info (major-mode)
   (when (eq major-mode 'djvu-read-mode)
@@ -48,24 +53,34 @@
         (setq event (read-event "Click where you want the start of the note to be!")))
       (posn-point (event-start event)))))
 
+(add-to-list 'org-noter--get-precise-info-hook #'org-noter-djvu--get-precise-info)
+
 (defun org-noter-djvu-setup-handler (major-mode)
   (when (eq major-mode 'djvu-read-mode)
     (advice-add 'djvu-init-page :after 'org-noter--location-change-advice)
     t))
+
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-djvu-setup-handler)
 
 (defun org-noter-djvu-goto-location (mode location)
   (when (eq mode 'djvu-read-mode)
     (djvu-goto-page (car location))
     (goto-char (org-noter--get-location-top location))))
 
+(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-djvu-goto-location)
+
 (defun org-noter-djvu--get-current-view (mode)
   (when (eq mode 'djvu-read-mode)
     (vector 'paged (car (org-noter-djvu-approx-location-cons mode)))))
+
+(add-to-list 'org-noter--get-current-view-hook #'org-noter-djvu--get-current-view)
 
 (defun org-noter-djvu--get-selected-text (mode)
   (when (and (eq mode 'djvu-read-mode)
              (region-active-p))
     (buffer-substring-no-properties (mark) (point))))
+
+(add-to-list 'org-noter-get-selected-text-hook #'org-noter-djvu--get-selected-text)
 
 (defun org-noter-create-skeleton-djvu ()
   (when (eq mode 'djvu-read-mode)

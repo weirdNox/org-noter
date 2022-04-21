@@ -23,7 +23,7 @@
 ;; 
 
 ;;; Code:
-
+(require 'org-noter)
 
 (defun org-noter-get-buffer-file-name-nov ()
   (bound-and-true-p nov-file-name))
@@ -39,11 +39,15 @@
                                    precise-info
                                  (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
 
+(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-nov-approx-location-cons)
+
 (defun org-noter-nov-setup-handler (major-mode)
   (when (eq major-mode 'nov-mode)
     (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
     (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)
     t))
+
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-nov-setup-handler)
 
 (defun org-noter-nov--pretty-print-location (location)
   (org-noter--with-valid-session
@@ -51,6 +55,9 @@
      (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 1))
                       (org-noter--get-location-page location)
                     location)))))
+
+(add-to-list 'org-noter--pretty-print-location-hook #'org-noter-nov--pretty-print-location)
+
 
 (defun org-noter-nov--get-precise-info (major-mode)
   (when (eq major-mode 'nov-mode)
@@ -61,6 +68,8 @@
         (setq event (read-event "Click where you want the start of the note to be!")))
       (posn-point (event-start event)))))
 
+(add-to-list 'org-noter--get-precise-info-hook #'org-noter-nov--get-precise-info)
+
 (defun org-noter-nov-goto-location (mode location)
   (when (eq mode 'nov-mode)
     (setq nov-documents-index (org-noter--get-location-page location))
@@ -70,15 +79,21 @@
     ;; everything and would run org-noter--nov-scroll-handler.
     (recenter)))
 
+(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-nov-goto-location)
+
 (defun org-noter-nov--get-current-view (mode)
   (when (eq mode 'nov-mode)
     (vector 'nov
             (org-noter-nov-approx-location-cons mode (window-start))
             (org-noter-nov-approx-location-cons mode (window-end nil t)))))
 
+(add-to-list 'org-noter--get-current-view-hook #'org-noter-nov--get-current-view)
+
 (defun org-noter-nov--get-selected-text (mode)
   (when (and (eq mode 'nov-mode) (region-active-p))
     (buffer-substring-no-properties (mark) (point))))
+
+(add-to-list 'org-noter-get-selected-text-hook #'org-noter-nov--get-selected-text)
 
 
 ;; Shamelessly stolen code from Yuchen Li.

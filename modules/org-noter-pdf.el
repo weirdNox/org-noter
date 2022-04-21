@@ -23,6 +23,7 @@
 ;; 
 
 ;;; Code:
+(require 'org-noter)
 
 (defun org-noter-pdf-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (when (memq major-mode '(doc-view-mode pdf-view-mode))
@@ -31,12 +32,16 @@
                                                  (numberp (cadr precise-info)))
                                             precise-info 0))))
 
+(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
+
 (defun org-noter-pdf-view-setup-handler (major-mode)
   (when (eq major-mode 'pdf-view-mode)
     ;; (setq buffer-file-name document-path)
     (pdf-view-mode)
     (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t)
     t))
+
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-pdf-view-setup-handler)
 
 (defun org-noter-doc-view-setup-handler (major-mode)
   (when (eq major-mode 'doc-view-mode)
@@ -45,12 +50,16 @@
     (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice)
     t))
 
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-doc-view-setup-handler)
+
 (defun org-noter-pdf--pretty-print-location (location)
   (org-noter--with-valid-session
    (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
      (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
                       (car location)
                     location)))))
+
+(add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
 
 (defun org-noter-pdf--get-precise-info (major-mode)
   (when (eq major-mode 'pdf-view-mode)
@@ -65,6 +74,8 @@
         (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
                                                 (+ (window-hscroll) (car col-row)))))))
 
+(add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
+
 (defun org-noter-doc--get-precise-info (major-mode)
   (when (eq major-mode 'doc-view-mode)
     (while (not (and (eq 'mouse-1 (car event))
@@ -72,6 +83,8 @@
       (setq event (read-event "Click where you want the start of the note to be!")))
     (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
                                                (cdr (posn-col-row (event-start event)))))))
+
+(add-to-list 'org-noter--get-precise-info-hook #'org-noter-doc--get-precise-info)
 
 
 (defun org-noter-pdf-goto-location (mode location)
@@ -94,14 +107,20 @@
       (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
                           (window-vscroll))))))
 
+(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-pdf-goto-location)
+
 (defun org-noter-pdf--get-current-view (mode)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (vector 'paged (car (org-noter-pdf-approx-location-cons mode)))))
+
+(add-to-list 'org-noter--get-current-view-hook #'org-noter-pdf--get-current-view)
 
 (defun org-noter-pdf--get-selected-text (mode)
   (when (and (eq mode 'pdf-view-mode)
              (pdf-view-active-region-p))
     (mapconcat 'identity (pdf-view-active-region-text) ? )))
+
+(add-to-list 'org-noter-get-selected-text-hook #'org-noter-pdf--get-selected-text)
 
 (defun org-noter-create-skeleton-pdf (mode)
   "Create notes skeleton with the PDF outline or annotations."

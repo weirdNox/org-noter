@@ -40,10 +40,6 @@
 (require 'cl-lib)
 (require 'pdf-tools)
 
-(require 'org-noter-nov)
-(require 'org-noter-pdf)
-(require 'org-noter-djvu)
-
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
 (declare-function image-get-display-property "image-mode")
@@ -331,19 +327,12 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-set-up-document-handler
-  '(org-noter-nov-setup-handler
-    org-noter-pdf-view-setup-handler
-    org-noter-doc-view-setup-handler
-    org-noter-djvu-setup-handler)
+(defcustom org-noter-set-up-document-hook nil
   "TODO"
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-get-selected-text-hook
-  '(org-noter-nov--get-selected-text
-    org-noter-pdf--get-selected-text
-    org-noter-djvu--get-selected-text)
+(defcustom org-noter-get-selected-text-hook nil
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -359,10 +348,7 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--pretty-print-location-hook
-  '(org-noter-nov--pretty-print-location
-    org-noter-pdf--pretty-print-location
-    org-noter-djvu--pretty-print-location)
+(defcustom org-noter--pretty-print-location-hook nil
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -372,10 +358,7 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--doc-goto-location-hook
-  '(org-noter-pdf-goto-location
-    org-noter-nov-goto-location
-    org-noter-djvu-goto-location)
+(defcustom org-noter--doc-goto-location-hook nil
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -390,28 +373,18 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--get-precise-info-hook
-  '(org-noter-nov--get-precise-info
-    org-noter-djvu--get-precise-info
-    org-noter-pdf--get-precise-info
-    org-noter-doc--get-precise-info)
+(defcustom org-noter--get-precise-info-hook nil
   "TODO"
   :group 'org-noter
   :type 'hook)
 
 
-(defcustom org-noter--get-current-view-hook
-  '(org-noter-nov--get-current-view
-    org-noter-djvu--get-current-view
-    org-noter-pdf--get-current-view)
+(defcustom org-noter--get-current-view-hook nil
   "TODO"
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--doc-approx-location-hook
-  '(org-noter-nov-approx-location-cons
-    org-noter-pdf-approx-location-cons
-    org-noter-djvu-approx-location-cons)
+(defcustom org-noter--doc-approx-location-hook nil
   "TODO"
   :group 'org-noter
   :type 'hook)
@@ -1021,6 +994,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--check-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (or (and (consp value) (integerp (car value)) (numberp (cdr value)))
+                (and (consp value) (integerp (car value)) (integerp (cadr value)) (integerp (cddr value)))
                 (integerp value)))))))
 
 (defun org-noter--parse-location-property (arg)
@@ -1938,13 +1912,17 @@ defines if the text should be inserted inside the note."
 
          (let ((point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
-               collection default default-begin title selection
+               collection default default-begin title selection quote-p
                (empty-lines-number (if org-noter-separate-notes-from-heading 2 1)))
 
            (cond
             ;; NOTE(nox): Both precise and without questions will create new notes
             ((or precise-info force-new)
-             (setq default (and selected-text (replace-regexp-in-string "\n" " " selected-text))))
+             (setq quote-p (with-temp-buffer
+                             (insert selected-text)
+                             (> (how-many "\n" (point-min)) 2)))
+             (setq default (and selected-text
+                                (replace-regexp-in-string "\n" " " selected-text))))
             (org-noter-insert-note-no-questions)
             (t
              (dolist (note-cons (org-noter--view-info-notes view-info))
@@ -1991,8 +1969,9 @@ defines if the text should be inserted inside the note."
              ;; NOTE(nox): Inserting a new note
              (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
                    level)
-               (when (zerop (length title))
-                 (setq title (replace-regexp-in-string (regexp-quote "$p$") (number-to-string (org-noter--get-location-page location))
+               (when (or quote-p (zerop (length title)))
+                 (setq title (replace-regexp-in-string (regexp-quote "$p$")
+                                                       (org-noter--pretty-print-location location)
                                                        org-noter-default-heading-title)))
 
                (if reference-element-cons
@@ -2008,14 +1987,19 @@ defines if the text should be inserted inside the note."
 
                      (setq level (org-element-property :level (cdr reference-element-cons))))
 
-                 (goto-char (org-element-map contents 'section
-                              (lambda (section) (org-element-property :end section))
-                              nil t org-element-all-elements))
-                 (setq level (1+ (org-element-property :level ast))))
+                 (goto-char (or (org-element-map contents 'section
+                                  (lambda (section) (org-element-property :end section))
+                                  nil t org-element-all-elements)
+                                (point-max))))
+               
+               (setq level (1+ (or (org-element-property :level ast) 0)))
 
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
                (org-noter--insert-heading level title empty-lines-number location)
+               (when quote-p
+                 (save-excursion
+                   (insert "#+BEGIN_QUOTE\n" selected-text "\n#+END_QUOTE")))
                (when (org-noter--session-hide-other session) (org-overview))
 
                (setf (org-noter--session-num-notes-in-view session)
