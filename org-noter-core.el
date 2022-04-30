@@ -1575,9 +1575,19 @@ relative to."
       (unless (org-noter--check-doc-prop doc-prop)
         (setq doc-prop (expand-file-name
                         (read-file-name
-                         "Invalid or no document property found. Please specify a document path: " nil nil t)))
-        (when (or (file-directory-p doc-prop) (not (file-readable-p doc-prop))) (user-error "Invalid file path"))
-        (when (y-or-n-p "Do you want a relative file name? ") (setq doc-prop (file-relative-name doc-prop))))
+                         (cond
+                          ((null doc-prop) "No document property found. Please specify a document path: ")
+                          ((file-directory-p doc-prop)
+                           (format "Document property (\"%s\") is a directory. Please specify a document file: "
+                                   doc-prop))
+                          ((not (file-readable-p doc-prop))
+                           (format "The file specified by the document property \"%s\" is unreadable. Please specify a new document: "
+                                   doc-prop)))
+                         nil nil t)))
+        (when (or (file-directory-p doc-prop) (not (file-readable-p doc-prop)))
+          (user-error "Invalid file path"))
+        (when (y-or-n-p "Do you want a relative file name? ")
+          (setq doc-prop (file-relative-name doc-prop))))
 
       (org-entry-put nil org-noter-property-doc-file doc-prop))
     doc-prop))
