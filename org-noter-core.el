@@ -1390,87 +1390,88 @@ relative to."
 
        (with-current-buffer (or (buffer-base-buffer (org-noter--session-notes-buffer session))
                                 (org-noter--session-notes-buffer session))
-        (org-element-cache-map
-         (lambda (element)
-           (let ((doc-file (org-noter--doc-file-property element))
-                 (location (org-noter--parse-location-property element)))
-             (when (and ignore-until-level (<= (or (org-element-property :level element) 0) ignore-until-level))
-               (setq ignore-until-level nil))
+         (org-element-map contents org-noter--note-search-element-type
+           (lambda (element)
+             (let ((doc-file (org-noter--doc-file-property element))
+                   (location (org-noter--parse-location-property element)))
+               (when (and ignore-until-level (<= (org-element-property :level element) ignore-until-level))
+                 (setq ignore-until-level nil))
 
-             (cond
-              (ignore-until-level) ;; NOTE(nox): This heading is ignored, do nothing
+               (cond
+                (ignore-until-level) ;; NOTE(nox): This heading is ignored, do nothing
 
-              ((and doc-file (not (string= doc-file (org-noter--session-property-text session))))
-               (org-noter--view-region-finish current-region-info element)
-               (setq ignore-until-level (or (org-element-property :level element) 0))
-               (when (and preamble new-location
-                          (or (not reference-for-insertion)
-                              (>= (org-element-property :begin element)
-                                  (org-element-property :end (cdr reference-for-insertion)))))
-                 (setq reference-for-insertion (cons 'after element))))
+                ((and doc-file (not (string= doc-file (org-noter--session-property-text session))))
+                 (org-noter--view-region-finish current-region-info element)
+                 (setq ignore-until-level (org-element-property :level element))
+                 (when (and preamble new-location
+                            (or (not reference-for-insertion)
+                                (>= (org-element-property :begin element)
+                                    (org-element-property :end (cdr reference-for-insertion)))))
+                   (setq reference-for-insertion (cons 'after element))))
 
-              (location
-               (let ((relative-position (org-noter--relative-position-to-view location view)))
-                 (cond
-                  ((eq relative-position 'inside)
-                   (push (cons element nil) notes-in-view)
+                (location
+                 (let ((relative-position (org-noter--relative-position-to-view location view)))
+                   (cond
+                    ((eq relative-position 'inside)
+                     (push (cons element nil) notes-in-view)
 
-                   (org-noter--view-region-add current-region-info regions-in-view element)
+                     (org-noter--view-region-add current-region-info regions-in-view element)
 
-                   (setq all-after-tipping-point
-                         (and all-after-tipping-point (org-noter--note-after-tipping-point
-                                                       closest-tipping-point location view))))
+                     (setq all-after-tipping-point
+                           (and all-after-tipping-point (org-noter--note-after-tipping-point
+                                                         closest-tipping-point location view))))
 
-                  (t
-                   (when current-region-info
-                     (let ((note-cons-to-change (cond ((eq (aref current-region-info 3) 'regions-in-view)
-                                                       (car notes-in-view))
-                                                      ((eq (aref current-region-info 3) 'closest-notes-regions)
-                                                       (car closest-notes)))))
-                       (when (< (org-element-property :begin element)
-                                (org-element-property :end (car note-cons-to-change)))
-                         (setcdr note-cons-to-change element))))
+                    (t
+                     (when current-region-info
+                       (let ((note-cons-to-change (cond ((eq (aref current-region-info 3) 'regions-in-view)
+                                                         (car notes-in-view))
+                                                        ((eq (aref current-region-info 3) 'closest-notes-regions)
+                                                         (car closest-notes)))))
+                         (when (< (org-element-property :begin element)
+                                  (org-element-property :end (car note-cons-to-change)))
+                           (setcdr note-cons-to-change element))))
 
-                   (let ((eligible-for-before (and closest-tipping-point all-after-tipping-point
-                                                   (eq relative-position 'before)
-                                                   (not (= root-pos (org-element-property :begin element))))))
-                     (cond ((and eligible-for-before
-                                 (org-noter--compare-locations '> location closest-notes-location))
-                            (setq closest-notes (list (cons element nil))
-                                  closest-notes-location location
-                                  current-region-info nil
-                                  closest-notes-regions nil)
-                            (org-noter--view-region-add current-region-info closest-notes-regions element))
+                     (let ((eligible-for-before (and closest-tipping-point all-after-tipping-point
+                                                     (eq relative-position 'before))))
+                       (cond ((and eligible-for-before
+                                   (org-noter--compare-locations '> location closest-notes-location))
+                              (setq closest-notes (list (cons element nil))
+                                    closest-notes-location location
+                                    current-region-info nil
+                                    closest-notes-regions nil)
+                              (org-noter--view-region-add current-region-info closest-notes-regions element))
 
-                           ((and eligible-for-before (equal location closest-notes-location))
-                            (push (cons element nil) closest-notes)
-                            (org-noter--view-region-add current-region-info closest-notes-regions element))
+                             ((and eligible-for-before (equal location closest-notes-location))
+                              (push (cons element nil) closest-notes)
+                              (org-noter--view-region-add current-region-info closest-notes-regions element))
 
-                           (t (org-noter--view-region-finish current-region-info element)))))))
+                             (t (org-noter--view-region-finish current-region-info element)))))))
 
-               (when new-location
-                 (setq preamble nil)
-                 (cond ((and (org-noter--compare-locations '<= location new-location)
-                             (or (eq (car reference-for-insertion) 'before)
-                                 (org-noter--compare-locations '>= location reference-location)))
-                        (setq reference-for-insertion (cons 'after element)
-                              reference-location location))
+                 (when new-location
+                   (setq preamble nil)
+                   (cond ((and (org-noter--compare-locations '<= location new-location)
+                               (or (eq (car reference-for-insertion) 'before)
+                                   (org-noter--compare-locations '>= location reference-location)))
+                          (setq reference-for-insertion (cons 'after element)
+                                reference-location location))
 
-                       ((and (eq (car reference-for-insertion) 'after)
-                             (< (org-element-property :begin element)
-                                (org-element-property :end (cdr reference-for-insertion)))
-                             (org-noter--compare-locations '>= location new-location))
-                        (setq reference-for-insertion (cons 'before element)
-                              reference-location location)))))
+                         ((and (eq (car reference-for-insertion) 'after)
+                               (< (org-element-property :begin element)
+                                  (org-element-property :end (cdr reference-for-insertion)))
+                               (org-noter--compare-locations '>= location new-location))
+                          (setq reference-for-insertion (cons 'before element)
+                                reference-location location)))))
 
-              (t
-               (when (and preamble new-location
-                          (or (not reference-for-insertion)
-                              (>= (org-element-property :begin element)
-                                  (org-element-property :end (cdr reference-for-insertion)))))
-                 (setq reference-for-insertion (cons 'after element)))))))
-         :granularity 'element
-         :restrict-elements org-noter--note-search-element-type))
+                (t
+                 (when (and preamble new-location
+                            (or (not reference-for-insertion)
+                                (>= (org-element-property :begin element)
+                                    (org-element-property :end (cdr reference-for-insertion)))))
+                   (setq reference-for-insertion (cons 'after element)))))))
+           nil nil (mapcar (lambda (el)
+                             (unless (memq el org-noter--note-search-element-type)
+                               el))
+                           org-element-all-elements)))
        
        (org-noter--view-region-finish current-region-info)
 
