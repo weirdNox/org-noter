@@ -586,8 +586,8 @@ Otherwise return the maximum value for point."
     (push session org-noter--sessions)
 
     (with-current-buffer document-buffer
-      (or (run-hook-with-args-until-success 'org-noter-set-up-document-handler document-major-mode)
-          (run-hook-with-args-until-success 'org-noter-set-up-document-handler document-property-value)
+      (or (run-hook-with-args-until-success 'org-noter-set-up-document-hook document-major-mode)
+          (run-hook-with-args-until-success 'org-noter-set-up-document-hook document-property-value)
           (error "This document handler is not supported :/"))
 
       (org-noter-doc-mode 1)
