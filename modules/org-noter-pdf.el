@@ -137,11 +137,11 @@
 
          (when (memq 'outline answer)
            (dolist (item (pdf-info-outline))
-             (let ((type  (alist-get 'type item))
-                   (page  (alist-get 'page item))
+             (let ((type (alist-get 'type item))
+                   (page (alist-get 'page item))
                    (depth (alist-get 'depth item))
                    (title (alist-get 'title item))
-                   (top   (alist-get 'top item)))
+                   (top (alist-get 'top item)))
                (when (and (eq type 'goto-dest) (> page 0))
                  (push (vector title (cons page top) (1+ depth) nil) output-data)))))
 
@@ -173,8 +173,8 @@
              (setq insert-contents (y-or-n-p "Should we insert the annotations contents? "))
 
              (dolist (item (pdf-info-getannots))
-               (let* ((type  (alist-get 'type item))
-                      (page  (alist-get 'page item))
+               (let* ((type (alist-get 'type item))
+                      (page (alist-get 'page item))
                       (edges (or (org-noter--pdf-tools-edges-to-region (alist-get 'markup-edges item))
                                  (alist-get 'edges item)))
                       (top (nth 1 edges))
@@ -184,10 +184,10 @@
                  (when (and (memq type chosen-annots) (> page 0))
                    (if (eq type 'link)
                        (cl-pushnew page pages-with-links)
-                     (setq name (cond ((eq type 'highlight)  "Highlight")
-                                      ((eq type 'underline)  "Underline")
-                                      ((eq type 'squiggly)   "Squiggly")
-                                      ((eq type 'text)       "Text note")
+                     (setq name (cond ((eq type 'highlight) "Highlight")
+                                      ((eq type 'underline) "Underline")
+                                      ((eq type 'squiggly) "Squiggly")
+                                      ((eq type 'text) "Text note")
                                       ((eq type 'strike-out) "Strikeout")))
 
                      (when insert-contents
@@ -205,7 +205,7 @@
                (let ((links (pdf-info-pagelinks page))
                      type)
                  (dolist (link links)
-                   (setq type (alist-get 'type  link))
+                   (setq type (alist-get 'type link))
                    (unless (eq type 'goto-dest) ;; NOTE(nox): Ignore internal links
                      (let* ((edges (alist-get 'edges link))
                             (title (alist-get 'title link))
@@ -254,10 +254,10 @@
                  title location relative-level contents
                  level)
              (dolist (data output-data)
-               (setq title          (aref data 0)
-                     location       (aref data 1)
+               (setq title (aref data 0)
+                     location (aref data 1)
                      relative-level (aref data 2)
-                     contents       (aref data 3))
+                     contents (aref data 3))
 
                (if (symbolp relative-level)
                    (setq level (1+ last-absolute-level))
@@ -284,7 +284,10 @@
            (org-noter--narrow-to-root ast)
            (goto-char (org-element-property :begin ast))
            (outline-hide-subtree)
-           (org-show-children 2)))))))
+           (org-show-children 2)))
+       output-data))))
+
+(add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-pdf)
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
