@@ -1377,7 +1377,10 @@ the best heading to serve as a reference to create the new one
 relative to."
   (when view
     (org-noter--with-valid-session
-     (let ((root-pos (org-element-property :begin (org-noter--parse-root)))
+     (let ((contents (if (= 0 (org-noter--session-level session))
+                         (org-element-contents
+                          (org-element-property :parent (org-noter--parse-root)))
+                       (org-element-contents (org-noter--parse-root))))
            (preamble t)
            notes-in-view regions-in-view
            reference-for-insertion reference-location
@@ -1468,10 +1471,7 @@ relative to."
                                 (>= (org-element-property :begin element)
                                     (org-element-property :end (cdr reference-for-insertion)))))
                    (setq reference-for-insertion (cons 'after element)))))))
-           nil nil (mapcar (lambda (el)
-                             (unless (memq el org-noter--note-search-element-type)
-                               el))
-                           org-element-all-elements)))
+           nil nil (delete 'headline (append org-element-all-elements nil))))
        
        (org-noter--view-region-finish current-region-info)
 
