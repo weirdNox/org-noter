@@ -21,6 +21,7 @@
 ;;; Code:
 (require 'citar)
 (require 'org-ref)
+(require 'seq)
 
 ;; Regexp stolen from org-roam-bibtex; orb-utils-citekey-re.
 (defvar org-noter-citar-cite-key-re
@@ -62,7 +63,7 @@ user select one of them."
                    entries
                    (append citar-library-paths citar-notes-paths) nil))
            (url (list (citar-get-link (car entries))))
-           (documents (flatten-list (append files url))))
+           (documents (flatten-list (append (seq-remove #'file-directory-p files) url))))
       (cond ((= (length documents) 1)
              (car documents))
             ((> (length documents) 1)
