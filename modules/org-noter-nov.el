@@ -114,67 +114,70 @@
                     (dom-children li)))
           (dom-children ol)))
 
-(defun org-noter-create-skeleton-epub ()
+(defun org-noter-create-skeleton-epub (mode)
   "Epub outline with nov link."
-  (require 'esxml)    
-  (require 'nov)
-  (require 'dom)
-  (org-noter--with-valid-session
-   (let* ((ast (org-noter--parse-root))
-          (top-level (or (org-element-property :level ast) 0))
-          output-data)
-     (with-current-buffer (org-noter--session-doc-buffer session)
-       (let* ((toc-path (cdr (aref nov-documents 0)))
-              (toc-tree (with-temp-buffer
-                          (insert (nov-ncx-to-html toc-path))
-                          (replace-regexp "\n"
-                                          ""
-                                          nil
-                                          (point-min)
-                                          (point-max))
-                          (libxml-parse-html-region (point-min)
-                                                    (point-max))))
-              (origin-index nov-documents-index)
-              (origin-point (point)))
-         (dolist (item
-                  (nreverse (flatten-tree (org-noter--handle-nov-toc-item toc-tree 1))))
-           (let ((relative-level  (aref item 1))
-                 (title  (aref item 3))
-                 (url (aref item 5)))
-             (apply 'nov-visit-relative-file
-                    (nov-url-filename-and-target url))
-             (when (not (integerp nov-documents-index))
-               (setq nov-documents-index 0))
-             (push (vector title (list nov-documents-index (point)) relative-level) output-data)))
-         (push (vector "Skeleton" (list 0) 1) output-data)
+  (when (eq mode 'nov-mode)
+    (require 'esxml)
+    (require 'nov)
+    (require 'dom)
+    (org-noter--with-valid-session
+     (let* ((ast (org-noter--parse-root))
+            (top-level (or (org-element-property :level ast) 0))
+            output-data)
+       (with-current-buffer (org-noter--session-doc-buffer session)
+         (let* ((toc-path (cdr (aref nov-documents 0)))
+                (toc-tree (with-temp-buffer
+                            (insert (nov-ncx-to-html toc-path))
+                            (replace-regexp "\n"
+                                            ""
+                                            nil
+                                            (point-min)
+                                            (point-max))
+                            (libxml-parse-html-region (point-min)
+                                                      (point-max))))
+                (origin-index nov-documents-index)
+                (origin-point (point)))
+           (dolist (item
+                    (nreverse (flatten-tree (org-noter--handle-nov-toc-item toc-tree 1))))
+             (let ((relative-level  (aref item 1))
+                   (title  (aref item 3))
+                   (url (aref item 5)))
+               (apply 'nov-visit-relative-file
+                      (nov-url-filename-and-target url))
+               (when (not (integerp nov-documents-index))
+                 (setq nov-documents-index 0))
+               (push (vector title (list nov-documents-index (point)) relative-level) output-data)))
+           (push (vector "Skeleton" (list 0) 1) output-data)
        
-         (nov-goto-document origin-index)
-         (goto-char origin-point)))
-     (save-excursion
-       (goto-char (org-element-property :end ast))
-       (with-current-buffer (org-noter--session-notes-buffer session)
-         (dolist (data output-data)
-           (setq title          (aref data 0)
-                 location       (aref data 1)
-                 relative-level (aref data 2))
+           (nov-goto-document origin-index)
+           (goto-char origin-point)))
+       (save-excursion
+         (goto-char (org-element-property :end ast))
+         (with-current-buffer (org-noter--session-notes-buffer session)
+           (dolist (data output-data)
+             (setq title          (aref data 0)
+                   location       (aref data 1)
+                   relative-level (aref data 2))
 
-           (setq last-absolute-level (+ top-level relative-level)
-                 level last-absolute-level)
+             (setq last-absolute-level (+ top-level relative-level)
+                   level last-absolute-level)
 
-           (org-noter--insert-heading level title)
+             (org-noter--insert-heading level title)
 
-           (when location
-             (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
+             (when location
+               (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
 
-           (when org-noter-doc-property-in-notes
-             (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
-             (org-entry-put nil org-noter--property-auto-save-last-location "nil")))
-         (setq ast (org-noter--parse-root))
-         (org-noter--narrow-to-root ast)
-         (goto-char (org-element-property :begin ast))
-         (outline-hide-subtree)
-         (org-show-children 2))))))
+             (when org-noter-doc-property-in-notes
+               (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
+               (org-entry-put nil org-noter--property-auto-save-last-location "nil")))
+           (setq ast (org-noter--parse-root))
+           (org-noter--narrow-to-root ast)
+           (goto-char (org-element-property :begin ast))
+           (outline-hide-subtree)
+           (org-show-children 2)))
+       output-data))))
 
+(add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-epub)
 
 (provide 'org-noter-nov)
 ;;; org-noter-nov.el ends here

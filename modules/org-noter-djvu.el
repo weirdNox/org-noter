@@ -35,12 +35,13 @@
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-djvu--pretty-print-location)
 
 (defun org-noter-djvu-approx-location-cons (major-mode &optional precise-info _force-new-ref)
-  (cons djvu-doc-page (if (or (numberp precise-info)
-                              (and (consp precise-info)
-                                   (numberp (car precise-info))
-                                   (numberp (cdr precise-info))))
-                          precise-info
-                        (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))
+  (when (eq major-mode 'djvu-read-mode)
+    (cons djvu-doc-page (if (or (numberp precise-info)
+                                (and (consp precise-info)
+                                     (numberp (car precise-info))
+                                     (numberp (cdr precise-info))))
+                            precise-info
+                          (max 1 (/ (+ (window-start) (window-end nil t)) 2))))))
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-djvu-approx-location-cons)
 
@@ -82,7 +83,7 @@
 
 (add-to-list 'org-noter-get-selected-text-hook #'org-noter-djvu--get-selected-text)
 
-(defun org-noter-create-skeleton-djvu ()
+(defun org-noter-create-skeleton-djvu (mode)
   (when (eq mode 'djvu-read-mode)
     (org-noter--with-valid-session
      (let* ((ast (org-noter--parse-root))
@@ -132,7 +133,10 @@
            (org-noter--narrow-to-root ast)
            (goto-char (org-element-property :begin ast))
            (when (org-at-heading-p) (outline-hide-subtree))
-           (org-show-children 2)))))))
+           (org-show-children 2)))
+       output-data))))
+
+(add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-djvu)
 
 (provide 'org-noter-djvu)
 ;;; org-noter-djvu.el ends here
