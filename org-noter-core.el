@@ -595,7 +595,6 @@ Otherwise return the maximum value for point."
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t))
 
     (with-current-buffer notes-buffer
-      (org-noter-doc-mode -1)
       (org-noter-notes-mode 1)
       ;; NOTE(nox): This is needed because a session created in an indirect buffer would use the point of
       ;; the base buffer (as this buffer is indirect to the base!)
@@ -1930,7 +1929,7 @@ defines if the text should be inserted inside the note."
             ;; NOTE(nox): Both precise and without questions will create new notes
             ((or precise-info force-new)
              (setq quote-p (with-temp-buffer
-                             (insert selected-text)
+                             (insert (or selected-text ""))
                              (> (how-many "\n" (point-min)) 2)))
              (setq default (and selected-text
                                 (replace-regexp-in-string "\n" " " selected-text))))
@@ -2220,7 +2219,9 @@ Keymap:
             (,(kbd "M-n")   . org-noter-sync-next-page-or-chapter)
             (,(kbd "C-M-p") . org-noter-sync-prev-note)
             (,(kbd "C-M-.") . org-noter-sync-current-note)
-            (,(kbd "C-M-n") . org-noter-sync-next-note)))
+            (,(kbd "C-M-n") . org-noter-sync-next-note))
+  (if org-noter-doc-mode
+      (org-noter-doc-mode -1)))
 
 (provide 'org-noter-core)
 ;;; org-noter-core.el ends here
