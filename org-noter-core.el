@@ -530,7 +530,7 @@ Otherwise return the maximum value for point."
                            (progn (org-link-open-from-string document-property-value)
                                   (current-buffer))
                          (find-file-noselect document-property-value))))
-         (document-major-mode (if link-p
+         (document-major-mode (if (or link-p (eq document (current-buffer)))
                                   document-property-value
                                 (buffer-local-value 'major-mode document)))
          (document-buffer-name
