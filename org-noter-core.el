@@ -1256,7 +1256,7 @@ document property) will be opened."
    (if (org-noter--session-hide-other session)
        (save-excursion
          (goto-char (org-element-property :begin (org-noter--parse-root)))
-         (unless (org-noter--no-heading-p)
+         (unless (org-before-first-heading-p)
            (outline-hide-subtree)))
      (org-cycle-hide-drawers 'all))
 
