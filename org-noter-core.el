@@ -1945,7 +1945,7 @@ defines if the text should be inserted inside the note."
 
            (setq collection (nreverse collection)
                  title (if (or org-noter-insert-note-no-questions note-title)
-                           (or default note-title)
+                           (or org-noter-default-heading-title note-title)
                          (completing-read "Note: " collection nil nil nil nil default))
                  selection (unless org-noter-insert-note-no-questions (cdr (assoc title collection))))
 
@@ -1982,7 +1982,7 @@ defines if the text should be inserted inside the note."
                (when (or quote-p (zerop (length title)))
                  (setq title (replace-regexp-in-string (regexp-quote "$p$")
                                                        (org-noter--pretty-print-location location)
-                                                       org-noter-default-heading-title)))
+                                                       title)))
 
                (if reference-element-cons
                    (progn
