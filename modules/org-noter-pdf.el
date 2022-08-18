@@ -90,6 +90,7 @@
 (defun org-noter-pdf-goto-location (mode location)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (let ((top (org-noter--get-location-top location))
+          (window (org-noter--get-doc-window))
           (left (org-noter--get-location-left location)))
 
       (if (eq mode 'doc-view-mode)
@@ -288,6 +289,21 @@
        output-data))))
 
 (add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-pdf)
+
+(add-to-list 'org-noter--parse-location-property-hook #'org-noter-pdf--parse-location)
+
+(defun org-noter-pdf--parse-location (arg)
+  "return a pdf location from an existing property. expecting (page left)"
+  (let* ((location (car (read-from-string arg))))
+    location))
+
+(defun org-noter-pdf--create-missing-annotation ()
+  "Add a highlight from a selected note."
+  (let* ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
+    (with-selected-window (org-noter--get-doc-window)
+      (org-noter-pdf-goto-location 'pdf-view-mode location)
+      (pdf-annot-add-highlight-markup-annotation (cdr location)))))
+
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here

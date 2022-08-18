@@ -2039,8 +2039,12 @@ See `org-noter-insert-note' docstring for more."
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (if toggle-no-questions
                                                  (not org-noter-insert-note-no-questions)
-                                               org-noter-insert-note-no-questions)))
-     (org-noter-insert-note (org-noter--get-precise-info)))))
+                                               org-noter-insert-note-no-questions))
+         (precise-info (org-noter--get-precise-info)))
+     (message (format "dmitry --- %s" precise-info))
+     ;; TODO: This is all wrong.
+     (pdf-annot-add-highlight-markup-annotation precise-info)
+     (org-noter-insert-note precise-info))))
 
 
 (defun org-noter-insert-note-toggle-no-questions ()
