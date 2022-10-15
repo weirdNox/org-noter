@@ -153,17 +153,13 @@ notes file, even if it finds one."
              ;; be the same as `buffer-file-name', but is needed for the truename workaround
              (document-used-path (expand-file-name document-name document-directory))
 
-             (search-names (append org-noter-default-notes-file-names
-                                   (list (concat document-base ".org"))
-                                   (list (run-hook-with-args-until-success 'org-noter-find-additional-notes-functions document-path))))
+             (search-names (remove nil (append org-noter-default-notes-file-names
+                                       (list (concat document-base ".org"))
+                                       (list (run-hook-with-args-until-success 'org-noter-find-additional-notes-functions document-path)))))
              notes-files-annotating ; List of files annotating document
              notes-files ; List of found notes files (annotating or not)
 
              (document-location (org-noter--doc-approx-location)))
-
-        ;; remove nil lists at end of search-names
-        (while (equal (last search-names) (list nil))
-          (nbutlast search-names))
 
         ;; NOTE(nox): Check the search path
         (dolist (path org-noter-notes-search-path)
