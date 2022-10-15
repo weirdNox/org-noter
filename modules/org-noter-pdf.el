@@ -32,6 +32,12 @@
                                                  (numberp (cadr precise-info)))
                                             precise-info 0))))
 
+(defun org-noter-get-buffer-file-name-pdf (&optional arg)
+  ;;(bound-and-true-p nov-file-name)
+  "/Users/dmitrymarkushevich/org-roam/pubs/solove-nothing-to-hide.pdf")
+
+
+
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
 (defun org-noter-pdf-view-setup-handler (major-mode)
