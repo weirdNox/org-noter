@@ -20,12 +20,12 @@
 
 ;;; Commentary:
 
-;; 
+;;
 
 ;;; Code:
 (require 'org-noter)
 
-(defun org-noter-get-buffer-file-name-nov ()
+(defun org-noter-get-buffer-file-name-nov (&optional major-mode)
   (bound-and-true-p nov-file-name))
 
 
@@ -148,7 +148,7 @@
                  (setq nov-documents-index 0))
                (push (vector title (list nov-documents-index (point)) relative-level) output-data)))
            (push (vector "Skeleton" (list 0) 1) output-data)
-       
+
            (nov-goto-document origin-index)
            (goto-char origin-point)))
        (save-excursion
