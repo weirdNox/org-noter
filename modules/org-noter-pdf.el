@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; 
+;;
 
 ;;; Code:
 (require 'org-noter)
@@ -39,7 +39,7 @@
 
 (defun org-noter-pdf-check-location-property (&optional property)
   "Check if PROPERTY is a valid location property"
-  t)
+  (equal 5 (length (read property))))
 
 
 (add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
