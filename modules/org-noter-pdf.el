@@ -35,6 +35,9 @@
 (defun org-noter-get-buffer-file-name-pdf (&optional arg)
   ;;(bound-and-true-p nov-file-name)
   "/Users/dmitrymarkushevich/org-roam/pubs/solove-nothing-to-hide.pdf")
+(defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
+  "Return the file naming backing the document buffer"
+  (bound-and-true-p pdf-file-name))
 
 
 
