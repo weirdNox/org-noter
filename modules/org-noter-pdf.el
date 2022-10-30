@@ -32,15 +32,17 @@
                                                  (numberp (cadr precise-info)))
                                             precise-info 0))))
 
-(defun org-noter-get-buffer-file-name-pdf (&optional arg)
-  ;;(bound-and-true-p nov-file-name)
-  "/Users/dmitrymarkushevich/org-roam/pubs/solove-nothing-to-hide.pdf")
 (defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
   "Return the file naming backing the document buffer"
   (bound-and-true-p pdf-file-name))
 
 
+(defun org-noter-pdf-check-location-property (&optional property)
+  "Check if PROPERTY is a valid location property"
+  t)
 
+
+(add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
 (defun org-noter-pdf-view-setup-handler (major-mode)
