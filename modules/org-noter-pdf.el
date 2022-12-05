@@ -91,7 +91,7 @@
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-doc--get-precise-info)
 
 
-(defun org-noter-pdf-goto-location (mode location)
+(defun org-noter-pdf-goto-location (mode location window)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (let ((top (org-noter--get-location-top location))
           (left (org-noter--get-location-left location)))

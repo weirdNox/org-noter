@@ -71,7 +71,7 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-nov--get-precise-info)
 
-(defun org-noter-nov-goto-location (mode location)
+(defun org-noter-nov-goto-location (mode location &optional window)
   (when (eq mode 'nov-mode)
     (setq nov-documents-index (org-noter--get-location-page location))
     (nov-render-document)

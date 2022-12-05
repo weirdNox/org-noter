@@ -64,7 +64,7 @@
 
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-djvu-setup-handler)
 
-(defun org-noter-djvu-goto-location (mode location)
+(defun org-noter-djvu-goto-location (mode location &optional window)
   (when (eq mode 'djvu-read-mode)
     (djvu-goto-page (car location))
     (goto-char (org-noter--get-location-top location))))
