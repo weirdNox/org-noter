@@ -161,6 +161,10 @@ notes file, even if it finds one."
 
              (document-location (org-noter--doc-approx-location)))
 
+        ;; remove nil lists at end of search-names
+        (while (equal (last search-names) (list nil))
+          (nbutlast search-names))
+
         ;; NOTE(nox): Check the search path
         (dolist (path org-noter-notes-search-path)
           (dolist (name search-names)
