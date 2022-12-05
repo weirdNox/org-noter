@@ -25,9 +25,10 @@
 ;;; Code:
 (require 'org-noter)
 
-(defun org-noter-get-buffer-file-name-nov ()
+(defun org-noter-get-buffer-file-name-nov (mode)
   (bound-and-true-p nov-file-name))
 
+(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-nov)
 
 (defun org-noter-nov-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (org-noter--with-valid-session

@@ -315,7 +315,7 @@ operations instead of the real value of the property."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov)
+(defcustom org-noter-get-buffer-file-name-hook nil
   "Functions that when passed a major mode, will return the current buffer file name.
 
 This is used by the `org-noter' command to determine the file name when
