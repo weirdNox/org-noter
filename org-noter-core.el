@@ -454,6 +454,9 @@ Used by `org-noter--create-session' when creating a new session."
 (defconst org-noter--property-closest-tipping-point "NOTER_CLOSEST_TIPPING_POINT"
   "Property for overriding global `org-noter-closest-tipping-point'.")
 
+(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
+  "List of elements that shouldn't be recursed into when searching for notes.")
+
 (defconst org-noter--note-search-element-type '(headline)
   "List of elements that should be searched for notes.")
 
@@ -516,7 +519,7 @@ Otherwise return the maximum value for point."
 
 (defun org-noter--create-session (ast document-property-value notes-file-path)
   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
-         (link-p (or (string-match-p org-bracket-link-regexp document-property-value)
+         (link-p (or (string-match-p org-link-bracket-re document-property-value)
                      (string-match-p org-noter--url-regexp document-property-value)))
          (display-name (if raw-value-not-empty
                            (org-element-property :raw-value ast)
@@ -1852,7 +1855,7 @@ want to kill."
       (with-current-buffer notes-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
         (restore-buffer-modified-p nil))
-      (unless org-noter-use-indirect-buffer
+      (when org-noter-use-indirect-buffer
         (kill-buffer notes-buffer))
 
       (when base-buffer
