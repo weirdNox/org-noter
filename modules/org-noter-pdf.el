@@ -27,9 +27,9 @@
 
 (defun org-noter-pdf-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (when (memq major-mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (and (listp precise-info)
+    (cons (image-mode-window-get 'page) (if (and (consp precise-info)
                                                  (numberp (car precise-info))
-                                                 (numberp (cadr precise-info)))
+                                                 (numberp (cdr precise-info)))
                                             precise-info 0))))
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
@@ -65,7 +65,9 @@
   (when (eq major-mode 'pdf-view-mode)
     (if (pdf-view-active-region-p)
         (let ((edges (pdf-view-active-region)))
-          (car edges))
+	  (cons
+	   (cadar edges)
+	   (- (caar edges) 0.02)))
 
       (let ((event nil))
         (while (not (and (eq 'mouse-1 (car event))
