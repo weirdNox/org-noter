@@ -45,14 +45,15 @@
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-djvu-approx-location-cons)
 
-(defun org-noter-djvu--get-precise-info (major-mode)
+(defun org-noter-djvu--get-precise-info (major-mode window)
   (when (eq major-mode 'djvu-read-mode)
     (if (region-active-p)
         (cons (mark) (point))
-      (while (not (and (eq 'mouse-1 (car event))
-                       (eq window (posn-window (event-start event)))))
-        (setq event (read-event "Click where you want the start of the note to be!")))
-      (posn-point (event-start event)))))
+      (let ((event nil))
+        (while (not (and (eq 'mouse-1 (car event))
+                         (eq window (posn-window (event-start event)))))
+          (setq event (read-event "Click where you want the start of the note to be!")))
+        (posn-point (event-start event))))))
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-djvu--get-precise-info)
 
