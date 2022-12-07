@@ -1,0 +1,40 @@
+* ORG-NOTER (fork of a fork)
+** This is a fork of the *c1-g* fork with some commits picked from *dmitrym*
+   - In essence, this is close to the original *weirdNox* (Gonçalo Santos)
+     version that you find on MELPA with the refactoring that *c1-g* implemented
+
+   - djvu and epub support have also been advanced by *c1-g*, but I have not
+     tested any of that code.
+
+   - The main new feature for PDF users is 2-D precise notes, which can be
+     inserted in two ways:
+     1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
+        changed the position format to use the entire list returned by =edges=.
+        This breaks the other way of inserting precise notes.  On *dmitrym*'s
+        fork, select-precise notes auto-fill the note title with the selected
+        text.  This has deleterious side effects for other note insertion methods.
+     2. "Click-precise": =M-i=, followed by clicking a location on the page.
+        The location recorded by =org-noter= is typically inaccurate in the
+        horizontal direction.  This is something I want to fix.
+
+
+   - Standard notes can also be inserted in two ways:
+     1. "TAB".  Hitting tab creates a note title "Notes for page ##", where the
+        page number is inserted automatically over the octothorpes.
+     2. "i".  The fundamental =org-noter-insert-note=.  User types note title
+        into the minibuffer.
+** Note insertion desired features
+   1. The position of the precise note should be at the click (with a
+      configurable horizontal offset) or at the upper-left of the selected text
+      (or configurable to one of the corners or ends of the selected area).
+   2. Highlighting of selected text should be a user settable configuration option
+   3. For any of the note insertion methods, if there is any selected text, then
+      it should be the default title.  (or there should be a configurable
+      switch)
+   4. Add property and/or configuration to make the arrow left or right
+      pointing.
+
+** Bugs to fix
+   1. Navigation of nested notes is spotty. =C-M-p= and =C-M-.= have trouble
+      detecting nested notes.
+
