@@ -32,18 +32,19 @@
                                                  (numberp (cdr precise-info)))
                                             precise-info 0))))
 
+(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
+
 (defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
   "Return the file naming backing the document buffer"
   (bound-and-true-p pdf-file-name))
 
+(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-pdf)
 
 (defun org-noter-pdf-check-location-property (&optional property)
   "Check if PROPERTY is a valid location property"
   t)
 
-
 (add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
-(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
 (defun org-noter-pdf-view-setup-handler (major-mode)
   (when (eq major-mode 'pdf-view-mode)
