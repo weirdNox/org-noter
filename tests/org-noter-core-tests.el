@@ -38,15 +38,15 @@
     (message "+++++++++++++++++++++++++++++++++++++++++")
   ))
 
-(defun wakka (mode)
+(defun org-noter-test-get-selected-text (mode)
   (message "🧪org-noter-core-test-return-text")
-  "⚠️org-noter-core-test-return-text")
+  "⚠️org-noter-core-test-return-text
+org-noter-core-test-return-text
+org-noter-core-test-return-text
+org-noter-core-test-return-text
+org-noter-core-test-return-text
+")
 
-
-
-(defun org-noter-core-test-return-text (mode)
-  (message "org-noter-core-test-return-text")
-  "org-noter-core-test-return-text")
 
 (defun org-noter-core-test-document-property (&optional param)
   (message "🧪org-noter-core-test-document-property %s" param)
@@ -60,11 +60,7 @@
   (message "org-noter-core-test-open-document-functions")
   (find-file (org-noter-core-test-document-property)))
 
-(defun org-noter-core-test-approx-location (&optional a b)
-  (message "approx-location")
-  (list 0 0 0 0 0))
-
-(defun wakka1 (a b c)
+(defun org-noter-core-test-approx-location (&optional a b c)
   (message "approx-location")
   (list 0 0 0 0 0))
 
@@ -79,7 +75,8 @@
                     (before-each
                      ;; if this is not set; make-session fails and the test crashes with a stack overflow.
                      (setq org-noter-always-create-frame nil)
-                     (spy-on 'org-noter-core-test-return-text))
+                     (spy-on 'org-noter-test-get-selected-text)
+                     )
 
                     (it "can parse a note file ast that is not empty"
                         (with-mock-contents
@@ -89,23 +86,20 @@
                                            (expect mock-ast :not :to-be nil)))))
 
                     (it "can take a basic note"
-                        (add-to-list 'org-noter-get-selected-text-hook #'org-noter-core-test-return-text)
-                        (add-to-list 'org-noter-get-selected-text-hook #'wakka)
+                        (add-to-list 'org-noter-get-selected-text-hook #'org-noter-test-get-selected-text)
                         (add-to-list 'org-noter-parse-document-property-hook  #'org-noter-core-test-document-property)
                         (add-to-list 'org-noter-set-up-document-hook #'org-noter-core-test-view-setup-handler)
                         (add-to-list 'org-noter-open-document-functions #'org-noter-core-test-open-document-functions)
                         (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-core-test-approx-location)
-                        (add-to-list 'org-noter--doc-approx-location-hook #'wakka1)
                         (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
 
                         (with-mock-contents
                          mock-contents-simple-notes-file
                          '(lambda ()
-                            (message "Creating a session")
                             (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file)
-                            (message "Created a session")
                             (org-noter-insert-note nil "NEW NOTE")
                             (message "with note: %s" (buffer-string))
-                            (expect 'org-noter-core-test-return-text :to-have-been-called))))
+                            (expect 'org-noter-test-get-selected-text :to-have-been-called)
+                            (expect (string-match "Notes for page" (buffer-string))  :not :to-be nil))))
                     )
           )
