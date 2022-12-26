@@ -2043,7 +2043,7 @@ See `org-noter-insert-note' docstring for more."
          (precise-info (org-noter--get-precise-info)))
      (message (format "dmitry --- %s" precise-info))
      ;; TODO: This is all wrong.
-     (pdf-annot-add-highlight-markup-annotation precise-info)
+     ;;(pdf-annot-add-highlight-markup-annotation precise-info)
      (org-noter-insert-note precise-info))))
 
 
