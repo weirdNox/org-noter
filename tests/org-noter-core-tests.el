@@ -77,7 +77,9 @@
 (describe "org-noter-core"
           (describe "note taking functionality"
                     (before-each
-                        (spy-on 'org-noter-core-test-return-text))
+                     ;; if this is not set; make-session fails and the test crashes with a stack overflow.
+                     (setq org-noter-always-create-frame nil)
+                     (spy-on 'org-noter-core-test-return-text))
 
                     (it "can parse a note file ast that is not empty"
                         (with-mock-contents
