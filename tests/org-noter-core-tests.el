@@ -1,5 +1,6 @@
 (add-to-list 'load-path "modules")
 (require 'org-noter-pdf)
+(require 'with-simulated-input)
 
 (defvar mock-contents-simple-notes-file
   "* solove-nothing-to-hide
@@ -102,4 +103,25 @@ org-noter-core-test-return-text
                             (expect 'org-noter-test-get-selected-text :to-have-been-called)
                             (expect (string-match "Notes for page" (buffer-string))  :not :to-be nil))))
                     )
+
+
+                    (it "can take a precise note"
+                        (add-to-list 'org-noter-get-selected-text-hook #'org-noter-test-get-selected-text)
+                        (add-to-list 'org-noter-parse-document-property-hook  #'org-noter-core-test-document-property)
+                        (add-to-list 'org-noter-set-up-document-hook #'org-noter-core-test-view-setup-handler)
+                        (add-to-list 'org-noter-open-document-functions #'org-noter-core-test-open-document-functions)
+                        (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-core-test-approx-location)
+                        (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
+
+                        (with-mock-contents
+                         mock-contents-simple-notes-file
+                         '(lambda ()
+                            (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file)
+                            (with-simulated-input "precise SPC note RET"
+                                                  (org-noter-insert-precise-note))
+                            (message "with note: %s" (buffer-string))
+                            (expect (string-match "precise note" (buffer-string))  :not :to-be nil)
+                            )))
+
+
           )
