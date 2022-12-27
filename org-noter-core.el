@@ -407,6 +407,14 @@ Used by `org-noter--create-session' when creating a new session."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-highlight-precise-note-hook nil
+  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
+This can be used in pdf-mode for example to add a permanent highlight to the document."
+  :group 'org-noter
+  :type 'hook)
+
+
+
 ;; --------------------------------------------------------------------------------
 ;;; Private variables or constants
 (cl-defstruct org-noter--session
@@ -2043,9 +2051,7 @@ See `org-noter-insert-note' docstring for more."
                                                  (not org-noter-insert-note-no-questions)
                                                org-noter-insert-note-no-questions))
          (precise-info (org-noter--get-precise-info)))
-     (message (format "dmitry --- %s" precise-info))
-     ;; TODO: This is all wrong.
-     ;;(pdf-annot-add-highlight-markup-annotation precise-info)
+     (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode precise-info)
      (org-noter-insert-note precise-info))))
 
 

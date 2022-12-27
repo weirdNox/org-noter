@@ -75,6 +75,10 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-pretty-print-location (location)
   (format "%s" location))
 
+(defun org-noter-core-test-highlight-location (major-mode precise-info)
+  t)
+
+
 (defun org-noter-core-test-create-session ()
   (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file))
 
@@ -88,6 +92,7 @@ org-noter-core-test-return-text
                      (spy-on 'org-noter-test-get-selected-text :and-call-through)
                      (spy-on 'org-noter-core-test-approx-location :and-call-through)
                      (spy-on 'org-noter-core-test-get-precise-info :and-call-through)
+                     (spy-on 'org-noter-core-test-highlight-location :and-call-through)
 
 
 
@@ -99,6 +104,9 @@ org-noter-core-test-return-text
                      (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
                      (add-to-list 'org-noter--get-precise-info-hook #'org-noter-core-test-get-precise-info)
                      (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-core-test-pretty-print-location)
+                     (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-core-test-pretty-print-location)
+                     (add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-core-test-highlight-location)
+
                      )
 
           (describe "note taking functionality"
@@ -142,6 +150,22 @@ org-noter-core-test-return-text
                             (expect (string-match "BEGIN_QUOTE" (buffer-string))  :not :to-be nil)
                             (expect 'org-noter-core-test-get-precise-info :to-have-been-called)
                             )))
+
+                    (it "precise note calls the highlight hook"
+                        (with-mock-contents
+                         mock-contents-simple-notes-file
+                         '(lambda ()
+                            (org-noter-core-test-create-session)
+                            (with-simulated-input "precise SPC note RET"
+                                                  (org-noter-insert-precise-note))
+                            (message "with note: %s" (buffer-string))
+
+                            (expect 'org-noter-core-test-highlight-location :to-have-been-called)
+                            (expect (spy-calls-all-args 'org-noter-core-test-highlight-location)
+                                    :to-equal
+                                    '((org-mode
+                                      (1 2 3 4)))))
+                            ))
 
 
 
