@@ -75,6 +75,8 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-pretty-print-location (location)
   (format "%s" location))
 
+(defun org-noter-core-test-create-session ()
+  (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file))
 
 (describe "org-noter-core"
                     (before-each
@@ -111,7 +113,7 @@ org-noter-core-test-return-text
                         (with-mock-contents
                          mock-contents-simple-notes-file
                          '(lambda ()
-                            (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file)
+                            (org-noter-core-test-create-session)
                             (org-noter-insert-note nil "NEW NOTE")
                             (message "with note: %s" (buffer-string))
                             (expect 'org-noter-test-get-selected-text :to-have-been-called)
@@ -121,7 +123,7 @@ org-noter-core-test-return-text
                         (with-mock-contents
                          mock-contents-simple-notes-file
                          '(lambda ()
-                            (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file)
+                            (org-noter-core-test-create-session)
                             (with-simulated-input "precise SPC note RET"
                                                   (org-noter-insert-precise-note))
                             (message "with note: %s" (buffer-string))
@@ -131,7 +133,7 @@ org-noter-core-test-return-text
                         (with-mock-contents
                          mock-contents-simple-notes-file
                          '(lambda ()
-                            (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file)
+                            (org-noter-core-test-create-session)
                             (with-simulated-input "precise SPC note RET"
                                                   (org-noter-insert-precise-note))
                             (message "with note: %s" (buffer-string))
