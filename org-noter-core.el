@@ -385,7 +385,9 @@ major modes uses the `buffer-file-name' variable."
   :type 'hook)
 
 (defcustom org-noter--doc-approx-location-hook nil
-  "TODO"
+  "This returns an approximate location if no precise info is passed: (PAGE 0)
+   or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
+"
   :group 'org-noter
   :type 'hook)
 
