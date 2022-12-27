@@ -61,24 +61,45 @@ org-noter-core-test-return-text
   (message "org-noter-core-test-open-document-functions")
   (find-file (org-noter-core-test-document-property)))
 
-(defun org-noter-core-test-approx-location (&optional a b c)
-  (message "approx-location")
-  (list 0 0 0 0 0))
+(defun org-noter-core-test-approx-location (major-mode &optional precise-info _force-new-ref)
+  (message "approx-location %s" precise-info)
+  (cons 99 precise-info))
 
 (defun org-noter-core-test-get-current-view (mode)
   t)
 
+(defun org-noter-core-test-get-precise-info (mode)
+  (message "🧪org-noter-core-test-get-precise-info %s" mode)
+  (list 1 2 3 4))
 
+(defun org-noter-core-test-pretty-print-location (location)
+  (format "%s" location))
 
 
 (describe "org-noter-core"
-          (describe "note taking functionality"
                     (before-each
                      ;; if this is not set; make-session fails and the test crashes with a stack overflow.
                      (setq org-noter-always-create-frame nil)
-                     (spy-on 'org-noter-test-get-selected-text)
+
+
+                     ;; setup spies so we can verify that things have been called
+                     (spy-on 'org-noter-test-get-selected-text :and-call-through)
+                     (spy-on 'org-noter-core-test-approx-location :and-call-through)
+                     (spy-on 'org-noter-core-test-get-precise-info :and-call-through)
+
+
+
+                     (add-to-list 'org-noter-get-selected-text-hook #'org-noter-test-get-selected-text)
+                     (add-to-list 'org-noter-parse-document-property-hook  #'org-noter-core-test-document-property)
+                     (add-to-list 'org-noter-set-up-document-hook #'org-noter-core-test-view-setup-handler)
+                     (add-to-list 'org-noter-open-document-functions #'org-noter-core-test-open-document-functions)
+                     (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-core-test-approx-location)
+                     (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
+                     (add-to-list 'org-noter--get-precise-info-hook #'org-noter-core-test-get-precise-info)
+                     (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-core-test-pretty-print-location)
                      )
 
+          (describe "note taking functionality"
                     (it "can parse a note file ast that is not empty"
                         (with-mock-contents
                          mock-contents-simple-notes-file
@@ -87,13 +108,6 @@ org-noter-core-test-return-text
                                            (expect mock-ast :not :to-be nil)))))
 
                     (it "can take a basic note"
-                        (add-to-list 'org-noter-get-selected-text-hook #'org-noter-test-get-selected-text)
-                        (add-to-list 'org-noter-parse-document-property-hook  #'org-noter-core-test-document-property)
-                        (add-to-list 'org-noter-set-up-document-hook #'org-noter-core-test-view-setup-handler)
-                        (add-to-list 'org-noter-open-document-functions #'org-noter-core-test-open-document-functions)
-                        (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-core-test-approx-location)
-                        (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
-
                         (with-mock-contents
                          mock-contents-simple-notes-file
                          '(lambda ()
@@ -102,17 +116,8 @@ org-noter-core-test-return-text
                             (message "with note: %s" (buffer-string))
                             (expect 'org-noter-test-get-selected-text :to-have-been-called)
                             (expect (string-match "Notes for page" (buffer-string))  :not :to-be nil))))
-                    )
-
 
                     (it "can take a precise note"
-                        (add-to-list 'org-noter-get-selected-text-hook #'org-noter-test-get-selected-text)
-                        (add-to-list 'org-noter-parse-document-property-hook  #'org-noter-core-test-document-property)
-                        (add-to-list 'org-noter-set-up-document-hook #'org-noter-core-test-view-setup-handler)
-                        (add-to-list 'org-noter-open-document-functions #'org-noter-core-test-open-document-functions)
-                        (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-core-test-approx-location)
-                        (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
-
                         (with-mock-contents
                          mock-contents-simple-notes-file
                          '(lambda ()
@@ -120,8 +125,24 @@ org-noter-core-test-return-text
                             (with-simulated-input "precise SPC note RET"
                                                   (org-noter-insert-precise-note))
                             (message "with note: %s" (buffer-string))
-                            (expect (string-match "precise note" (buffer-string))  :not :to-be nil)
+                            (expect (string-match "precise note" (buffer-string))  :not :to-be nil))))
+
+                    (it "precise note has precise data"
+                        (with-mock-contents
+                         mock-contents-simple-notes-file
+                         '(lambda ()
+                            (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file)
+                            (with-simulated-input "precise SPC note RET"
+                                                  (org-noter-insert-precise-note))
+                            (message "with note: %s" (buffer-string))
+
+                            (expect (string-match "NOTER_PAGE:" (buffer-string))  :not :to-be nil)
+                            (expect (string-match "BEGIN_QUOTE" (buffer-string))  :not :to-be nil)
+                            (expect 'org-noter-core-test-get-precise-info :to-have-been-called)
                             )))
 
 
+
+
           )
+)
