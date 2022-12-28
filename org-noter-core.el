@@ -2051,8 +2051,10 @@ See `org-noter-insert-note' docstring for more."
                                                  (not org-noter-insert-note-no-questions)
                                                org-noter-insert-note-no-questions))
          (precise-info (org-noter--get-precise-info)))
-     (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode precise-info)
-     (org-noter-insert-note precise-info))))
+     (org-noter-insert-note precise-info)
+     (select-frame-set-input-focus (org-noter--session-frame session))
+     (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
+     (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode precise-info))))
 
 
 (defun org-noter-insert-note-toggle-no-questions ()
