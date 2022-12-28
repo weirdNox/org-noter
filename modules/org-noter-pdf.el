@@ -321,7 +321,7 @@
 (add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-pdf-highlight-location)
 (defun org-noter-pdf-highlight-location (mode precise-location)
   "Highlight a precise location in PDF"
-  (when (memq major-mode '(doc-view-mode pdf-view-mode))
+  (when (memq mode '(doc-view-mode pdf-view-mode))
     (pdf-annot-add-highlight-markup-annotation precise-info)))
 
 (provide 'org-noter-pdf)
