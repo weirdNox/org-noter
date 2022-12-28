@@ -110,6 +110,7 @@ org-noter-core-test-return-text
                      )
 
           (describe "note taking functionality"
+                    ;; checking to make sure that `with-mock-contents` works fine.
                     (it "can parse a note file ast that is not empty"
                         (with-mock-contents
                          mock-contents-simple-notes-file
@@ -117,6 +118,7 @@ org-noter-core-test-return-text
                                            (message "%s" mock-ast)
                                            (expect mock-ast :not :to-be nil)))))
 
+                    ;; basic note should insert a default heading
                     (it "can take a basic note"
                         (with-mock-contents
                          mock-contents-simple-notes-file
@@ -127,6 +129,7 @@ org-noter-core-test-return-text
                             (expect 'org-noter-test-get-selected-text :to-have-been-called)
                             (expect (string-match "Notes for page" (buffer-string))  :not :to-be nil))))
 
+                    ;; enter a heading when taking a precise note; expect the heading to be there.
                     (it "can take a precise note"
                         (with-mock-contents
                          mock-contents-simple-notes-file
@@ -137,6 +140,7 @@ org-noter-core-test-return-text
                             (message "with note: %s" (buffer-string))
                             (expect (string-match "precise note" (buffer-string))  :not :to-be nil))))
 
+                    ;; there should be precise data in the note properties when entering a precise note
                     (it "precise note has precise data"
                         (with-mock-contents
                          mock-contents-simple-notes-file
@@ -144,13 +148,12 @@ org-noter-core-test-return-text
                             (org-noter-core-test-create-session)
                             (with-simulated-input "precise SPC note RET"
                                                   (org-noter-insert-precise-note))
-                            (message "with note: %s" (buffer-string))
-
-                            (expect (string-match "NOTER_PAGE:" (buffer-string))  :not :to-be nil)
-                            (expect (string-match "BEGIN_QUOTE" (buffer-string))  :not :to-be nil)
+                            (expect (string-match "NOTER_PAGE:" (buffer-string)) :not :to-be nil)
+                            (expect (string-match "BEGIN_QUOTE" (buffer-string)) :not :to-be nil)
                             (expect 'org-noter-core-test-get-precise-info :to-have-been-called)
                             )))
 
+                    ;; highlight code should be called when a precise note is entered
                     (it "precise note calls the highlight hook"
                         (with-mock-contents
                          mock-contents-simple-notes-file
@@ -158,17 +161,11 @@ org-noter-core-test-return-text
                             (org-noter-core-test-create-session)
                             (with-simulated-input "precise SPC note RET"
                                                   (org-noter-insert-precise-note))
-                            (message "with note: %s" (buffer-string))
-
                             (expect 'org-noter-core-test-highlight-location :to-have-been-called)
                             (expect (spy-calls-all-args 'org-noter-core-test-highlight-location)
                                     :to-equal
                                     '((org-mode
-                                      (1 2 3 4)))))
-                            ))
-
-
-
+                                      (1 2 3 4)))))))
 
                     ;; hit C-g when entering a note; expect no highlight
                     (it "precise note DOES NOT call the highlight hook when the note is aborted"
