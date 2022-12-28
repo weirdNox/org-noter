@@ -170,5 +170,16 @@ org-noter-core-test-return-text
 
 
 
+                    ;; hit C-g when entering a note; expect no highlight
+                    (it "precise note DOES NOT call the highlight hook when the note is aborted"
+                        (with-mock-contents
+                         mock-contents-simple-notes-file
+                         '(lambda ()
+                            (org-noter-core-test-create-session)
+                            ;; this is how you trap a C-g
+                            (condition-case nil
+                                (with-simulated-input "C-g" (org-noter-insert-precise-note))
+                              (quit nil))
+                            (expect 'org-noter-core-test-highlight-location :not :to-have-been-called))))
           )
 )
