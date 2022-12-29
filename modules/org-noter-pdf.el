@@ -322,7 +322,7 @@
 (defun org-noter-pdf-highlight-location (mode precise-location)
   "Highlight a precise location in PDF"
   (when (memq mode '(doc-view-mode pdf-view-mode))
-    (pdf-annot-add-highlight-markup-annotation precise-info)))
+    (pdf-annot-add-highlight-markup-annotation precise-location)))
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
