@@ -1163,7 +1163,10 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 
 (defun org-noter--get-location-page (location)
   "Get the page number given a LOCATION of form (page top . left) or (page . top)."
-  (car location))
+  (message "===> %s" location)
+  (if (listp location)
+      (car location)
+      location))
 
 (defun org-noter--get-location-left (location)
   "Get the left coordinate given a LOCATION of form (page top . left) or (page . top). If later form of vector is passed return 0."
