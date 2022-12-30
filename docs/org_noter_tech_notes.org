@@ -13,6 +13,17 @@
 #+title: org-noter-tech-notes
 #+filetags: :seedling:
 
+Context for developing org-noter.
+
+* TOC :TOC:
+- [[#brief-history-of-org-noter][Brief history of org-noter]]
+- [[#tech-notes][Tech Notes]]
+  - [[#session][Session]]
+  - [[#hooks][Hooks]]
+  - [[#notes][Notes]]
+  - [[#locations][Locations]]
+  - [[#note-taking-behavior][Note taking behavior]]
+
 * Brief history of org-noter
 
 [[https://github.com/weirdNox/org-noter][org-noter]] (2018-2020), a re-implementation of the [[https://github.com/rudolfochrist/interleave/][interleave packaage]] (2015-2018) by weirdNox:
