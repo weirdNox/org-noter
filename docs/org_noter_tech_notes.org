@@ -34,7 +34,7 @@ org-noter session contains all the relevant info for the current session.
 - backing document
 - ...
 
-prereq for getting everything else going see ==make-org-noter-session==.
+prereq for getting everything else going see =make-org-noter-session=.
 
 ** Hooks
 Hooks are used extensively to manage "non-core" functionality, that is functionality that is mode dependent.
@@ -87,3 +87,21 @@ Precise notes include a coordinate vector that allows to identify the selection 
 :NOTER_PAGE: (75 0.14417344173441735 0.7955390334572491 0.6834688346883468 0.8199091284593144)
 :END:
 #+end_src
+
+** Locations
+
+Location is a property of every note (see [[Notes]]).
+
+The concept seems to be poorly defined currently, and most of the code lives in =core=, but maybe it should move to document implementation.
+
+Currently it's either
+
+=:NOTER_PAGE: (75 0.14417344173441735 0.7955390334572491 0.6834688346883468 0.8199091284593144)=
+
+or
+
+=:NOTER_PAGE: 2=
+
+** Note taking behavior
+
+Sophisticated note taking behavior is possible, based on selection size, etc see [[https://github.com/petermao/org-noter/blob/doc/README.org][Peter's matrix]].
