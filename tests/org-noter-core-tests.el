@@ -32,6 +32,11 @@
 )
 
 
+;;;;;;;;;;;
+;; helpers
+(defun org-noter-core-test-create-session ()
+  "Call this manually with an existing notes buffer to generate a new session"
+  (org-noter--create-session (org-noter--parse-root) "some-pdf" org-noter-test-file))
 
 
 (defun with-mock-contents (contents lambda)
@@ -61,6 +66,10 @@
     (delete-file tempfile)
     (message "+++++++++++++++++++++++++++++++++++++++++")
   ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; hooks - org-noter calls these
 
 (defun org-noter-test-get-selected-text (mode)
   (message "🧪org-noter-core-test-return-text")
@@ -101,12 +110,9 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-highlight-location (major-mode precise-info)
   t)
 
-
-(defun org-noter-core-test-create-session ()
-  (org-noter--create-session (org-noter--parse-root) "NOTER_DOCUMENT" org-noter-test-file))
-
 (defun org-noter-core-test-get-current-view (mode)
   'org-noter-core-test-view)
+
 
 (describe "org-noter-core"
                     (before-each
@@ -119,8 +125,6 @@ org-noter-core-test-return-text
                      (spy-on 'org-noter-core-test-approx-location :and-call-through)
                      (spy-on 'org-noter-core-test-get-precise-info :and-call-through)
                      (spy-on 'org-noter-core-test-highlight-location :and-call-through)
-
-
                      (spy-on 'org-noter-core-test-get-current-view :and-call-through)
 
                      (add-to-list 'org-noter-get-selected-text-hook #'org-noter-test-get-selected-text)
@@ -136,6 +140,8 @@ org-noter-core-test-return-text
 
                      )
 
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           (describe "note taking functionality"
                     ;; checking to make sure that `with-mock-contents` works fine.
                     (it "can parse a note file ast that is not empty"
@@ -206,34 +212,35 @@ org-noter-core-test-return-text
                               (quit nil))
                             (expect 'org-noter-core-test-highlight-location :not :to-have-been-called))))
 
-
-
-                    (describe "session creation"
-                              ;; check that the narrowed buffer is named correctly
-                              (it "narrowed buffer is named correctly"
-                                  (with-mock-contents
-                                   mock-contents-simple-notes-file-with-a-single-note
-                                   '(lambda ()
-                                      (org-noter-core-test-create-session)
-                                      (let* ((session org-noter--session))
-                                        (expect (buffer-name (org-noter--session-notes-buffer session)) :to-equal "Notes of solove-nothing-to-hide")
-                                        ))))
-
-                              )
-
-
-
-                    (describe "view-info"
-                              (it "can get view info"
-                                  (with-mock-contents
-                                   mock-contents-simple-notes-file-with-a-single-note
-                                   '(lambda ()
-                                      (org-noter-core-test-create-session)
-                                      (let* ((view-info (org-noter--get-view-info (org-noter--get-current-view))))
-                                        (message "%s" view-info)
-                                        (expect 'org-noter-core-test-get-current-view :to-have-been-called)
-                                        ))))
-                              )
-
           )
+
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          (describe "session creation"
+                    ;; check that the narrowed buffer is named correctly
+                    (it "narrowed buffer is named correctly"
+                        (with-mock-contents
+                         mock-contents-simple-notes-file-with-a-single-note
+                         '(lambda ()
+                            (org-noter-core-test-create-session)
+                            (let* ((session org-noter--session))
+                              (expect (buffer-name (org-noter--session-notes-buffer session)) :to-equal "Notes of solove-nothing-to-hide")
+                              ))))
+
+                    )
+
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          (describe "view-info"
+                    (it "can get view info"
+                        (with-mock-contents
+                         mock-contents-simple-notes-file-with-a-single-note
+                         '(lambda ()
+                            (org-noter-core-test-create-session)
+                            (let* ((view-info (org-noter--get-view-info (org-noter--get-current-view))))
+                              (message "%s" view-info)
+                              (expect 'org-noter-core-test-get-current-view :to-have-been-called)
+                              ))))
+                    )
+
 )
