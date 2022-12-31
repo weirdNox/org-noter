@@ -23,6 +23,12 @@ Context for developing org-noter.
   - [[#notes][Notes]]
   - [[#locations][Locations]]
   - [[#note-taking-behavior][Note taking behavior]]
+  - [[#notes-file][Notes file]]
+- [[#solove-nothing-to-hide][solove-nothing-to-hide]]
+  - [[#note-from-page-1][Note from page 1]]
+- [[#development][Development]]
+  - [[#requirements][Requirements]]
+  - [[#unit-tests][Unit tests]]
 
 * Brief history of org-noter
 
@@ -116,3 +122,30 @@ or
 ** Note taking behavior
 
 Sophisticated note taking behavior is possible, based on selection size, etc see [[https://github.com/petermao/org-noter/blob/doc/README.org][Peter's matrix]].
+
+
+** Notes file
+
+=notes.org= is in this format:
+
+#+begin_src org-mode
+:PROPERTIES:
+:ID:       FAKE_90283
+:END:
+#+TITLE: Test book notes
+
+* solove-nothing-to-hide
+:PROPERTIES:
+:NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
+:END:
+** Note from page 1
+:PROPERTIES:
+:NOTER_PAGE: 99
+:END:
+#+end_src
+
+Omitting the header causes =org-noter--parse-root= to work incorrectly.
+
+* Development
+** Requirements
+** Unit tests
