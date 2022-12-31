@@ -158,18 +158,14 @@ org-noter-core-test-return-text
 
                     ;; enter a heading when taking a precise note; expect the heading to be there.
                     (it "can take a precise note"
-                    (it "can get view info"
                         (with-mock-contents
-                         mock-contents-simple-notes-file-with-a-single-note
+                         mock-contents-simple-notes-file
                          '(lambda ()
                             (org-noter-core-test-create-session)
-                            (let* ((session org-noter--session)
-                                   (view-info (org-noter--get-view-info (org-noter--get-current-view))))
-                              (message "%s" view-info)
-                              (expect 'org-noter-core-test-get-current-view :to-have-been-called)
-                              ;; Next TODO: why is the buffer being set incorrectly.
-                              (expect (buffer-name (org-noter--session-notes-buffer session)) :to-equal "Notes of solove-nothing-to-hide")
-                              ))))
+                            (with-simulated-input "precise SPC note RET"
+                                                  (org-noter-insert-precise-note))
+                            (message "with note: %s" (buffer-string))
+                            (expect (string-match "precise note" (buffer-string))  :not :to-be nil))))
 
                     ;; there should be precise data in the note properties when entering a precise note
                     (it "precise note has precise data"
@@ -209,5 +205,35 @@ org-noter-core-test-return-text
                                 (with-simulated-input "C-g" (org-noter-insert-precise-note))
                               (quit nil))
                             (expect 'org-noter-core-test-highlight-location :not :to-have-been-called))))
+
+
+
+                    (describe "session creation"
+                              ;; check that the narrowed buffer is named correctly
+                              (it "narrowed buffer is named correctly"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file-with-a-single-note
+                                   '(lambda ()
+                                      (org-noter-core-test-create-session)
+                                      (let* ((session org-noter--session))
+                                        (expect (buffer-name (org-noter--session-notes-buffer session)) :to-equal "Notes of solove-nothing-to-hide")
+                                        ))))
+
+                              )
+
+
+
+                    (describe "view-info"
+                              (it "can get view info"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file-with-a-single-note
+                                   '(lambda ()
+                                      (org-noter-core-test-create-session)
+                                      (let* ((view-info (org-noter--get-view-info (org-noter--get-current-view))))
+                                        (message "%s" view-info)
+                                        (expect 'org-noter-core-test-get-current-view :to-have-been-called)
+                                        ))))
+                              )
+
           )
 )
