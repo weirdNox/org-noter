@@ -3,14 +3,24 @@
 (require 'with-simulated-input)
 
 (defvar mock-contents-simple-notes-file
-  "* solove-nothing-to-hide
+  "
+:PROPERTIES:
+:ID:       FAKE_1
+:END:
+#+TITLE: Test book notes (simple)
+* solove-nothing-to-hide
 :PROPERTIES:
 :NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
 :END:
 ")
 
 (defvar mock-contents-simple-notes-file-with-a-single-note
-  "* solove-nothing-to-hide
+  ":PROPERTIES:
+:ID:       FAKE_90283
+:END:
+#+TITLE: Test book notes
+
+* solove-nothing-to-hide
 :PROPERTIES:
 :NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
 :END:
@@ -18,8 +28,8 @@
 :PROPERTIES:
 :NOTER_PAGE: 99
 :END:
-
-")
+"
+)
 
 
 
