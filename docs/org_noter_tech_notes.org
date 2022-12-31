@@ -157,5 +157,5 @@ Omitting the header causes =org-noter--parse-root= to work incorrectly.
 #+begin_src shell
   brew install cask
   cask                     # install dependencies
-  cask exec buttercup -L . # in the root of the project
+  cask exec buttercup -L . # exec unit tests, in the root of the project
 #+end_src
