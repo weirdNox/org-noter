@@ -36,7 +36,7 @@
 ;; helpers
 (defun org-noter-core-test-create-session ()
   "Call this manually with an existing notes buffer to generate a new session"
-  (org-noter--create-session (org-noter--parse-root) "some-pdf" org-noter-test-file))
+  (org-noter--create-session (org-noter--parse-root) "pubs/solove-nothing-to-hide.pdf" org-noter-test-file))
 
 
 (defun with-mock-contents (contents lambda)
@@ -227,7 +227,24 @@ org-noter-core-test-return-text
                               (expect (buffer-name (org-noter--session-notes-buffer session)) :to-equal "Notes of solove-nothing-to-hide")
                               ))))
 
+                    ;; check that session properties are set correctly
+                    (it "session properties are set correctly"
+                        (with-mock-contents
+                         mock-contents-simple-notes-file-with-a-single-note
+                         '(lambda ()
+                            (org-noter-core-test-create-session)
+                            (let* ((session org-noter--session))
+                              (message "0000000000000000000000 %s" (type-of (org-noter--session-display-name session)))
+                              (expect (org-noter--session-property-text session) :to-equal "pubs/solove-nothing-to-hide.pdf")
+                              (expect (org-noter--session-display-name session) :to-equal "solove-nothing-to-hide")
+                              (expect (org-noter--session-notes-file-path session) :to-equal org-noter-test-file)
+                              (expect (buffer-file-name (org-noter--session-notes-buffer session)) :to-equal org-noter-test-file)
+                              ;; TODO: Need test-specific-major mode somehow?
+                              ;; (expect (org-noter--session-doc-mode session) :to-equal 'org-core-test)
+                              ))))
+
                     )
+
 
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
