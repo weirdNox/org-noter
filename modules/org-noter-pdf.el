@@ -42,7 +42,7 @@
   (equal 5 (length (read property))))
 
 
-(add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
+;; (add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
 (defun org-noter-pdf-view-setup-handler (major-mode)
