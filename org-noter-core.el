@@ -526,6 +526,7 @@ Otherwise return the maximum value for point."
 
 (defun org-noter--create-session (ast document-property-value notes-file-path)
   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
+         (dummy (message "----1"))
          (link-p (or (string-match-p org-bracket-link-regexp document-property-value)
                      (string-match-p org-noter--url-regexp document-property-value)))
          (display-name (if raw-value-not-empty
@@ -534,18 +535,29 @@ Otherwise return the maximum value for point."
                              document-property-value
                            (file-name-nondirectory document-property-value))))
 
+         (dummy1 (message "\n!----99 %s" display-name))
+         (dummy1 (message "\n!----98 %s" (org-element-property :raw-value ast)))
+
          (frame-name (format "Emacs Org-noter - %s" display-name))
          (document (or (run-hook-with-args-until-success 'org-noter-open-document-functions document-property-value)
                        (if link-p
                            (progn (org-link-open-from-string document-property-value)
                                   (current-buffer))
                          (find-file-noselect document-property-value))))
+         (dummy (message "----1.5 doc %s %s" document document-property-value))
          (document-major-mode (if (or link-p (eq document (current-buffer)))
                                   document-property-value
                                 (buffer-local-value 'major-mode document)))
+
+         (dummy (message "----2 %s" document-major-mode))
+
+         (dummu (message "1display name = %s" display-name))
          (document-buffer-name
           (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
          (document-buffer document)
+
+
+
 
          (notes-buffer
           (progn (when (and org-window-config-before-follow-link link-p)
@@ -557,11 +569,17 @@ Otherwise return the maximum value for point."
                       (generate-new-buffer-name (concat "Notes of " display-name)) t)
                    (current-buffer))))
 
+
+
+         (dummy (message "----3"))
          (single (eq (or (buffer-base-buffer document-buffer)
                          document-buffer)
                      (or (buffer-base-buffer notes-buffer)
                          notes-buffer)))
 
+
+
+         (dummu (message "2display name = %s" (type-of display-name)))
          (session
           (make-org-noter--session
            :id (org-noter--get-new-id)
@@ -590,6 +608,7 @@ Otherwise return the maximum value for point."
            :modified-tick -1))
 
          (target-location org-noter--start-location-override)
+         (dummy (message "----4"))
          (starting-point (point)))
 
     (add-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
@@ -604,11 +623,17 @@ Otherwise return the maximum value for point."
       (setq org-noter--session session)
       (add-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer nil t))
 
+
+    (message "----5")
+
     (with-current-buffer notes-buffer
+
+      (message "----5.1")
       (org-noter-notes-mode 1)
       ;; NOTE(nox): This is needed because a session created in an indirect buffer would use the point of
       ;; the base buffer (as this buffer is indirect to the base!)
       (goto-char starting-point)
+      (message "----5.2")
       (setq buffer-file-name notes-file-path
             org-noter--session session
             fringe-indicator-alist '((truncation . nil)))
@@ -616,8 +641,15 @@ Otherwise return the maximum value for point."
       (add-hook 'window-scroll-functions 'org-noter--set-notes-scroll nil t)
       (org-noter--set-text-properties (org-noter--parse-root (vector notes-buffer document-property-value))
                                       (org-noter--session-id session))
+
+      (message "----5.7")
       (unless target-location
-        (setq target-location (org-noter--parse-location-property (org-noter--get-containing-element t)))))
+        (setq target-location (org-noter--parse-location-property (org-noter--get-containing-element t))))
+      (message "----5.8")
+      )
+
+
+    (message "----6")
 
     ;; NOTE(nox): This timer is for preventing reflowing too soon.
     (unless single
@@ -994,11 +1026,13 @@ properties, by a margin of NEWLINES-NUMBER."
         doc-prop)))
 
 (defun org-noter--check-location-property (arg)
+  (message "13 %s %s" org-noter--get-location-property-hook arg)
   (let ((property (if (stringp arg) arg
                     (or (org-element-property
                          (intern (concat ":" org-noter-property-note-location)) arg)
                         (run-hook-with-args-until-success
                          'org-noter--get-location-property-hook arg)))))
+    (message "-13.1 %s %s" property org-noter--check-location-property-hook )
     (when (and (stringp property) (> (length property) 0))
       (or (run-hook-with-args-until-success 'org-noter--check-location-property-hook property)
           (let ((value (car (read-from-string property))))
@@ -1007,6 +1041,7 @@ properties, by a margin of NEWLINES-NUMBER."
                 (integerp value)))))))
 
 (defun org-noter--parse-location-property (arg)
+  (message "8 %s" arg)
   (let ((property (if (stringp arg) arg
                     (or (org-element-property
                          (intern (concat ":" org-noter-property-note-location)) arg)
@@ -1026,12 +1061,15 @@ properties, by a margin of NEWLINES-NUMBER."
 
 ;; TODO: Documentation
 (defun org-noter--get-containing-element (&optional include-root)
+  (message "9 %s" include-root)
+  (message "9 %s" org-noter--get-containing-element-hook)
   (run-hook-with-args-until-success 'org-noter--get-containing-element-hook include-root))
 
 (defun org-noter--get-containing-heading (&optional include-root)
   "Get smallest containing heading that encloses the point and has location property.
 If the point isn't inside any heading with location property, return the outer heading.
 When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
+  (message "10")
   (org-noter--with-valid-session
    (org-with-wide-buffer
     (unless (org-before-first-heading-p)
@@ -1040,9 +1078,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
         (catch 'break
           (while t
             (let ((prop (org-noter--check-location-property (org-entry-get nil org-noter-property-note-location)))
+                  (dummy (message "10.1"))
                   (at-root (equal (org-noter--session-id session)
                                   (get-text-property (point) org-noter--id-text-property)))
-                  (heading (org-element-at-point)))
+                  (dummy (message "10.2"))
+                  (heading (org-element-at-point))
+                  )
               (when (and prop (or include-root (not at-root)))
                 (throw 'break heading))
 
@@ -1055,6 +1096,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
   "Get smallest containing heading that encloses the point and has location property.
 If the point isn't inside any heading with location property, return the outer heading.
 When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
+  (message "11")
   (org-noter--with-valid-session
    (org-with-point-at (point-min)
     (when (org-before-first-heading-p)
@@ -1403,10 +1445,15 @@ relative to."
            ignore-until-level
            current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END REGIONS-LIST-NAME]
 
+       (message "---buffer %s " (org-noter--session-notes-buffer session))
+
        (with-current-buffer (or (buffer-base-buffer (org-noter--session-notes-buffer session))
                                 (org-noter--session-notes-buffer session))
+         (message "-----1 %s" major-mode)
+         (message "---%s" org-noter--note-search-element-type)
          (org-element-map contents org-noter--note-search-element-type
            (lambda (element)
+             (message "-> %s" element)
              (let ((doc-file (org-noter--doc-file-property element))
                    (location (org-noter--parse-location-property element)))
                (when (and ignore-until-level (<= (org-element-property :level element) ignore-until-level))
@@ -1484,7 +1531,7 @@ relative to."
                                     (org-element-property :end (cdr reference-for-insertion)))))
                    (setq reference-for-insertion (cons 'after element)))))))
            nil nil (delete 'headline (append org-element-all-elements nil))))
-       
+
        (org-noter--view-region-finish current-region-info)
 
        (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
@@ -1573,7 +1620,7 @@ relative to."
 
     (setq doc-prop (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
                        doc-prop))
-    
+
     (unless (org-noter--check-doc-prop doc-prop)
       (setq doc-prop nil)
 
@@ -2014,7 +2061,7 @@ defines if the text should be inserted inside the note."
                                   (lambda (section) (org-element-property :end section))
                                   nil t org-element-all-elements)
                                 (point-max))))
-               
+
                (setq level (1+ (or (org-element-property :level ast) 0)))
 
                ;; NOTE(nox): This is needed to insert in the right place
