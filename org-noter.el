@@ -89,18 +89,14 @@ notes file, even if it finds one."
    ;; NOTE(nox): Creating the session from notes file
    ((eq major-mode 'org-mode)
     (let* ((notes-file-path (buffer-file-name))
-           ;; document-property is the backing documentl. eg: pdf or epub
            (document-property (org-noter--get-or-read-document-property
                                (not (equal arg '(4)))
                                (equal arg '(16))))
-           (dummy (message "doc prop ===== %s" document-property))
-           (dummy (message "buffer file name ===== %s" notes-file-path))
            (org-noter-always-create-frame
             (if (and (numberp arg) (= arg 0))
                 (not org-noter-always-create-frame)
               org-noter-always-create-frame))
            (ast (org-noter--parse-root (vector (current-buffer) document-property)))
-           (dummy (message "~~~~~ %s" ast))
            (session-id (get-text-property (org-element-property :begin ast) org-noter--id-text-property))
            session)
 
