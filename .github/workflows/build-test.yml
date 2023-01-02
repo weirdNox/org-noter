@@ -20,5 +20,8 @@ jobs:
         with:
           version: 'snapshot'
 
+      - name: Install dependencies
+        run: cask
+
       - name: Run tests
         run: cask exec buttercup -L .
