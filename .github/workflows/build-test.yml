@@ -14,7 +14,7 @@ jobs:
           architecture: 'x64'
       - uses: purcell/setup-emacs@master
         with:
-          version: '28'
+          version: '28.1'
 
       - uses: conao3/setup-cask@master
         with:
