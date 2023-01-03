@@ -128,7 +128,7 @@ Guiding principles for this (phm/) refactor
                                   (lambda (section) (org-element-property :end section))
                                   nil t org-element-all-elements)
                                 (point-max))))
-               
+
                (setq level (1+ (or (org-element-property :level ast) 0)))
 
                ;; NOTE(nox): This is needed to insert in the right place
@@ -136,7 +136,9 @@ Guiding principles for this (phm/) refactor
                (org-noter--insert-heading level title empty-lines-number location)
                (when note-body
                  (save-excursion
-                   (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE")))
+                   (if short-selected-text
+                       (insert note-body)
+                     (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE"))))
                (when (org-noter--session-hide-other session) (org-overview))
 
                (setf (org-noter--session-num-notes-in-view session)
