@@ -38,3 +38,21 @@
    1. Navigation of nested notes is spotty. =C-M-p= and =C-M-.= have trouble
       detecting nested notes.
 
+** Trying out the refactor of org-noter-insert-note
+   1. load `org-noter-dev.el'
+      - defines org-noter-max-short-note
+      - defines replacement for note insertion commands
+      - sets default note insertion keybindings to the new commands
+   2. Guiding principles for this refactor
+      - The preferred title is the one the user enters in the minibuffer.
+      - Selected text should be used in the note, either as the title or in the body
+      - If there is no title input and no selected text, then use the default title
+      - Refrain from making notes in the same location with the same title
+      - Precise notes generally have different locations, so always make new
+        precise notes
+   3. Caveats
+      - QUOTE block delimiters are not consistently applied
+      - There may be cleaner ways to implement some of the logical tests, namely
+        empty string vs. nil situations.
+      - Not all combinations of text selection, entry command and note title
+        have been tested.
