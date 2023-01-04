@@ -76,8 +76,9 @@ Guiding principles for this (phm/) refactor
                  prompt-title (unless org-noter-insert-note-no-questions
                                 (completing-read "Note: " collection nil nil nil nil nil))
                  ;; NOTE(phm): define title and body of note
-                 title (if (> (length prompt-title) 0) prompt-title
-                         (or short-selected-text default-title))
+                 title (cond ((> (length prompt-title) 0)        prompt-title)
+                             ((> (length short-selected-text) 0) short-selected-text)
+                             (t                                  default-title))
                  note-body (unless (equal title short-selected-text) selected-text)
                  ;; is this an existing note? skip for precise notes
                  existing-note (unless precise-info (cdr (assoc title collection))))
