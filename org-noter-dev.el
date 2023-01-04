@@ -60,8 +60,8 @@ Guiding principles for this (phm/) refactor
                                                         org-noter-default-heading-title))
                (empty-lines-number (if org-noter-separate-notes-from-heading 2 1)))
 
-           ;; NOTE(phm): prompt for title
-           (unless org-noter-insert-note-no-questions
+           ;; NOTE(phm): prompt for title unless this is a precise note
+           (unless precise-info
              ;; construct colletction, this-title and default-begin
              (dolist (note-cons (org-noter--view-info-notes view-info))
                (let ((display (org-element-property :raw-value (car note-cons)))
