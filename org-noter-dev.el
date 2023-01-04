@@ -180,3 +180,7 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
      (phm/org-noter-insert-note))))
+
+(define-key org-noter-doc-mode-map (kbd "i") 'phm/org-noter-insert-note)
+(define-key org-noter-doc-mode-map (kbd "M-i") 'phm/org-noter-insert-precise-note)
+(define-key org-noter-doc-mode-map (kbd "C-i") 'phm/org-noter-insert-note-toggle-no-questions)
