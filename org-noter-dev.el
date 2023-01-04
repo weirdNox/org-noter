@@ -43,7 +43,8 @@ Guiding principles for this (phm/) refactor
           (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
 
      (let ((inhibit-quit t)
-           (short-selected-text (if (<= (length selected-text) org-noter-max-short-length)
+           (short-selected-text (if (and (> (length selected-text) 0)
+                                         (<= (length selected-text) org-noter-max-short-length))
                                     selected-text)))
        (with-local-quit
          (select-frame-set-input-focus (window-frame window))
@@ -54,10 +55,11 @@ Guiding principles for this (phm/) refactor
 
          (let ((point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
-               collection default-begin title prompt-title existing-note this-title note-body
-               (default-title (replace-regexp-in-string (regexp-quote "$p$")
-                                                        (org-noter--pretty-print-location location)
-                                                        org-noter-default-heading-title))
+               collection default-begin title existing-note this-title note-body
+               (default-title (or short-selected-text
+                                  (replace-regexp-in-string (regexp-quote "$p$")
+                                                            (org-noter--pretty-print-location location)
+                                                            org-noter-default-heading-title)))
                (empty-lines-number (if org-noter-separate-notes-from-heading 2 1)))
 
            ;; NOTE(phm): prompt for title unless this is a precise note
@@ -73,12 +75,8 @@ Guiding principles for this (phm/) refactor
 
            (setq collection (nreverse collection)
                  ;; prompt for title (unless no-Q's)
-                 prompt-title (unless org-noter-insert-note-no-questions
-                                (completing-read "Note: " collection nil nil nil nil nil))
-                 ;; NOTE(phm): define title and body of note
-                 title (cond ((> (length prompt-title) 0)        prompt-title)
-                             ((> (length short-selected-text) 0) short-selected-text)
-                             (t                                  default-title))
+                 title (if org-noter-insert-note-no-questions default-title
+                         (completing-read "Note: " collection nil nil nil nil default-title))
                  note-body (unless (equal title short-selected-text) selected-text)
                  ;; is this an existing note? skip for precise notes
                  existing-note (unless precise-info (cdr (assoc title collection))))
