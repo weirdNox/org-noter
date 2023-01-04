@@ -55,7 +55,7 @@ Guiding principles for this (phm/) refactor
 
          (let ((point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
-               collection default-begin title existing-note this-title note-body
+               collection title note-body existing-note
                (default-title (or short-selected-text
                                   (replace-regexp-in-string (regexp-quote "$p$")
                                                             (org-noter--pretty-print-location location)
@@ -64,14 +64,10 @@ Guiding principles for this (phm/) refactor
 
            ;; NOTE(phm): prompt for title unless this is a precise note
            (unless precise-info
-             ;; construct colletction, this-title and default-begin
+             ;; construct collection for matching existing notes
              (dolist (note-cons (org-noter--view-info-notes view-info))
-               (let ((display (org-element-property :raw-value (car note-cons)))
-                     (begin (org-element-property :begin (car note-cons))))
-                 (push (cons display note-cons) collection)
-                 (when (and (>= point begin) (> begin (or default-begin 0)))
-                   (setq this-title display
-                         default-begin begin)))))
+               (let ((display (org-element-property :raw-value (car note-cons))))
+                 (push (cons display note-cons) collection))))
 
            (setq collection (nreverse collection)
                  ;; prompt for title (unless no-Q's)
