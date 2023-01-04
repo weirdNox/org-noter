@@ -51,7 +51,7 @@
       - Precise notes generally have different locations, so always make new
         precise notes
    3. Caveats
-      - QUOTE block delimiters are not consistently applied
+      - QUOTE block delimiters only appear on long selected text
       - There may be cleaner ways to implement some of the logical tests, namely
         empty string vs. nil situations.
       - Not all combinations of text selection, entry command and note title
