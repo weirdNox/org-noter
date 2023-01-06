@@ -127,7 +127,8 @@ Guiding principles for this (phm/) refactor
                                   nil t org-element-all-elements)
                                 (point-max))))
 
-               (setq level (1+ (or (org-element-property :level ast) 0)))
+               (setq level (or level
+                               (1+ (or (org-element-property :level ast) 0))))
 
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
