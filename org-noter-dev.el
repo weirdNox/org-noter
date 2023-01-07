@@ -103,7 +103,7 @@ Guiding principles for this (phm/) refactor
 
                  (when (and org-noter-insert-selected-text-inside-note note-body)
                    (if short-selected-text
-                       (insert note-body)
+                       (insert "``" note-body "''")
                      (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE"))))
 
              ;; NOTE(nox): Inserting a new note
@@ -136,7 +136,7 @@ Guiding principles for this (phm/) refactor
                (when note-body
                  (save-excursion
                    (if short-selected-text
-                       (insert note-body)
+                       (insert "``" note-body "''")
                      (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE"))))
                (when (org-noter--session-hide-other session) (org-overview))
 
