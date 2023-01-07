@@ -51,8 +51,43 @@
       - Precise notes generally have different locations, so always make new
         precise notes
    3. Caveats
-      - QUOTE block delimiters only appear on long selected text
       - There may be cleaner ways to implement some of the logical tests, namely
         empty string vs. nil situations.
       - Not all combinations of text selection, entry command and note title
         have been tested.
+
+** Stock vs refactored note insertion
+   - more consistent use of selected text in title or body
+   - more consistent primary default title (short-selected-text)
+   - more consistent secondary default title ("Notes for page <location>")
+   - avoids having different notes with the same heading
+
+     In Stock org-noter, repeated TAB's give multiple notes.  In this refactor,
+     new notes in the same location with the same title are note made.  For now,
+     precise notes are excepted from this rule.
+
+   - long quotes are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
+   - short quotes are enclosed in ``...'' (LaTeX style)
+   - short/long are differentiated by customizable variable (default 80 char)
+
+     In Stock org-noter, long selections have more than 3 lines.
+
+*** Stock
+   |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+   | title prompt?   | Y                              | Y                         | N                       |
+   | default title 1 | prior note by location         | selected-text             | N/A                     |
+   | default title 2 | "Notes for page #"             | "Notes for page # x y"    | "Notes for page #"      |
+   | new note        | with new title                 | never                     | never                   |
+   | body            | selected-text on existing note | selected-text (> 3 lines) | none                    |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+
+*** Refactored
+   |                 | insert-note =i=           | precise note =M-i=     | no-questions =C-i, TAB=   |
+   |-----------------+---------------------------+------------------------+---------------------------|
+   | title prompt?   | Y                         | Y                      | N                         |
+   | default title 1 | short-selected-text       | short-selected-text    | short-selected-text       |
+   | default title 2 | "Notes for page #"        | "Notes for page # x y" | "Notes for page #"        |
+   | new note        | with new title            | never                  | with new title            |
+   | body            | selected-text (not title) | long selected-text     | selected-text (not title) |
+   |-----------------+---------------------------+------------------------+---------------------------|
