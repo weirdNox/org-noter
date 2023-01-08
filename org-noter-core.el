@@ -1077,13 +1077,21 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (list slice-top slice-height slice-left slice-width)))
 
 (defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
+  "Convert CHAR based position to percent-base position"
   (let* ((slice (org-noter--doc-get-page-slice))
-         (display-size (image-display-size (image-get-display-property)))
-         (display-percentage-height (/ vscroll (cdr display-size)))
-         (hpercentage (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-height))))))
-    (if hscroll
-	(cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
-      (cons hpercentage 0))))
+         (display-size (image-display-size (image-get-display-property))) ;(width height)
+         (display-width (car display-size))
+         (display-height (cdr display-size))
+         (window-geom (window-inside-edges)) ; (L T R B)
+         (display-left-edge (/ (- (nth 2 window-geom) (nth 0 window-geom) display-width) 2))
+         (display-percentage-v (/ vscroll display-height))
+         (percentage-v (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-v)))))
+         (display-percentage-h 0)
+         (percentage-h 0))
+    (when hscroll
+      (setq display-percentage-h (/ (- hscroll display-left-edge) display-width)
+            percentage-h (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) display-percentage-h))))))
+    (cons percentage-v percentage-h)))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
   (let* ((slice (org-noter--doc-get-page-slice))
