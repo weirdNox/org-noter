@@ -223,6 +223,15 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
   :group 'org-noter
   :type 'number)
 
+(defcustom org-noter-arrow-horizontal-offset -0.02
+  "Horizontal offset in the position of the tooltip arrow relative
+
+to precise location.  Units are % of page, positive values move
+the arrow to the right, while negative values move it to the
+left."
+  :group 'org-noter
+  :type 'number)
+
 (defcustom org-noter-doc-property-in-notes nil
   "If non-nil, every new note will have the document property too.
 This makes moving notes out of the root heading easier."
