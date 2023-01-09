@@ -87,50 +87,18 @@
    | body            | selected-text (not title) | long selected-text     | selected-text (not title) |
    |-----------------+---------------------------+------------------------+---------------------------|
 ** Features wishlist
-   1. Expand location handling to include (L T R B) edge info
-
-      Types of location
-      - Page
-      - Page pos-v
-      - Page pos-v . pos-h
-      - Page pos-h pos-v pos-right pos-bottom
-
-        Swap v and h for consistency (T L B R) ordering?  Not consistent w/
-        image.el, but consistent with org-noter.
-
-
-      Possible functions affected.
-      - [ ]  943:(defun org-noter--notes-window-location-property (ast)
-      - [ ]  957:(defun org-noter--auto-save-last-location-property (ast)
-      - [ ]  972:(defun org-noter--doc-approx-location (&optional precise-info force-new-ref)
-      - [ ]  983:(defun org-noter--location-change-advice (&rest _)
-      - [ ]  998:(defun org-noter--check-location-property (arg)
-      - [ ] 1011:(defun org-noter--parse-location-property (arg)
-      - [ ] 1024:(defun org-noter--pretty-print-location (location)
-      - [ ] 1168:(defun org-noter--get-location-top (location)
-      - [ ] 1174:(defun org-noter--get-location-page (location)
-      - [ ] 1178:(defun org-noter--get-location-left (location)
-      - [ ] 1186:(defun org-noter--doc-goto-location (location)
-      - [ ] 1195:(defun org-noter--compare-location-cons (comp l1 l2)
-      - [ ] 1240:(defun org-noter--compare-locations (comp l1 l2)
-      - [ ] 1391:(defun org-noter--get-view-info (view &optional new-location)
-      - [ ] 1522:(defun org-noter--doc-location-change-handler ()
-      - [ ] 1625:(defun org-noter-set-start-location (&optional arg)
-      - [ ] 1642:(defun org-noter-set-auto-save-last-location (arg)
-      - [ ] 1751:(defun org-noter-set-notes-window-location (arg)
-
-   2. [@2] Use pdf-view-current-pagelabel to use the page label instead of page in
+   1. Use pdf-view-current-pagelabel to use the page label instead of page in
       default titles
 
       May require altering the org-noter-X--pretty-print-location-hook(s).
 
-   3. Profile org-noter -- runs slow on large books (500+ pages)
+   2. Profile org-noter -- runs slow on large books (500+ pages)
 
-   4. Bind M-<mouse-1> to precise-note, no-questions.
+   3. Bind M-<mouse-1> to precise-note, no-questions.
 
-   5. Make background of arrow transparent (see org-noter--show-arrow)
+   4. Make background of arrow transparent (see org-noter--show-arrow)
 
-   6. Handle 2-column pdfs with notes in read-order.
+   5. Handle 2-column pdfs with notes in read-order.
 
       Need to define a document property TWO-COLUMN and reference it.  Maybe
       make page a real number with #.0 for the left column and #.5 for the right

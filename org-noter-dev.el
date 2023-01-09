@@ -3,6 +3,11 @@
   :group 'org-noter
   :type 'integer)
 
+(defcustom org-noter-highlight-long-selections t
+  "Highlight long text selections in document"
+  :group 'org-noter
+  :type 'boolean)
+
 (defun phm/org-noter-insert-note (&optional precise-info)
   "Insert note associated with the current location.
 
@@ -47,6 +52,9 @@ Guiding principles for this (phm/) refactor
                                          (<= (length selected-text) org-noter-max-short-length))
                                     selected-text)))
        (with-local-quit
+         (if (and org-noter-highlight-long-selections selected-text (not short-selected-text))
+             (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region t)))
+
          (select-frame-set-input-focus (window-frame window))
          (select-window window)
 
