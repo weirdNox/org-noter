@@ -78,7 +78,6 @@
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
 
-    (if (pdf-view-active-region-p)
 
 (defun org-noter-pdf--get-precise-info (major-mode window)
   (when (eq major-mode 'pdf-view-mode)
