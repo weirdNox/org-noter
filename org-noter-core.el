@@ -245,6 +245,11 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter--get-highlight-location-hook nil
+  "Hook that runs to get the location of a highlight"
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter-find-additional-notes-functions nil
   "Functions that when given a document file path as argument, give out
 an org note file path.
@@ -1104,7 +1109,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
    (let ((window (org-noter--get-doc-window))
          (mode (org-noter--session-doc-mode session)))
      (with-selected-window window
-       (run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode)))))
+       (run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode window)))))
 
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
@@ -1893,7 +1898,7 @@ want to kill."
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
 
-(defun org-noter-insert-note (&optional precise-info note-title)
+(defun org-noter-insert-note (&optional precise-info note-title highlight-location)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
@@ -2020,6 +2025,7 @@ defines if the text should be inserted inside the note."
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
                (org-noter--insert-heading level title empty-lines-number location)
+               (org-entry-put nil "PDF_HIGHLIGHT" (format "%s" highlight-location))
                (when quote-p
                  (save-excursion
                    (insert "#+BEGIN_QUOTE\n" selected-text "\n#+END_QUOTE")))
@@ -2053,12 +2059,19 @@ See `org-noter-insert-note' docstring for more."
    (let ((org-noter-insert-note-no-questions (if toggle-no-questions
                                                  (not org-noter-insert-note-no-questions)
                                                org-noter-insert-note-no-questions))
-         (precise-info (org-noter--get-precise-info)))
-     (org-noter-insert-note precise-info)
+         (precise-info (org-noter--get-precise-info))
+         (highlight-location (org-noter--get-highlight-location)))
+
+     (org-noter-insert-note precise-info nil highlight-location)
      (select-frame-set-input-focus (org-noter--session-frame session))
      (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
+
+     ;; TODO precise info is wrong here. should be removed
      (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode precise-info))))
 
+(defun org-noter--get-highlight-location ()
+  (with-selected-window (org-noter--get-doc-window)
+     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
 
 (defun org-noter-insert-note-toggle-no-questions ()
   "Insert note associated with the current location.
