@@ -113,6 +113,8 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-get-current-view (mode)
   'org-noter-core-test-view)
 
+(defun org-noter-core-test-get-highlight-location ()
+  "HARDCODED_HIGHLIGHT_LOCATION")
 
 (describe "org-noter-core"
                     (before-each
@@ -259,5 +261,45 @@ org-noter-core-test-return-text
                               (expect 'org-noter-core-test-get-current-view :to-have-been-called)
                               ))))
                     )
+
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          (describe "persistent highlights"
+                    (describe "no hooks are setup for precise note highlights"
+                              ;; if no hooks for highlights are setup we expect no :HIGHLIGHT: property
+                              (it "can take a precise note without a highlight appearing"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (org-noter-core-test-create-session)
+                                      (with-simulated-input "precise SPC note RET"
+                                                            (org-noter-insert-precise-note))
+                                      (message "--- no highlight with note: %s" (buffer-string))
+                                      (expect (string-match ":HIGHLIGHT:" (buffer-string))  :to-be nil)))))
+
+
+                    (describe "hooks for persistent highlights are setup"
+                              ;; setup hooks for highlighting
+                              (before-each
+                               (add-to-list 'org-noter--get-highlight-location-hook #'org-noter-core-test-get-highlight-location)
+                               (spy-on 'org-noter-core-test-get-highlight-location :and-call-through)
+                               )
+                              ;; now that the hooks for highlights are setup, we expect :HIGHLIGHT: property to appear.
+                              (it "can take a precise note WITH a highlight appearing"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (org-noter-core-test-create-session)
+                                      (with-simulated-input "precise SPC note RET"
+                                                            (org-noter-insert-precise-note))
+                                      (message "with note: %s" (buffer-string))
+                                      (expect (string-match "\\:HIGHLIGHT\\:" (buffer-string))  :not :to-be nil)
+                                      (expect (string-match "HARDCODED_HIGHLIGHT_LOCATION" (buffer-string))  :not :to-be nil)))))
+
+                    )
+
+
+
+
 
 )
