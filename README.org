@@ -32,6 +32,8 @@
       pointing.
 
 ** Bugs to fix
+   1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
+      away (or at all), requiring user to manually type in the (existing) title
 
 ** Trying out the refactor of org-noter-insert-note
    1. load `org-noter-dev.el'
@@ -104,3 +106,4 @@
       make page a real number with #.0 for the left column and #.5 for the right
       column?
 
+   6. Dedicated insert-selected-text-into-page-note
