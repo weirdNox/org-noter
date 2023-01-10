@@ -245,6 +245,11 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter--get-highlight-location-hook nil
+  "Hook that runs to get the location of a highlight"
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter-find-additional-notes-functions nil
   "Functions that when given a document file path as argument, give out
 an org note file path.
@@ -672,7 +677,7 @@ If nil, the session used will be `org-noter--session'."
     (cond
      ((and (not arg-is-session) (vectorp info))
       ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
-	  ;; the specified property
+          ;; the specified property
       (let ((notes-buffer (aref info 0))
             (wanted-prop  (aref info 1)))
         (unless (and (buffer-live-p notes-buffer) (or (stringp wanted-prop)
@@ -683,7 +688,7 @@ If nil, the session used will be `org-noter--session'."
         (with-current-buffer notes-buffer
           (org-with-wide-buffer
            (catch 'break
-	     (while t
+             (while t
                (let ((document-property (or (org-entry-get nil org-noter-property-doc-file t)
                                             (cadar (org-collect-keywords (list org-noter-property-doc-file))))))
                  (when (string= (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook document-property)
@@ -1016,7 +1021,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--parse-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (cond ((and (consp value) (integerp (car value)) (numberp (cdr value))) value)
-		  ((and (consp value) (integerp (car value)) (consp (cdr value)) (numberp (cadr value)) (numberp (cddr value))) value)
+                  ((and (consp value) (integerp (car value)) (consp (cdr value)) (numberp (cadr value)) (numberp (cddr value))) value)
                   ((integerp value) (cons value 0))))))))
 
 (defun org-noter--pretty-print-location (location)
@@ -1067,9 +1072,9 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 (defun org-noter--doc-get-page-slice ()
   "Return (slice-top . slice-height)."
   (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
-	 (slice-left (float (nth 0 slice)))
+         (slice-left (float (nth 0 slice)))
          (slice-top (float (nth 1 slice)))
-	 (slice-width (float (nth 2 slice)))
+         (slice-width (float (nth 2 slice)))
          (slice-height (float (nth 3 slice))))
     (when (or (> slice-top 1)
               (> slice-height 1))
@@ -1089,7 +1094,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
          (display-percentage-height (/ vscroll (cdr display-size)))
          (hpercentage (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-height))))))
     (if hscroll
-	(cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
+        (cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
       (cons hpercentage 0))))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
@@ -1104,7 +1109,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
    (let ((window (org-noter--get-doc-window))
          (mode (org-noter--session-doc-mode session)))
      (with-selected-window window
-       (run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode)))))
+       (run-hook-with-args-until-success 'org-noter--get-precise-info-hook mode window)))))
 
 (defun org-noter--show-arrow ()
   (when (and org-noter--arrow-location
@@ -1119,7 +1124,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
              (image-left (if (floatp (aref org-noter--arrow-location 3))
                              (round (* (aref org-noter--arrow-location 3) (car (pdf-view-image-size))))))
 
-	     (dx (or image-left
+             (dx (or image-left
                      (+ (or (car (window-margins)) 0)
                         (car (window-fringes)))))
              (dy (or image-top 0))
@@ -1240,9 +1245,9 @@ L2 or, when in the same page, if L1 is the _f_irst of the two."
         (t
          (setq l1 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l1) l1)
                l2 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l2) l2))
-	 (if (numberp (cdr l2))
+         (if (numberp (cdr l2))
              (org-noter--compare-location-cons comp l1 l2)
-	   (org-noter--compare-location-cons comp l1 (cons (car l2) (cadr l2)))))))
+           (org-noter--compare-location-cons comp l1 (cons (car l2) (cadr l2)))))))
 
 (defun org-noter--show-note-entry (session note)
   "This will show the note entry and its children.
@@ -1484,7 +1489,7 @@ relative to."
                                     (org-element-property :end (cdr reference-for-insertion)))))
                    (setq reference-for-insertion (cons 'after element)))))))
            nil nil (delete 'headline (append org-element-all-elements nil))))
-       
+
        (org-noter--view-region-finish current-region-info)
 
        (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
@@ -1573,7 +1578,7 @@ relative to."
 
     (setq doc-prop (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
                        doc-prop))
-    
+
     (unless (org-noter--check-doc-prop doc-prop)
       (setq doc-prop nil)
 
@@ -1893,7 +1898,7 @@ want to kill."
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
 
-(defun org-noter-insert-note (&optional precise-info note-title)
+(defun org-noter-insert-note (&optional precise-info note-title highlight-location)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
@@ -2014,12 +2019,14 @@ defines if the text should be inserted inside the note."
                                   (lambda (section) (org-element-property :end section))
                                   nil t org-element-all-elements)
                                 (point-max))))
-               
+
                (setq level (1+ (or (org-element-property :level ast) 0)))
 
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
                (org-noter--insert-heading level title empty-lines-number location)
+               (when highlight-location
+                (org-entry-put nil "HIGHLIGHT" (format "%s" highlight-location)))
                (when quote-p
                  (save-excursion
                    (insert "#+BEGIN_QUOTE\n" selected-text "\n#+END_QUOTE")))
@@ -2053,12 +2060,19 @@ See `org-noter-insert-note' docstring for more."
    (let ((org-noter-insert-note-no-questions (if toggle-no-questions
                                                  (not org-noter-insert-note-no-questions)
                                                org-noter-insert-note-no-questions))
-         (precise-info (org-noter--get-precise-info)))
-     (org-noter-insert-note precise-info)
+         (precise-info (org-noter--get-precise-info))
+         (highlight-location (org-noter--get-highlight-location)))
+
+     (org-noter-insert-note precise-info nil highlight-location)
      (select-frame-set-input-focus (org-noter--session-frame session))
      (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
+
+     ;; TODO precise info is wrong here. should be removed
      (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode precise-info))))
 
+(defun org-noter--get-highlight-location ()
+  (with-selected-window (org-noter--get-doc-window)
+     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
 
 (defun org-noter-insert-note-toggle-no-questions ()
   "Insert note associated with the current location.

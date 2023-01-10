@@ -100,7 +100,7 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-get-current-view (mode)
   t)
 
-(defun org-noter-core-test-get-precise-info (mode)
+(defun org-noter-core-test-get-precise-info (mode window)
   (message "🧪org-noter-core-test-get-precise-info %s" mode)
   (list 1 2 3 4))
 
@@ -113,6 +113,8 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-get-current-view (mode)
   'org-noter-core-test-view)
 
+(defun org-noter-core-test-get-highlight-location ()
+  "HARDCODED_HIGHLIGHT_LOCATION")
 
 (describe "org-noter-core"
                     (before-each
@@ -259,5 +261,88 @@ org-noter-core-test-return-text
                               (expect 'org-noter-core-test-get-current-view :to-have-been-called)
                               ))))
                     )
+
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          (describe "locations"
+                    (defvar test-precise-location '(3 1 . 0.1))
+                    (defvar test-simple-location '(3 1))
+                    (defvar test-extra-precise-location '(4 1 0.1 0.2 0.3))
+
+                    (describe "precise locations"
+                              (it "can get page from a precise location"
+                                  (expect (org-noter--get-location-page test-precise-location) :to-equal 3))
+
+                              (it "can get top from a precise location"
+                                  (expect (org-noter--get-location-top test-precise-location) :to-equal 1))
+
+                              (it "can get left from a precise location"
+                                  (expect (org-noter--get-location-left test-precise-location) :to-equal 0.1))
+                              )
+
+                    (describe "simple locations"
+
+                              (it "doesn't get a left location for simple location"
+                                  (expect (org-noter--get-location-left test-simple-location) :to-equal nil)
+                              )
+
+                              (it "can get top from a simple location"
+                                  (expect (org-noter--get-location-top test-simple-location) :to-equal 1))
+
+                              (it "can get page from a simple location"
+                                  (expect (org-noter--get-location-page test-simple-location) :to-equal 3))
+                              )
+
+                    (describe "extra precise locations"
+                              (it "can get page from an extra precise location"
+                                  (expect (org-noter--get-location-page test-extra-precise-location) :to-equal 4))
+
+                              (it "can get top from an extra precise location"
+                                  (expect (org-noter--get-location-top test-extra-precise-location) :to-equal 1))
+
+
+                              (it "can get left from an extra precise location"
+                                  (expect (org-noter--get-location-left test-extra-precise-location) :to-equal 0.1)))
+                    )
+
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          (describe "persistent highlights"
+                    (describe "no hooks are setup for precise note highlights"
+                              ;; if no hooks for highlights are setup we expect no :HIGHLIGHT: property
+                              (it "can take a precise note without a highlight appearing"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (org-noter-core-test-create-session)
+                                      (with-simulated-input "precise SPC note RET"
+                                                            (org-noter-insert-precise-note))
+                                      (message "--- no highlight with note: %s" (buffer-string))
+                                      (expect (string-match ":HIGHLIGHT:" (buffer-string))  :to-be nil)))))
+
+
+                    (describe "hooks for persistent highlights are setup"
+                              ;; setup hooks for highlighting
+                              (before-each
+                               (add-to-list 'org-noter--get-highlight-location-hook #'org-noter-core-test-get-highlight-location)
+                               (spy-on 'org-noter-core-test-get-highlight-location :and-call-through)
+                               )
+                              ;; now that the hooks for highlights are setup, we expect :HIGHLIGHT: property to appear.
+                              (it "can take a precise note WITH a highlight appearing"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (org-noter-core-test-create-session)
+                                      (with-simulated-input "precise SPC note RET"
+                                                            (org-noter-insert-precise-note))
+                                      (message "with note: %s" (buffer-string))
+                                      (expect (string-match "\\:HIGHLIGHT\\:" (buffer-string))  :not :to-be nil)
+                                      (expect (string-match "HARDCODED_HIGHLIGHT_LOCATION" (buffer-string))  :not :to-be nil)))))
+
+                    )
+
+
+
+
 
 )

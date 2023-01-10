@@ -25,11 +25,17 @@
 ;;; Code:
 (require 'org-noter)
 
+(defun org-noter-pdf-get-highlight-location ()
+    (if (pdf-view-active-region-p)
+        (list 'PDF-HIGHLIGHT (image-mode-window-get 'page) (pdf-view-active-region))
+      nil))
+
+(add-to-list 'org-noter--get-highlight-location-hook #'org-noter-pdf-get-highlight-location)
 (defun org-noter-pdf-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (when (memq major-mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (and (listp precise-info)
+    (cons (image-mode-window-get 'page) (if (and (consp precise-info)
                                                  (numberp (car precise-info))
-                                                 (numberp (cadr precise-info)))
+                                                 (numberp (cdr precise-info)))
                                             precise-info 0))))
 
 (defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
@@ -72,30 +78,23 @@
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
 
-(defun org-noter-pdf--get-precise-info (major-mode)
+
+(defun org-noter-pdf--get-precise-info (major-mode window)
   (when (eq major-mode 'pdf-view-mode)
     (if (pdf-view-active-region-p)
-        (let ((edges (pdf-view-active-region)))
-          (car edges))
-
+    (let ((edges (pdf-view-active-region)))
+       (cons
+           (cadar edges)
+           (- (caar edges) 0.02)))
+    (let ((event nil))
       (while (not (and (eq 'mouse-1 (car event))
                        (eq window (posn-window (event-start event)))))
         (setq event (read-event "Click where you want the start of the note to be!")))
       (let ((col-row (posn-col-row (event-start event))))
         (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
-                                                (+ (window-hscroll) (car col-row)))))))
+                                                (+ (window-hscroll) (car col-row))))))))
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
-
-(defun org-noter-doc--get-precise-info (major-mode)
-  (when (eq major-mode 'doc-view-mode)
-    (while (not (and (eq 'mouse-1 (car event))
-                     (eq window (posn-window (event-start event)))))
-      (setq event (read-event "Click where you want the start of the note to be!")))
-    (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
-                                               (cdr (posn-col-row (event-start event)))))))
-
-(add-to-list 'org-noter--get-precise-info-hook #'org-noter-doc--get-precise-info)
 
 
 (defun org-noter-pdf-goto-location (mode location)
@@ -321,8 +320,9 @@
 (add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-pdf-highlight-location)
 (defun org-noter-pdf-highlight-location (mode precise-location)
   "Highlight a precise location in PDF"
-  (when (memq mode '(doc-view-mode pdf-view-mode))
-    (pdf-annot-add-highlight-markup-annotation precise-location)))
+  (when (and (memq mode '(doc-view-mode pdf-view-mode))
+             (pdf-view-active-region-p))
+    (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
