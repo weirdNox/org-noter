@@ -100,7 +100,7 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-get-current-view (mode)
   t)
 
-(defun org-noter-core-test-get-precise-info (mode)
+(defun org-noter-core-test-get-precise-info (mode window)
   (message "🧪org-noter-core-test-get-precise-info %s" mode)
   (list 1 2 3 4))
 
