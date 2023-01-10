@@ -2025,7 +2025,8 @@ defines if the text should be inserted inside the note."
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
                (org-noter--insert-heading level title empty-lines-number location)
-               (org-entry-put nil "PDF_HIGHLIGHT" (format "%s" highlight-location))
+               (when highlight-location
+                (org-entry-put nil "HIGHLIGHT" (format "%s" highlight-location)))
                (when quote-p
                  (save-excursion
                    (insert "#+BEGIN_QUOTE\n" selected-text "\n#+END_QUOTE")))
