@@ -677,7 +677,7 @@ If nil, the session used will be `org-noter--session'."
     (cond
      ((and (not arg-is-session) (vectorp info))
       ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
-	  ;; the specified property
+          ;; the specified property
       (let ((notes-buffer (aref info 0))
             (wanted-prop  (aref info 1)))
         (unless (and (buffer-live-p notes-buffer) (or (stringp wanted-prop)
@@ -688,7 +688,7 @@ If nil, the session used will be `org-noter--session'."
         (with-current-buffer notes-buffer
           (org-with-wide-buffer
            (catch 'break
-	     (while t
+             (while t
                (let ((document-property (or (org-entry-get nil org-noter-property-doc-file t)
                                             (cadar (org-collect-keywords (list org-noter-property-doc-file))))))
                  (when (string= (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook document-property)
@@ -1021,7 +1021,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--parse-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (cond ((and (consp value) (integerp (car value)) (numberp (cdr value))) value)
-		  ((and (consp value) (integerp (car value)) (consp (cdr value)) (numberp (cadr value)) (numberp (cddr value))) value)
+                  ((and (consp value) (integerp (car value)) (consp (cdr value)) (numberp (cadr value)) (numberp (cddr value))) value)
                   ((integerp value) (cons value 0))))))))
 
 (defun org-noter--pretty-print-location (location)
@@ -1072,9 +1072,9 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 (defun org-noter--doc-get-page-slice ()
   "Return (slice-top . slice-height)."
   (let* ((slice (or (image-mode-window-get 'slice) '(0 0 1 1)))
-	 (slice-left (float (nth 0 slice)))
+         (slice-left (float (nth 0 slice)))
          (slice-top (float (nth 1 slice)))
-	 (slice-width (float (nth 2 slice)))
+         (slice-width (float (nth 2 slice)))
          (slice-height (float (nth 3 slice))))
     (when (or (> slice-top 1)
               (> slice-height 1))
@@ -1094,7 +1094,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
          (display-percentage-height (/ vscroll (cdr display-size)))
          (hpercentage (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-height))))))
     (if hscroll
-	(cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
+        (cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
       (cons hpercentage 0))))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
@@ -1124,7 +1124,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
              (image-left (if (floatp (aref org-noter--arrow-location 3))
                              (round (* (aref org-noter--arrow-location 3) (car (pdf-view-image-size))))))
 
-	     (dx (or image-left
+             (dx (or image-left
                      (+ (or (car (window-margins)) 0)
                         (car (window-fringes)))))
              (dy (or image-top 0))
@@ -1245,9 +1245,9 @@ L2 or, when in the same page, if L1 is the _f_irst of the two."
         (t
          (setq l1 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l1) l1)
                l2 (or (run-hook-with-args-until-success 'org-noter--convert-to-location-cons-hook l2) l2))
-	 (if (numberp (cdr l2))
+         (if (numberp (cdr l2))
              (org-noter--compare-location-cons comp l1 l2)
-	   (org-noter--compare-location-cons comp l1 (cons (car l2) (cadr l2)))))))
+           (org-noter--compare-location-cons comp l1 (cons (car l2) (cadr l2)))))))
 
 (defun org-noter--show-note-entry (session note)
   "This will show the note entry and its children.
@@ -1489,7 +1489,7 @@ relative to."
                                     (org-element-property :end (cdr reference-for-insertion)))))
                    (setq reference-for-insertion (cons 'after element)))))))
            nil nil (delete 'headline (append org-element-all-elements nil))))
-       
+
        (org-noter--view-region-finish current-region-info)
 
        (setf (org-noter--session-num-notes-in-view session) (length notes-in-view))
@@ -1578,7 +1578,7 @@ relative to."
 
     (setq doc-prop (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
                        doc-prop))
-    
+
     (unless (org-noter--check-doc-prop doc-prop)
       (setq doc-prop nil)
 
@@ -2019,7 +2019,7 @@ defines if the text should be inserted inside the note."
                                   (lambda (section) (org-element-property :end section))
                                   nil t org-element-all-elements)
                                 (point-max))))
-               
+
                (setq level (1+ (or (org-element-property :level ast) 0)))
 
                ;; NOTE(nox): This is needed to insert in the right place
