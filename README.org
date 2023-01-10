@@ -108,33 +108,74 @@
 
    6. Dedicated insert-selected-text-into-page-note
 ** Deltas w/ dmitrym
+   In the diffs below the color coding is
+   #+begin_src diff
+-  Dmitry
++  Peter
+   #+end_src
 *** *-get-buffer-file-name-*
-    My arglist: =(mode)=
-    Dmitry's arglist: =(&optional major-mode)=
+#+begin_src diff
+-(defun org-noter-get-buffer-file-name-* (&optional major-mode)
++(defun org-noter-get-buffer-file-name-* (mode)
+   (bound-and-true-p *-file-name))
 
-    P: =major-mode= is a native elisp function, =mode= is a better name
-    D: the arg is not used, so the =&optional= is appropriate
++(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-*)
+#+end_src
 
-    proposal: =(&optional mode)=
+    - =major-mode= is a native elisp function, =mode= is a better name
+    - the arg is not used, so the =&optional= is appropriate
+    - for the =pdf= variant, we both use =(&optional major-mode)=
+
+    proposal: =(&optional mode)= or remove the argument completely.
+*** -get-buffer-file-name-hook
+#+begin_src diff
+-(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov org-noter-get-buffer-file-name-pdf)
++(defcustom org-noter-get-buffer-file-name-hook nil
+#+end_src
+
+    should be nil in =org-noter-core= and set in modules.
 *** *-get-precise-info-*
-    My arglist: =(major-mode window)=
-    D's arglist: =(major-mode)=
+#+begin_src diff
+-(defun org-noter-*--get-precise-info (major-mode)
++(defun org-noter-*--get-precise-info (major-mode window)
+   (when (eq major-mode 'djvu-read-mode)
+     (if (region-active-p)
+         (cons (mark) (point))
+-      (while (not (and (eq 'mouse-1 (car event))
+-                       (eq window (posn-window (event-start event)))))
+-        (setq event (read-event "Click where you want the start of the note to be!")))
+-      (posn-point (event-start event)))))
++      (let ((event nil))
++        (while (not (and (eq 'mouse-1 (car event))
++                         (eq window (posn-window (event-start event)))))
++          (setq event (read-event "Click where you want the start of the note to be!")))
++        (posn-point (event-start event))))))
+#+end_src
 
-    P: calling function already calls =org-noter--get-doc-window=
-    P: =window= is used in all document modes
+    - calling function already calls =org-noter--get-doc-window=
+    - =window= is used in all document modes
 
     proposal: change =major-mode= to =mode=, pass in =window=
-*** *-goto-location*
-    Mine uses =window= as the 3rd arg to ...-hook;
-    Dmitry's calls =org-noter--get-doc-window= in ...pdf...-hook
+*** *-goto-location
+#+begin_src diff
+-(defun org-noter-pdf-goto-location (mode location)
++(defun org-noter-pdf-goto-location (mode location window)
+   (when (memq mode '(doc-view-mode pdf-view-mode))
+     (let ((top (org-noter--get-location-top location))
+-          (window (org-noter--get-doc-window))
+           (left (org-noter--get-location-left location)))
+#+end_src
+    - calling function already calls =org-noter--get-doc-window=
+    - nov and djvu don't need the =window= argument
 
-    P: calling function already calls =org-noter--get-doc-window=
-    D: nov and djvu don't need the =window= argument
-
-    proposal: we discuss this one
-*** *-check-location-property-*
-    P: t (short circuit)
-    D: (equal 5 (length (read property))))
+    proposal: we discuss this one, but I think it's better to not call functions unnecessarily
+*** *-check-location-property
+ #+begin_src diff
+ (defun org-noter-pdf-check-location-property (&optional property)
+   "Check if PROPERTY is a valid location property"
+-  (equal 5 (length (read property))))
++  t)
+ #+end_src
 
     location can be
     1. page
@@ -143,39 +184,59 @@
 
     neither function works properly.  need to read the calling function to
     determine course of action..
-*** *doc--get-precise-info-*
-    I need to read this one.
-*** -get-buffer-file-name-hook
-    P: nil
-    D: =(...nov ...pdf)
-
-    should be nil in org-noter-core and set in modules.
+*** -doc--get-precise-info
+#+begin_src diff
++(defun org-noter-doc--get-precise-info (major-mode window)
++  (when (eq major-mode 'doc-view-mode)
+     (let ((event nil))
+       (while (not (and (eq 'mouse-1 (car event))
+                        (eq window (posn-window (event-start event)))))
+         (setq event (read-event "Click where you want the start of the note to be!")))
+-      (let ((col-row (posn-col-row (event-start event))))
+-        (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+-                                                (+ (window-hscroll) (car col-row))))))))
++      (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
++                                                 (cdr (posn-col-row (event-start event))))))))
+#+end_src
+    I need to read this one.  Not sure if diff did it right...
 *** --doc-approx-location-hook
-    D: references 5-element location
+ #+begin_src diff
+ (defcustom org-noter--doc-approx-location-hook nil
+-  "This returns an approximate location if no precise info is passed: (PAGE 0)
+-   or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
+-"
++  "TODO"
+   :group 'org-noter
+   :type 'hook)
+ #+end_src
 
-    docstring needs to be update on D's side.
+    docstring needs to be updated.
 *** --note-search-no-recurse
-    P: called in org-noter--get-view-info by org-element-map
-    D: missing
+#+begin_src diff
++(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
++  "List of elements that shouldn't be recursed into when searching for notes.")
+#+end_src
 
-    these are equivalent
+    called in =org-noter--get-view-info= by =org-element-map=
 #+begin_src diff
 -           nil nil (delete 'headline (append org-element-all-elements nil))))
 +         nil nil org-noter--note-search-no-recurse)
 #+end_src
 
-    but this is used by org-noter--map-ignore-headings-with-doc-file, which is
+    but this defconst is used by =org-noter--map-ignore-headings-with-doc-file=, which is
     used by all of the sync functions
 
-    probably should keep it, and since we keepit, use it in org-noter--get-view-info
+    probably should keep it, and since we keep it, use it in =org-noter--get-view-info=
 *** org-noter--create-session
-    P: =org-link-bracket-re=
-    D: =org-bracket-link-regexp= (obsolete)
-
-    keep mine.
+ #+begin_src diff
+ (defun org-noter--create-session (ast document-property-value notes-file-path)
+   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
+-         (link-p (or (string-match-p org-bracket-link-regexp document-property-value)
++         (link-p (or (string-match-p org-link-bracket-re document-property-value)
+                      (string-match-p org-noter--url-regexp document-property-value)))
+ #+end_src
+    =org-link-bracket-re= is obsolete. keep mine.
 *** (defun org-noter--narrow-to-root (ast)
-    Dmitry: red
-    Mine  : green
 #+begin_src diff
 -  (when ast
 +  (when (and ast (not (org-noter--no-heading-p)))
@@ -198,11 +259,8 @@
 
 ** precise note fix
 *** *pdf--get-precise-info-*
-    P: fixed calculation of precise location
-    D: legacy code
-
     keep mine.
 *** org-noter--conv-page-scroll-percentage
     diffs are part of my precise-note fix.
 ** highlighting
-   my solution is compact, but too pdf-specific.
+   my solution is compact, but too pdf-specific. need to sketch out Dmitry's solution
