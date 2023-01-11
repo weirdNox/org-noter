@@ -24,13 +24,23 @@
 
 ;;; Code:
 (require 'org-noter)
+(require 'ht)
 
 (defun org-noter-pdf-get-highlight-location ()
-    (if (pdf-view-active-region-p)
-        (list 'PDF-HIGHLIGHT (image-mode-window-get 'page) (pdf-view-active-region))
+  "If there's an active pdf selection, returns a ht that contains all
+the relevant info (page, coordinates, highlight type).
+
+Otherwise returns nil"
+    (-if-let* ((_ (pdf-view-active-region-p))
+               (page (image-mode-window-get 'page))
+               (coords (pdf-view-active-region)))
+        (ht->plist (ht ('PAGE page)
+            ('TYPE 'PDF-HIGHLIGHT)
+            ('COORDS coords)))
       nil))
 
 (add-to-list 'org-noter--get-highlight-location-hook #'org-noter-pdf-get-highlight-location)
+
 (defun org-noter-pdf-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (when (memq major-mode '(doc-view-mode pdf-view-mode))
     (cons (image-mode-window-get 'page) (if (and (consp precise-info)
@@ -43,12 +53,6 @@
   (bound-and-true-p pdf-file-name))
 
 
-(defun org-noter-pdf-check-location-property (&optional property)
-  "Check if PROPERTY is a valid location property"
-  (equal 5 (length (read property))))
-
-
-;; (add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
 (defun org-noter-pdf-view-setup-handler (major-mode)
