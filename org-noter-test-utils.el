@@ -10,6 +10,38 @@
 (ont--log-debug "ont")
 
 
+(defvar mock-contents-simple-notes-file
+  "
+:PROPERTIES:
+:ID:       FAKE_1
+:END:
+#+TITLE: Test book notes (simple)
+* solove-nothing-to-hide
+:PROPERTIES:
+:NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
+:END:
+")
+
+(defvar mock-contents-simple-notes-file-with-a-single-note
+  ":PROPERTIES:
+:ID:       FAKE_90283
+:END:
+#+TITLE: Test book notes
+
+* solove-nothing-to-hide
+:PROPERTIES:
+:NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
+:END:
+** Note from page 1
+:PROPERTIES:
+:NOTER_PAGE: 99
+:END:
+"
+)
+
+
+
+
 ;;;;;;;;;;;
 ;; helpers
 (defun org-noter-core-test-create-session ()
