@@ -129,6 +129,7 @@ org-noter-core-test-return-text
                      (spy-on 'org-noter-core-test-highlight-location :and-call-through)
                      (spy-on 'org-noter-core-test-get-current-view :and-call-through)
 
+                     ;; register all the hooks so we can fake a org-noter-test mode
                      (add-to-list 'org-noter-get-selected-text-hook #'org-noter-test-get-selected-text)
                      (add-to-list 'org-noter-parse-document-property-hook  #'org-noter-core-test-document-property)
                      (add-to-list 'org-noter-set-up-document-hook #'org-noter-core-test-view-setup-handler)
@@ -136,7 +137,6 @@ org-noter-core-test-return-text
                      (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-core-test-approx-location)
                      (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
                      (add-to-list 'org-noter--get-precise-info-hook #'org-noter-core-test-get-precise-info)
-                     (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-core-test-pretty-print-location)
                      (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-core-test-pretty-print-location)
                      (add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-core-test-highlight-location)
 
