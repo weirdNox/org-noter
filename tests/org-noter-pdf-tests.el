@@ -1,5 +1,7 @@
 (add-to-list 'load-path "modules")
 (require 'org-noter-pdf)
+(require 'org-noter-test-utils)
+
 (describe "org-noter-pdf-functionality"
           ;; todo refactor 👇
           (describe "location functionality"
