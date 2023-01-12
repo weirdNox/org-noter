@@ -198,7 +198,7 @@
 +      (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
 +                                                 (cdr (posn-col-row (event-start event))))))))
 #+end_src
-    I need to read this one.  Not sure if diff did it right...
+Dmitry removed this function at [9d437bf]
 *** --doc-approx-location-hook
  #+begin_src diff
  (defcustom org-noter--doc-approx-location-hook nil
@@ -211,7 +211,7 @@
  #+end_src
 
     docstring needs to be updated.
-*** --note-search-no-recurse
+*** --note-search-no-recurse                                :11fc0a8:9dfac53:
 #+begin_src diff
 +(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
 +  "List of elements that shouldn't be recursed into when searching for notes.")
@@ -227,7 +227,7 @@
     used by all of the sync functions
 
     probably should keep it, and since we keep it, use it in =org-noter--get-view-info=
-*** org-noter--create-session
+*** org-noter--create-session                                       :9dfac53:
  #+begin_src diff
  (defun org-noter--create-session (ast document-property-value notes-file-path)
    (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
@@ -236,7 +236,7 @@
                       (string-match-p org-noter--url-regexp document-property-value)))
  #+end_src
     =org-link-bracket-re= is obsolete. keep mine.
-*** (defun org-noter--narrow-to-root (ast)
+*** org-noter--narrow-to-root (ast)                                 :dfe7df2:
 #+begin_src diff
 -  (when ast
 +  (when (and ast (not (org-noter--no-heading-p)))
@@ -247,7 +247,10 @@
 +      (org-narrow-to-subtree)
        (org-cycle-hide-drawers 'all))))
 #+end_src
-***  (defun org-noter--get-location-page (location)
+    "I don't really understand this bit of code, especially what `ast' is, but
+    it breaks narrowing when multiple documents' notes are stored in a single
+    file."
+*** org-noter--get-location-page (location)                     :c1g:c1ed245:
    #+begin_src diff
    "Get the page number given a LOCATION of form (page top . left) or (page . top)."
 -  (message "===> %s" location)
@@ -256,7 +259,17 @@
 -      location))
 +  (car location))
    #+end_src
-
+*** org-noter-kill-session                                          :9dfac53:
+    #+begin_src diff
+    (with-current-buffer notes-buffer
+      (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
+      (restore-buffer-modified-p nil))
+-   (unless org-noter-use-indirect-buffer
++   (when org-noter-use-indirect-buffer
+      (kill-buffer notes-buffer))
+    #+end_src
+    kill the notes buffer **when** an indirect buffer is used, not **unless** it
+    is used
 ** precise note fix
 *** *pdf--get-precise-info-*
     keep mine.
