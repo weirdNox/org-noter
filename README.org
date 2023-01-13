@@ -127,6 +127,11 @@
     - for the =pdf= variant, we both use =(&optional major-mode)=
 
     proposal: =(&optional mode)= or remove the argument completely.
+
+    ACTIONS:
+    1. major-mode -> mode in module files
+    2. use &optional when the argument is not used in the function
+
 *** -get-buffer-file-name-hook
 #+begin_src diff
 -(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov org-noter-get-buffer-file-name-pdf)
@@ -134,6 +139,8 @@
 #+end_src
 
     should be nil in =org-noter-core= and set in modules.
+
+    ACTION:
 *** *-get-precise-info-*
 #+begin_src diff
 -(defun org-noter-*--get-precise-info (major-mode)
@@ -168,7 +175,10 @@
     - calling function already calls =org-noter--get-doc-window=
     - nov and djvu don't need the =window= argument
 
-    proposal: we discuss this one, but I think it's better to not call functions unnecessarily
+    proposal: we discuss this one, but I think it's better to not call functions
+    unnecessarily
+
+    ACTION:
 *** *-check-location-property
  #+begin_src diff
  (defun org-noter-pdf-check-location-property (&optional property)
@@ -199,6 +209,8 @@
 +                                                 (cdr (posn-col-row (event-start event))))))))
 #+end_src
 Dmitry removed this function at [9d437bf]
+
+ACTION:
 *** --doc-approx-location-hook
  #+begin_src diff
  (defcustom org-noter--doc-approx-location-hook nil
@@ -211,6 +223,8 @@ Dmitry removed this function at [9d437bf]
  #+end_src
 
     docstring needs to be updated.
+
+    ACTION:
 *** --note-search-no-recurse                                :11fc0a8:9dfac53:
 #+begin_src diff
 +(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
@@ -226,7 +240,12 @@ Dmitry removed this function at [9d437bf]
     but this defconst is used by =org-noter--map-ignore-headings-with-doc-file=, which is
     used by all of the sync functions
 
-    probably should keep it, and since we keep it, use it in =org-noter--get-view-info=
+    probably should keep it, and since we keep it, use it in
+    =org-noter--get-view-info=
+
+    ACTION: safe for Dmitry to cherry-pick these commits, but
+    =with-current-buffer= call gets removed.  This is the one change I took from
+    ~cbpnk~
 *** org-noter--create-session                                       :9dfac53:
  #+begin_src diff
  (defun org-noter--create-session (ast document-property-value notes-file-path)
@@ -236,6 +255,8 @@ Dmitry removed this function at [9d437bf]
                       (string-match-p org-noter--url-regexp document-property-value)))
  #+end_src
     =org-link-bracket-re= is obsolete. keep mine.
+
+    ACTION: safe for Dmitry to cherry-pick
 *** org-noter--narrow-to-root (ast)                                 :dfe7df2:
 #+begin_src diff
 -  (when ast
@@ -250,6 +271,8 @@ Dmitry removed this function at [9d437bf]
     "I don't really understand this bit of code, especially what `ast' is, but
     it breaks narrowing when multiple documents' notes are stored in a single
     file."
+
+    ACTION: safe for Dmitry to cherry-pick
 *** org-noter--get-location-page (location)                     :c1g:c1ed245:
    #+begin_src diff
    "Get the page number given a LOCATION of form (page top . left) or (page . top)."
@@ -270,6 +293,8 @@ Dmitry removed this function at [9d437bf]
     #+end_src
     kill the notes buffer **when** an indirect buffer is used, not **unless** it
     is used
+
+    ACTION: safe for Dmitry to cherry-pick
 ** precise note fix
 *** *pdf--get-precise-info-*
     keep mine.
