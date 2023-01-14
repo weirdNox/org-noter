@@ -24,6 +24,22 @@
 
 ;;; Code:
 (require 'org-noter)
+(require 'ht)
+
+(defun org-noter-pdf-get-highlight-location ()
+  "If there's an active pdf selection, returns a ht that contains all
+the relevant info (page, coordinates, highlight type).
+
+Otherwise returns nil"
+    (-if-let* ((_ (pdf-view-active-region-p))
+               (page (image-mode-window-get 'page))
+               (coords (pdf-view-active-region)))
+        (ht->plist (ht ('PAGE page)
+            ('TYPE 'PDF-HIGHLIGHT)
+            ('COORDS coords)))
+      nil))
+
+(add-to-list 'org-noter--get-highlight-location-hook #'org-noter-pdf-get-highlight-location)
 
 (defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
   (when (memq mode '(doc-view-mode pdf-view-mode))
@@ -31,6 +47,11 @@
                                                  (numberp (car precise-info))
                                                  (numberp (cdr precise-info)))
                                             precise-info 0))))
+
+(defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
+  "Return the file naming backing the document buffer"
+  (bound-and-true-p pdf-file-name))
+
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
@@ -100,10 +121,10 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-doc--get-precise-info)
 
-
 (defun org-noter-pdf-goto-location (mode location window)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (let ((top (org-noter--get-location-top location))
+          (window (org-noter--get-doc-window))
           (left (org-noter--get-location-left location)))
 
       (if (eq mode 'doc-view-mode)
@@ -302,6 +323,30 @@
        output-data))))
 
 (add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-pdf)
+
+(add-to-list 'org-noter--parse-location-property-hook #'org-noter-pdf--parse-location)
+
+(defun org-noter-pdf--parse-location (arg)
+  "return a pdf location from an existing property. expecting (page left)"
+  (let* ((location (car (read-from-string arg))))
+    location))
+
+(defun org-noter-pdf--create-missing-annotation ()
+  "Add a highlight from a selected note."
+  (let* ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
+    (with-selected-window (org-noter--get-doc-window)
+      (org-noter-pdf-goto-location 'pdf-view-mode location)
+      (pdf-annot-add-highlight-markup-annotation (cdr location)))))
+
+
+
+
+(add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-pdf-highlight-location)
+(defun org-noter-pdf-highlight-location (mode precise-location)
+  "Highlight a precise location in PDF"
+  (when (and (memq mode '(doc-view-mode pdf-view-mode))
+             (pdf-view-active-region-p))
+    (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here

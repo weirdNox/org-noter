@@ -1,0 +1,24 @@
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+      - uses: purcell/setup-emacs@master
+        with:
+          version: '28.1'
+
+      - uses: conao3/setup-cask@master
+        with:
+          version: 'snapshot'
+
+      - name: Install dependencies
+        run: cask
+
+      - name: Run tests
+        run: cask exec buttercup -L .
