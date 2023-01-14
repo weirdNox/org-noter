@@ -40,12 +40,6 @@
 
 (add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-pdf)
 
-(defun org-noter-pdf-check-location-property (&optional property)
-  "Check if PROPERTY is a valid location property"
-  t)
-
-(add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
-
 (defun org-noter-pdf-view-setup-handler (mode)
   (when (eq mode 'pdf-view-mode)
     ;; (setq buffer-file-name document-path)
