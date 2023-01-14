@@ -324,13 +324,6 @@ Otherwise returns nil"
 
 (add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-pdf)
 
-(add-to-list 'org-noter--parse-location-property-hook #'org-noter-pdf--parse-location)
-
-(defun org-noter-pdf--parse-location (arg)
-  "return a pdf location from an existing property. expecting (page left)"
-  (let* ((location (car (read-from-string arg))))
-    location))
-
 (defun org-noter-pdf--create-missing-annotation ()
   "Add a highlight from a selected note."
   (let* ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
@@ -338,10 +331,8 @@ Otherwise returns nil"
       (org-noter-pdf-goto-location 'pdf-view-mode location)
       (pdf-annot-add-highlight-markup-annotation (cdr location)))))
 
-
-
-
 (add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-pdf-highlight-location)
+
 (defun org-noter-pdf-highlight-location (mode precise-location)
   "Highlight a precise location in PDF"
   (when (and (memq mode '(doc-view-mode pdf-view-mode))
