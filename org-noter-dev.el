@@ -178,26 +178,6 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
      (phm/org-noter-insert-note))))
 
-(defun phm/org-noter-test-mouse-event ()
-  "test code for precise notes in pdfs"
-  (interactive)
-  (let ((event nil)
-        (window (car (window-list))))
-    (while (not (and (eq 'mouse-1 (car event))
-                     (eq window (posn-window (event-start event)))))
-      (setq event (read-event "Click where you want the start of the note to be!")))
-    (let ((col-row (posn-col-row (event-start event)))
-          (win-edges (window-inside-edges))
-          (display-size (image-display-size (image-get-display-property)))) ; from next fn
-      (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
-                                              (+ (window-hscroll) (car col-row)))
-      (message (format "%f %f %f %f; Disp (%f %f); Win (%d %d)"
-                       (window-vscroll) (cdr col-row)
-                       (window-hscroll) (car col-row)
-                       (car display-size) (cdr display-size)
-                       (- (nth 2 win-edges) (nth 0 win-edges))
-                       (- (nth 3 win-edges) (nth 1 win-edges)))))))
-
 (define-key org-noter-doc-mode-map (kbd "i") 'phm/org-noter-insert-note)
 (define-key org-noter-doc-mode-map (kbd "M-i") 'phm/org-noter-insert-precise-note)
 (define-key org-noter-doc-mode-map (kbd "C-i") 'phm/org-noter-insert-note-toggle-no-questions)
