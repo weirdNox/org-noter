@@ -34,6 +34,8 @@
 ** Bugs to fix
    1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
       away (or at all), requiring user to manually type in the (existing) title
+   2. Navigating up from a nested precise note lands in the prior note at the
+      next level up (eg level 3 -> level 2).  page notes behave properly.
 
 ** Trying out the refactor of org-noter-insert-note
    1. load `org-noter-dev.el'
@@ -96,6 +98,8 @@
       May require altering the org-noter-X--pretty-print-location-hook(s).
 
    2. Profile org-noter -- runs slow on large books (500+ pages)
+      org-element-map is taking 85% of the CPU.  Org 9.6 should have a faster
+      way that Charlie Gordon explored.
 
    3. Bind M-<mouse-1> to precise-note, no-questions.
 
