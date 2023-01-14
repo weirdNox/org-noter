@@ -28,8 +28,7 @@ Guiding principles for this (phm/) refactor
   2. Selected text should be used in the note, either as the title or in the body
   3. Refrain from making notes in the same location with the same title
   4. Precise notes generally have different locations, always make new
-     precise notes
-"
+     precise notes"
   (interactive)
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))

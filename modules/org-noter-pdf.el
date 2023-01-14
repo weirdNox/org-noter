@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; 
+;;
 
 ;;; Code:
 (require 'org-noter)
@@ -78,7 +78,7 @@
     (let (v-position h-position)
       (if (pdf-view-active-region-p)
           (let ((edges (car (pdf-view-active-region))))
-	    (setq v-position (min (nth 1 edges) (nth 3 edges))
+            (setq v-position (min (nth 1 edges) (nth 3 edges))
                   h-position (min (nth 0 edges) (nth 2 edges))))
 
         (let ((event nil))

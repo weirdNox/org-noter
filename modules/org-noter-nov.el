@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; 
+;;
 
 ;;; Code:
 (require 'org-noter)
@@ -150,7 +150,7 @@
                  (setq nov-documents-index 0))
                (push (vector title (list nov-documents-index (point)) relative-level) output-data)))
            (push (vector "Skeleton" (list 0) 1) output-data)
-       
+
            (nov-goto-document origin-index)
            (goto-char origin-point)))
        (save-excursion
