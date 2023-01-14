@@ -25,8 +25,8 @@
 ;;; Code:
 (require 'org-noter)
 
-(defun org-noter-pdf-approx-location-cons (major-mode &optional precise-info _force-new-ref)
-  (when (memq major-mode '(doc-view-mode pdf-view-mode))
+(defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
+  (when (memq mode '(doc-view-mode pdf-view-mode))
     (cons (image-mode-window-get 'page) (if (and (consp precise-info)
                                                  (numberp (car precise-info))
                                                  (numberp (cdr precise-info)))
@@ -34,7 +34,7 @@
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
-(defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
+(defun org-noter-get-buffer-file-name-pdf (&optional mode)
   "Return the file naming backing the document buffer"
   (bound-and-true-p pdf-file-name))
 
@@ -46,8 +46,8 @@
 
 (add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
 
-(defun org-noter-pdf-view-setup-handler (major-mode)
-  (when (eq major-mode 'pdf-view-mode)
+(defun org-noter-pdf-view-setup-handler (mode)
+  (when (eq mode 'pdf-view-mode)
     ;; (setq buffer-file-name document-path)
     (pdf-view-mode)
     (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t)
@@ -55,8 +55,8 @@
 
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-pdf-view-setup-handler)
 
-(defun org-noter-doc-view-setup-handler (major-mode)
-  (when (eq major-mode 'doc-view-mode)
+(defun org-noter-doc-view-setup-handler (mode)
+  (when (eq mode 'doc-view-mode)
     ;; (setq buffer-file-name document-path)
     (doc-view-mode)
     (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice)
@@ -73,8 +73,8 @@
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
 
-(defun org-noter-pdf--get-precise-info (major-mode window)
-  (when (eq major-mode 'pdf-view-mode)
+(defun org-noter-pdf--get-precise-info (mode window)
+  (when (eq mode 'pdf-view-mode)
     (let (v-position h-position)
       (if (pdf-view-active-region-p)
           (let ((edges (car (pdf-view-active-region))))
@@ -95,8 +95,8 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
 
-(defun org-noter-doc--get-precise-info (major-mode window)
-  (when (eq major-mode 'doc-view-mode)
+(defun org-noter-doc--get-precise-info (mode window)
+  (when (eq mode 'doc-view-mode)
     (let ((event nil))
       (while (not (and (eq 'mouse-1 (car event))
                        (eq window (posn-window (event-start event)))))

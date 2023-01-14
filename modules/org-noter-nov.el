@@ -25,14 +25,14 @@
 ;;; Code:
 (require 'org-noter)
 
-(defun org-noter-get-buffer-file-name-nov (mode)
+(defun org-noter-get-buffer-file-name-nov (&optional mode)
   (bound-and-true-p nov-file-name))
 
 (add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-nov)
 
-(defun org-noter-nov-approx-location-cons (major-mode &optional precise-info _force-new-ref)
+(defun org-noter-nov-approx-location-cons (mode &optional precise-info _force-new-ref)
   (org-noter--with-valid-session
-   (when (eq (org-noter--session-doc-mode session) 'nov-mode)
+   (when (eq mode 'nov-mode)
      (cons nov-documents-index (if (or (numberp precise-info)
                                        (and (consp precise-info)
                                             (numberp (car precise-info))
@@ -42,8 +42,8 @@
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-nov-approx-location-cons)
 
-(defun org-noter-nov-setup-handler (major-mode)
-  (when (eq major-mode 'nov-mode)
+(defun org-noter-nov-setup-handler (mode)
+  (when (eq mode 'nov-mode)
     (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
     (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)
     t))
@@ -60,8 +60,8 @@
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-nov--pretty-print-location)
 
 
-(defun org-noter-nov--get-precise-info (major-mode window)
-  (when (eq major-mode 'nov-mode)
+(defun org-noter-nov--get-precise-info (mode window)
+  (when (eq mode 'nov-mode)
     (if (region-active-p)
         (cons (mark) (point))
       (let ((event nil))
