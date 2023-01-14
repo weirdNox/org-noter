@@ -114,7 +114,7 @@
 -  Dmitry [f3f5a05]
 +  Peter  [6488cc6]
    #+end_src
-*** [PM:DONE, DM:TBD] *-get-buffer-file-name-*
+*** DONE *-get-buffer-file-name-*
 #+begin_src diff
 -(defun org-noter-get-buffer-file-name-* (&optional major-mode)
 +(defun org-noter-get-buffer-file-name-* (mode)
@@ -133,7 +133,7 @@
     1. major-mode -> mode in module files
     2. use &optional when the argument is not used in the function
 
-*** [PM:DONE, DM:TBD] -get-buffer-file-name-hook
+*** DONE -get-buffer-file-name-hook
 #+begin_src diff
 -(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov org-noter-get-buffer-file-name-pdf)
 +(defcustom org-noter-get-buffer-file-name-hook nil
@@ -142,7 +142,7 @@
     should be nil in =org-noter-core= and set in modules.
 
     ACTION: already converged
-*** [PM:DONE, DM:TBD] *-get-precise-info-*
+*** DONE *-get-precise-info-*
 #+begin_src diff
 -(defun org-noter-*--get-precise-info (major-mode)
 +(defun org-noter-*--get-precise-info (major-mode window)
@@ -166,7 +166,7 @@
     proposal: change =major-mode= to =mode=, pass in =window=
 
     ACTION: (done) Dmitry took mine
-*** [PM:DONE, DM:TBD] *-goto-location
+*** DONE *-goto-location
 #+begin_src diff
 -(defun org-noter-pdf-goto-location (mode location)
 +(defun org-noter-pdf-goto-location (mode location window)
@@ -184,7 +184,7 @@
     ACTION:
     pass in window, use &optional as appropriate.
 
-*** [PM:DONE, DM:DONE] *-check-location-property
+*** DONE *-check-location-property
  #+begin_src diff
  (defun org-noter-pdf-check-location-property (&optional property)
    "Check if PROPERTY is a valid location property"
@@ -202,7 +202,7 @@
 
     ACTION: done, gone on Dmitry's side.
     P: check diff, remove if it's still there.
-*** [PM:DONE, DM:TBD] -doc--get-precise-info
+*** DONE -doc--get-precise-info
 #+begin_src diff
 +(defun org-noter-doc--get-precise-info (major-mode window)
 +  (when (eq major-mode 'doc-view-mode)
@@ -219,7 +219,7 @@
 Dmitry removed this function at [9d437bf]
 
 ACTION: Dmitry revive on his side.
-*** [PM:DONE, DM:TBD] --doc-approx-location-hook
+*** DONE --doc-approx-location-hook
  #+begin_src diff
  (defcustom org-noter--doc-approx-location-hook nil
 -  "This returns an approximate location if no precise info is passed: (PAGE 0)
@@ -233,7 +233,7 @@ ACTION: Dmitry revive on his side.
     docstring needs to be updated.
 
     ACTION: Dmitry reverted
-*** [PM:DONE, DM:TBD] --note-search-no-recurse                                :11fc0a8:9dfac53:
+*** DONE --note-search-no-recurse                           :11fc0a8:9dfac53:
 #+begin_src diff
 +(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
 +  "List of elements that shouldn't be recursed into when searching for notes.")
@@ -254,7 +254,7 @@ ACTION: Dmitry revive on his side.
     ACTION: safe for Dmitry to cherry-pick these commits, but
     =with-current-buffer= call gets removed.  This is the one change I took from
     ~cbpnk~
-*** [PM:DONE, DM:TBD] org-noter--create-session                                       :9dfac53:
+*** DONE org-noter--create-session                                  :9dfac53:
  #+begin_src diff
  (defun org-noter--create-session (ast document-property-value notes-file-path)
    (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
@@ -262,10 +262,10 @@ ACTION: Dmitry revive on his side.
 +         (link-p (or (string-match-p org-link-bracket-re document-property-value)
                       (string-match-p org-noter--url-regexp document-property-value)))
  #+end_src
-    =org-link-bracket-re= is obsolete. keep mine.
+    =org-bracket-link-regexp= is obsolete. keep mine.
 
     ACTION: safe for Dmitry to cherry-pick
-*** [PM:DONE, DM:TBD] org-noter--narrow-to-root (ast)                                 :dfe7df2:
+*** DONE org-noter--narrow-to-root (ast)                            :dfe7df2:
 #+begin_src diff
 -  (when ast
 +  (when (and ast (not (org-noter--no-heading-p)))
@@ -281,7 +281,7 @@ ACTION: Dmitry revive on his side.
     file."
 
     ACTION: safe for Dmitry to cherry-pick
-*** [PM:DONE, DM:TBD] org-noter--get-location-page (location)    :DM:629fbb6:
+*** DONE org-noter--get-location-page (location)                 :DM:629fbb6:
    #+begin_src diff
    "Get the page number given a LOCATION of form (page top . left) or (page . top)."
 -  (message "===> %s" location)
@@ -304,7 +304,7 @@ ACTION: Dmitry revive on his side.
      function name
    - 629fbb6 introduced by DM
 
-*** [PM:DONE, DM:TBD] org-noter-kill-session                                          :9dfac53:
+*** DONE org-noter-kill-session                                     :9dfac53:
     #+begin_src diff
     (with-current-buffer notes-buffer
       (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
@@ -317,7 +317,7 @@ ACTION: Dmitry revive on his side.
     is used
 
     ACTION: safe for Dmitry to cherry-pick
-*** [DM:TBD] use cl-lib or native elisp hash tables rather than the =ht= package.
+*** TODO use cl-lib or native elisp hash tables rather than the =ht= package.
 ** precise note fix
 *** *pdf--get-precise-info-*
     keep mine.
