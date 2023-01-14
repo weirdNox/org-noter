@@ -1020,7 +1020,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--check-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (or (and (consp value) (integerp (car value)) (numberp (cdr value)))
-                (and (consp value) (integerp (car value)) (integerp (cadr value)) (integerp (cddr value)))
+                (and (consp value) (integerp (car value)) (numberp (cadr value)) (numberp (cddr value)))
                 (integerp value)))))))
 
 (defun org-noter--parse-location-property (arg)
