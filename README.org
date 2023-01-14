@@ -14,9 +14,6 @@
         fork, select-precise notes auto-fill the note title with the selected
         text.  This has deleterious side effects for other note insertion methods.
      2. "Click-precise": =M-i=, followed by clicking a location on the page.
-        The location recorded by =org-noter= is typically inaccurate in the
-        horizontal direction.  This is something I want to fix.
-
 
    - Standard notes can also be inserted in two ways:
      1. "TAB".  Hitting tab creates a note title "Notes for page ##", where the
@@ -35,8 +32,6 @@
       pointing.
 
 ** Bugs to fix
-   1. Navigation of nested notes is spotty. =C-M-p= and =C-M-.= have trouble
-      detecting nested notes.
 
 ** Trying out the refactor of org-noter-insert-note
    1. load `org-noter-dev.el'
