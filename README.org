@@ -37,6 +37,18 @@
    2. Navigating up from a nested precise note lands in the prior note at the
       next level up (eg level 3 -> level 2).  page notes behave properly.
 
+      [file:org-noter-core.el:2179]
+      =(org-element-property :begin (org-noter--get-containing-element))= returns
+      the begin of the element one level up when the current note location is of
+      the form (<page#> <vpos> . <hpos>).  It works properly for locations of
+      the form (<page#> . <vpos>).
+
+      It will be one of these two:
+      - =org-noter--get-containing-heading=
+        - =org-noter--check-location-property=
+          found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
+      - =org-noter--get-containing-property-drawer=
+
 ** Trying out the refactor of org-noter-insert-note
    1. load `org-noter-dev.el'
       - defines org-noter-max-short-note
