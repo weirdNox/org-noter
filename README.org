@@ -84,6 +84,15 @@
    - short/long are differentiated by customizable variable (default 80 char)
 
      In Stock org-noter, long selections have more than 3 lines.
+   - NEW: multicolumn precise-notes defined by property NUM_COLUMNS
+
+     Implements issue #153 in weirdNox/org-noter by adding
+     =org-noter-pdf-convert-to-location-cons= to
+     =org-noter--convert-to-location-cons-hook=, where a "virtual" vertical
+     location is calculated by dividing the page into equal width columns.  This
+     is not a perfect solution, and is probably best for low-integer numbers of
+     columns, since the page is just divided evenly into NUM_COLUMNS vertical
+     strips.
 
 *** Stock
    |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
@@ -119,23 +128,7 @@
 
    4. Make background of arrow transparent (see org-noter--show-arrow)
 
-   5. Handle 2-column pdfs with notes in read-order.
-
-      Need to define a document property TWO-COLUMN and reference it.  Maybe
-      make page a real number with #.0 for the left column and #.5 for the right
-      column?
-
-      need to write a function in modules/...pdf
-      =org-noter--convert-to-location-cons-hook=
-      #+begin_src elisp
-        (defun org-noter-pdf-convert-to-location-cons (location)
-          "returns location in a new format for multicolumn documents"
-          ;; location = (page v-pos h-pos)
-
-          ;; return a scalar page position (+ page (/ v-pos ncol) (/ (floor (* h-pos ncol)) ncol))
-
-      #+end_src
-   6. Dedicated insert-selected-text-into-page-note
+   5. Dedicated insert-selected-text-into-page-note
 ** Deltas w/ dmitrym
    In the diffs below the color coding is
    #+begin_src diff
