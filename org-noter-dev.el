@@ -36,13 +36,13 @@ Guiding principles for this (phm/) refactor
           (selected-text (run-hook-with-args-until-success
                           'org-noter-get-selected-text-hook
                           (org-noter--session-doc-mode session)))
-
+          (selected-text-p (> (length selected-text) 0))
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
           (current-view (org-noter--get-current-view)))
 
      (let ((inhibit-quit t)
-           (short-selected-text (if (and (> (length selected-text) 0)
+           (short-selected-text (if (and selected-text-p
                                          (<= (length selected-text) org-noter-max-short-length))
                                     selected-text)))
        (with-local-quit
@@ -73,7 +73,9 @@ Guiding principles for this (phm/) refactor
                  ;; prompt for title (unless no-Q's)
                  title (if org-noter-insert-note-no-questions default-title
                          (completing-read "Note: " collection nil nil nil nil default-title))
-                 note-body (unless (equal title short-selected-text) selected-text)
+                 note-body (if (and selected-text-p
+                                    (not (equal title short-selected-text)))
+                               selected-text)
                  ;; is this an existing note? skip for precise notes
                  existing-note (unless precise-info (cdr (assoc title collection))))
 

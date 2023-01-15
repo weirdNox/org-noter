@@ -105,7 +105,7 @@
    |-----------------+--------------------------------+---------------------------+-------------------------|
 
 *** Refactored
-   |                      | insert-note =i=           | precise note =M-i=        | no-questions =C-i, TAB=   |
+   |                      | insert-note               | precise note              | no-questions              |
    |----------------------+---------------------------+---------------------------+---------------------------|
    | title prompt?        | Y                         | Y                         | N                         |
    | default title 1      | short-selected-text       | short-selected-text       | short-selected-text       |
