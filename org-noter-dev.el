@@ -39,7 +39,7 @@ Guiding principles for this (phm/) refactor
 
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
-          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
+          (current-view (org-noter--get-current-view)))
 
      (let ((inhibit-quit t)
            (short-selected-text (if (and (> (length selected-text) 0)
@@ -52,7 +52,8 @@ Guiding principles for this (phm/) refactor
          ;; IMPORTANT(nox): Need to be careful changing the next part, it is a bit
          ;; complicated to get it right...
 
-         (let ((point (point))
+         (let ((view-info (org-noter--get-view-info current-view location))
+               (point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
                collection title note-body existing-note
                (default-title (or short-selected-text
