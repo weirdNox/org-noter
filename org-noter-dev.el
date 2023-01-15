@@ -178,7 +178,6 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
      (phm/org-noter-insert-note))))
 
-(define-key org-noter-doc-mode-map (kbd "i") 'phm/org-noter-insert-note)
-(define-key org-noter-doc-mode-map (kbd "M-i") 'phm/org-noter-insert-precise-note)
-(define-key org-noter-doc-mode-map (kbd "C-i") 'phm/org-noter-insert-note-toggle-no-questions)
-(define-key org-noter-doc-mode-map (kbd "e") 'phm/org-noter-test-mouse-event)
+(define-key org-noter-doc-mode-map (kbd "C-i") 'phm/org-noter-insert-note)
+(define-key org-noter-doc-mode-map (kbd "i") 'phm/org-noter-insert-precise-note)
+(define-key org-noter-doc-mode-map (kbd "M-i") 'phm/org-noter-insert-note-toggle-no-questions)
