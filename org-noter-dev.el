@@ -39,7 +39,7 @@ Guiding principles for this (phm/) refactor
 
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
-          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
+          (current-view (org-noter--get-current-view)))
 
      (let ((inhibit-quit t)
            (short-selected-text (if (and (> (length selected-text) 0)
@@ -52,7 +52,8 @@ Guiding principles for this (phm/) refactor
          ;; IMPORTANT(nox): Need to be careful changing the next part, it is a bit
          ;; complicated to get it right...
 
-         (let ((point (point))
+         (let ((view-info (org-noter--get-view-info current-view location))
+               (point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
                collection title note-body existing-note
                (default-title (or short-selected-text
@@ -178,7 +179,6 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
      (phm/org-noter-insert-note))))
 
-(define-key org-noter-doc-mode-map (kbd "i") 'phm/org-noter-insert-note)
-(define-key org-noter-doc-mode-map (kbd "M-i") 'phm/org-noter-insert-precise-note)
-(define-key org-noter-doc-mode-map (kbd "C-i") 'phm/org-noter-insert-note-toggle-no-questions)
-(define-key org-noter-doc-mode-map (kbd "e") 'phm/org-noter-test-mouse-event)
+(define-key org-noter-doc-mode-map (kbd "C-i") 'phm/org-noter-insert-note)
+(define-key org-noter-doc-mode-map (kbd "i") 'phm/org-noter-insert-precise-note)
+(define-key org-noter-doc-mode-map (kbd "M-i") 'phm/org-noter-insert-note-toggle-no-questions)

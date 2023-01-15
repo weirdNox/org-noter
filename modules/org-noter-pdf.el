@@ -42,16 +42,13 @@ Otherwise returns nil"
 (add-to-list 'org-noter--get-highlight-location-hook #'org-noter-pdf-get-highlight-location)
 
 (defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
+  "Returns (page . 0) except when creating a precise-note,
+where (page v-pos . h-pos) is returned"
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (cons (image-mode-window-get 'page) (if (and (consp precise-info)
                                                  (numberp (car precise-info))
                                                  (numberp (cdr precise-info)))
                                             precise-info 0))))
-
-(defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
-  "Return the file naming backing the document buffer"
-  (bound-and-true-p pdf-file-name))
-
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
@@ -338,6 +335,22 @@ Otherwise returns nil"
   (when (and (memq mode '(doc-view-mode pdf-view-mode))
              (pdf-view-active-region-p))
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
+
+(defun org-noter-pdf-convert-to-location-cons (location)
+  "converts (page v . h) precise locations so that v represents the
+fractional distance through the page along column.  Output is nil
+for standard notes and (page v') for precise notes"
+  (if-let* ((_ (and (consp location) (consp (cdr location))))
+            (bb (current-buffer)) ; debugging code - we are in the doc window,
+                                  ; but need to be in the notes window for next
+                                  ; line to work
+            (ncol (max 1 (string-to-number (or (org-entry-get nil "NUM_COLUMNS" t) "1"))))
+            (page (car location))
+            (v-pos (cadr location))
+            (h-pos (cddr location)))
+      (cons page (+ (/ v-pos ncol) (/ (float (floor (* h-pos ncol))) ncol)))))
+
+(add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
