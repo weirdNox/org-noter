@@ -24,22 +24,29 @@
 
 ;;; Code:
 (require 'org-noter)
-(require 'ht)
 
-(defun org-noter-pdf-get-highlight-location ()
-  "If there's an active pdf selection, returns a ht that contains all
-the relevant info (page, coordinates, highlight type).
+
+(cl-defstruct pdf-highlight page coords)
+
+
+(defun org-noter-pdf--get-highlight ()
+  "If there's an active pdf selection, returns a  that contains all
+the relevant info (page, coordinates)
 
 Otherwise returns nil"
     (-if-let* ((_ (pdf-view-active-region-p))
                (page (image-mode-window-get 'page))
                (coords (pdf-view-active-region)))
-        (ht->plist (ht ('PAGE page)
-            ('TYPE 'PDF-HIGHLIGHT)
-            ('COORDS coords)))
+       (make-pdf-highlight :page page :coords coords)
       nil))
 
-(add-to-list 'org-noter--get-highlight-location-hook #'org-noter-pdf-get-highlight-location)
+
+
+(defun org-noter-pdf--pretty-print-highlight (highlight-info)
+  (format "%s" highlight-info))
+
+(add-to-list 'org-noter--pretty-print-highlight-location-hook #'org-noter-pdf--pretty-print-highlight)
+(add-to-list 'org-noter--get-highlight-location-hook 'org-noter-pdf--get-highlight)
 
 (defun org-noter-pdf-approx-location-cons (major-mode &optional precise-info _force-new-ref)
   (when (memq major-mode '(doc-view-mode pdf-view-mode))

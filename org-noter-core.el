@@ -39,6 +39,7 @@
 (require 'org-element)
 (require 'cl-lib)
 (require 'pdf-tools)
+(require 'dash)
 
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
@@ -245,8 +246,19 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter--pretty-print-highlight-location-hook nil
+  "Hook that runs to serialize a highlight location so that it can be stored in org."
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter--get-highlight-location-hook nil
   "Hook that runs to get the location of a highlight"
+  :group 'org-noter
+  :type 'hook)
+
+(defcustom org-noter-highlight-precise-note-hook nil
+  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
+This can be used in pdf-mode for example to add a permanent highlight to the document."
   :group 'org-noter
   :type 'hook)
 
@@ -409,12 +421,6 @@ Used by `org-noter-create-skeleton'."
 (defcustom org-noter-open-document-functions nil
   "Functions that gives a buffer when passed with a document property.
 Used by `org-noter--create-session' when creating a new session."
-  :group 'org-noter
-  :type 'hook)
-
-(defcustom org-noter-highlight-precise-note-hook nil
-  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
-This can be used in pdf-mode for example to add a permanent highlight to the document."
   :group 'org-noter
   :type 'hook)
 
@@ -2024,8 +2030,10 @@ defines if the text should be inserted inside the note."
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
                (org-noter--insert-heading level title empty-lines-number location)
-               (when highlight-location
-                (org-entry-put nil "HIGHLIGHT" (format "%s" highlight-location)))
+               ;; store the highlight in org IF we have a highlight AND can serialize it.
+               (when-let ((highlight-location)
+                          (serialized-highlight (org-noter--get-serialized-highlight highlight-location)))
+                (org-entry-put nil "HIGHLIGHT" serialized-highlight))
                (when quote-p
                  (save-excursion
                    (insert "#+BEGIN_QUOTE\n" selected-text "\n#+END_QUOTE")))
@@ -2066,12 +2074,22 @@ See `org-noter-insert-note' docstring for more."
      (select-frame-set-input-focus (org-noter--session-frame session))
      (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
 
-     ;; TODO precise info is wrong here. should be removed
-     (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode precise-info))))
+     ;; this adds the highlight to the document
+     (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode highlight-location)
+     )))
 
 (defun org-noter--get-highlight-location ()
+  "Returns a highlight location. This is mode specific.
+In PDF it's a the page nubmer and 4 coordinates for the highglight. This is delegated to each document mode."
   (with-selected-window (org-noter--get-doc-window)
      (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
+
+(defun org-noter--get-serialized-highlight (highlight-location)
+"Returns a string representation of the HIGHLIGHT-LOCATION. This is delegated to each document mode (eg pdf)"
+     (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
+
+
+
 
 (defun org-noter-insert-note-toggle-no-questions ()
   "Insert note associated with the current location.

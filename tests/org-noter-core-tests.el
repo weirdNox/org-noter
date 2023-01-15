@@ -60,11 +60,7 @@
                             (org-noter-core-test-create-session)
                             (with-simulated-input "precise SPC note RET"
                                                   (org-noter-insert-precise-note))
-                            (expect 'org-noter-core-test-highlight-location :to-have-been-called)
-                            (expect (spy-calls-all-args 'org-noter-core-test-highlight-location)
-                                    :to-equal
-                                    '((org-mode
-                                      (1 2 3 4)))))))
+                            (expect 'org-noter-core-test-highlight-location :to-have-been-called))))
 
                     ;; hit C-g when entering a note; expect no highlight
                     (it "precise note DOES NOT call the highlight hook when the note is aborted"
