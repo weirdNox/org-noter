@@ -1654,6 +1654,16 @@ relative to."
                   (frame-parameter frame 'delete-before))
         (throw 'other-frame frame)))))
 
+(defun org-noter--get-highlight-location ()
+  "Returns a highlight location. This is mode specific.
+In PDF it's a the page number and 4 coordinates for the highlight. This is delegated to each document mode."
+  (with-selected-window (org-noter--get-doc-window)
+     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
+
+(defun org-noter--get-serialized-highlight (highlight-location)
+"Returns a string representation of the HIGHLIGHT-LOCATION. This is delegated to each document mode (eg pdf)"
+     (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
+
 ;; --------------------------------------------------------------------------------
 ;;; User commands
 (defun org-noter-set-start-location (&optional arg)
@@ -2114,16 +2124,6 @@ See `org-noter-insert-note' docstring for more."
 
        ;; this adds the highlight to the document
        (run-hook-with-args-until-success 'org-noter--add-highlight-hook major-mode highlight-location)))))
-
-(defun org-noter--get-highlight-location ()
-  "Returns a highlight location. This is mode specific.
-In PDF it's a the page nubmer and 4 coordinates for the highglight. This is delegated to each document mode."
-  (with-selected-window (org-noter--get-doc-window)
-     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
-
-(defun org-noter--get-serialized-highlight (highlight-location)
-"Returns a string representation of the HIGHLIGHT-LOCATION. This is delegated to each document mode (eg pdf)"
-     (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
 
 
 
