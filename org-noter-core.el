@@ -2068,7 +2068,7 @@ Guiding principles for note generation
                ;; store the highlight in org IF we have a highlight AND can serialize it.
                (when-let ((highlight-location)
                           (serialized-highlight (org-noter--get-serialized-highlight highlight-location)))
-                (org-entry-put nil "HIGHLIGHT" serialized-highlight))
+                 (org-set-property "HIGHLIGHT" serialized-highlight))
                (when note-body
                  (save-excursion
                    (if short-selected-text
