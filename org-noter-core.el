@@ -2112,9 +2112,8 @@ See `org-noter-insert-note' docstring for more."
        (select-frame-set-input-focus (org-noter--session-frame session))
        (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
 
-     ;; this adds the highlight to the document
-     (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode highlight-location)
-     ))))
+       ;; this adds the highlight to the document
+       (run-hook-with-args-until-success 'org-noter--add-highlight-hook major-mode highlight-location)))))
 
 (defun org-noter--get-highlight-location ()
   "Returns a highlight location. This is mode specific.
