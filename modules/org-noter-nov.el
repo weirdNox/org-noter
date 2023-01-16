@@ -25,6 +25,9 @@
 ;;; Code:
 (require 'org-noter)
 
+(defvar nov-documents-index)
+(defvar nov-file-name)
+
 (defun org-noter-get-buffer-file-name-nov (&optional mode)
   (bound-and-true-p nov-file-name))
 

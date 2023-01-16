@@ -59,8 +59,6 @@
 (declare-function pdf-view-active-region-text "ext:pdf-view")
 (declare-function pdf-view-goto-page "ext:pdf-view")
 (declare-function pdf-view-mode "ext:pdf-view")
-(defvar nov-documents-index)
-(defvar nov-file-name)
 
 ;; --------------------------------------------------------------------------------
 ;;; User variables
@@ -1571,21 +1569,6 @@ relative to."
            ((= number-of-notes 1) (propertize " 1 note " 'face 'org-noter-notes-exist-face))
            (t (propertize (format " %d notes " number-of-notes) 'face 'org-noter-notes-exist-face))))))
 
-;; NOTE(nox): From machc/pdf-tools-org
-(defun org-noter--pdf-tools-edges-to-region (edges)
-  "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
-  (when edges
-    (let ((left0 (nth 0 (car edges)))
-          (top0 (nth 1 (car edges)))
-          (bottom0 (nth 3 (car edges)))
-          (top1 (nth 1 (car (last edges))))
-          (right1 (nth 2 (car (last edges))))
-          (bottom1 (nth 3 (car (last edges)))))
-      (list left0
-            (+ top0 (/ (- bottom0 top0) 3))
-            right1
-            (- bottom1 (/ (- bottom1 top1) 3))))))
-
 (defun org-noter--check-if-document-is-annotated-on-file (document-path notes-path)
   ;; NOTE(nox): In order to insert the correct file contents
   (let ((buffer (find-buffer-visiting notes-path)))
@@ -1653,6 +1636,16 @@ relative to."
                   (frame-parent frame)
                   (frame-parameter frame 'delete-before))
         (throw 'other-frame frame)))))
+
+(defun org-noter--get-highlight-location ()
+  "Returns a highlight location. This is mode specific.
+In PDF it's a the page number and 4 coordinates for the highlight. This is delegated to each document mode."
+  (with-selected-window (org-noter--get-doc-window)
+     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
+
+(defun org-noter--get-serialized-highlight (highlight-location)
+"Returns a string representation of the HIGHLIGHT-LOCATION. This is delegated to each document mode (eg pdf)"
+     (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
 
 ;; --------------------------------------------------------------------------------
 ;;; User commands
@@ -1932,7 +1925,7 @@ want to kill."
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
 
-(defun org-noter-insert-note (&optional precise-info note-title highlight-location)
+(defun org-noter-insert-note (&optional toggle-highlight precise-info note-title)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
@@ -1959,7 +1952,7 @@ Guiding principles for note generation
   3. Refrain from making notes in the same location with the same title
   4. Precise notes generally have different locations, so always make new
      precise notes"
-  (interactive)
+  (interactive "P")
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
@@ -1971,10 +1964,14 @@ Guiding principles for note generation
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
           (current-view (org-noter--get-current-view)))
 
-     (let ((inhibit-quit t)
-           (short-selected-text (if (and selected-text-p
-                                         (<= (length selected-text) org-noter-max-short-length))
-                                    selected-text)))
+     (let* ((inhibit-quit t)
+            (short-selected-text (if (and selected-text-p
+                                          (<= (length selected-text) org-noter-max-short-length))
+                                     selected-text))
+            (org-noter-highlight-selected-text (if toggle-highlight (not org-noter-highlight-selected-text)
+                                                 org-noter-highlight-selected-text))
+            (highlight-location (if org-noter-highlight-selected-text (org-noter--get-highlight-location))))
+
        (with-local-quit
          (select-frame-set-input-focus (window-frame window))
          (select-window window)
@@ -2068,7 +2065,7 @@ Guiding principles for note generation
                ;; store the highlight in org IF we have a highlight AND can serialize it.
                (when-let ((highlight-location)
                           (serialized-highlight (org-noter--get-serialized-highlight highlight-location)))
-                (org-entry-put nil "HIGHLIGHT" serialized-highlight))
+                 (org-set-property "HIGHLIGHT" serialized-highlight))
                (when note-body
                  (save-excursion
                    (if short-selected-text
@@ -2081,14 +2078,18 @@ Guiding principles for note generation
 
            (org-show-set-visibility t)
            (org-cycle-hide-drawers 'all)
-           (org-cycle-show-empty-lines t)))
+           (org-cycle-show-empty-lines t)
+           (when org-noter-highlight-selected-text ; return to DOC window and highlight text
+             (select-frame-set-input-focus (org-noter--session-frame session))
+             (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
+             (run-hook-with-args-until-success 'org-noter--add-highlight-hook major-mode highlight-location))))
        (when quit-flag
          ;; NOTE(nox): If this runs, it means the user quitted while creating a note, so
          ;; revert to the previous window.
          (select-frame-set-input-focus (org-noter--session-frame session))
          (select-window (get-buffer-window (org-noter--session-doc-buffer session))))))))
 
-(defun org-noter-insert-precise-note (&optional toggle-no-questions)
+(defun org-noter-insert-precise-note (&optional toggle-highlight)
   "Insert note associated with a specific location.
 This will ask you to click where you want to scroll to when you
 sync the document to this note. You should click on the top of
@@ -2096,45 +2097,30 @@ that part. Will always create a new note.
 
 When text is selected, it will automatically choose the top of
 the selected text as the location and the text itself as the
-title of the note (you may change it anyway!).
+default title of the note if the text is <=
+`org-noter-max-short-length' (you may change it anyway!).
 
 See `org-noter-insert-note' docstring for more."
   (interactive "P")
   (org-noter--with-valid-session
-   (let ((org-noter-insert-note-no-questions (if toggle-no-questions
-                                                 (not org-noter-insert-note-no-questions)
-                                               org-noter-insert-note-no-questions))
-         (precise-info (org-noter--get-precise-info))
-         (highlight-location (org-noter--get-highlight-location)))
+   (let ((precise-info (org-noter--get-precise-info)))
+     (org-noter-insert-note toggle-highlight precise-info))))
 
-     (org-noter-insert-note precise-info nil highlight-location)
-     (when org-noter-highlight-selected-text
-       (select-frame-set-input-focus (org-noter--session-frame session))
-       (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
-
-       ;; this adds the highlight to the document
-       (run-hook-with-args-until-success 'org-noter--add-highlight-hook major-mode highlight-location)))))
-
-(defun org-noter--get-highlight-location ()
-  "Returns a highlight location. This is mode specific.
-In PDF it's a the page nubmer and 4 coordinates for the highglight. This is delegated to each document mode."
-  (with-selected-window (org-noter--get-doc-window)
-     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
-
-(defun org-noter--get-serialized-highlight (highlight-location)
-"Returns a string representation of the HIGHLIGHT-LOCATION. This is delegated to each document mode (eg pdf)"
-     (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
-
-
-
-
-(defun org-noter-insert-note-toggle-no-questions ()
+(defun org-noter-insert-note-toggle-no-questions (&optional toggle-highlight)
   "Insert note associated with the current location.
 This is like `org-noter-insert-note', except it will toggle `org-noter-insert-note-no-questions'"
-  (interactive)
+  (interactive "P")
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
-     (org-noter-insert-note))))
+     (org-noter-insert-note toggle-highlight))))
+
+(defun org-noter-insert-precise-note-toggle-no-questions (&optional toggle-highlight)
+  "Insert note associated with the current location.
+This is like `org-noter-insert-precise-note', except it will toggle `org-noter-insert-note-no-questions'"
+  (interactive "P")
+  (org-noter--with-valid-session
+   (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
+     (org-noter-insert-precise-note toggle-highlight))))
 
 (defmacro org-noter--map-ignore-headings-with-doc-file (contents match-first &rest body)
   `(let (ignore-until-level)
@@ -2280,6 +2266,7 @@ Keymap:
   :keymap `((,(kbd   "i")   . org-noter-insert-note)
             (,(kbd "C-i")   . org-noter-insert-note-toggle-no-questions)
             (,(kbd "M-i")   . org-noter-insert-precise-note)
+            (,(kbd "M-I")   . org-noter-insert-precise-note-toggle-no-questions)
             (,(kbd   "q")   . org-noter-kill-session)
             (,(kbd "M-p")   . org-noter-sync-prev-page-or-chapter)
             (,(kbd "M-.")   . org-noter-sync-current-page-or-chapter)

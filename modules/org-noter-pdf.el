@@ -161,6 +161,21 @@ where (page v-pos . h-pos) is returned"
 
 (add-to-list 'org-noter-get-selected-text-hook #'org-noter-pdf--get-selected-text)
 
+;; NOTE(nox): From machc/pdf-tools-org
+(defun org-noter--pdf-tools-edges-to-region (edges)
+  "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
+  (when edges
+    (let ((left0 (nth 0 (car edges)))
+          (top0 (nth 1 (car edges)))
+          (bottom0 (nth 3 (car edges)))
+          (top1 (nth 1 (car (last edges))))
+          (right1 (nth 2 (car (last edges))))
+          (bottom1 (nth 3 (car (last edges)))))
+      (list left0
+            (+ top0 (/ (- bottom0 top0) 3))
+            right1
+            (- bottom1 (/ (- bottom1 top1) 3))))))
+
 (defun org-noter-create-skeleton-pdf (mode)
   "Create notes skeleton with the PDF outline or annotations."
   (when (eq mode 'pdf-view-mode)
