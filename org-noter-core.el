@@ -224,6 +224,15 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
   :group 'org-noter
   :type 'number)
 
+(defcustom org-noter-arrow-horizontal-offset -0.02
+  "Horizontal offset in the position of the tooltip arrow relative
+
+to precise location.  Units are % of page, positive values move
+the arrow to the right, while negative values move it to the
+left."
+  :group 'org-noter
+  :type 'number)
+
 (defcustom org-noter-doc-property-in-notes nil
   "If non-nil, every new note will have the document property too.
 This makes moving notes out of the root heading easier."
@@ -256,7 +265,7 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-highlight-precise-note-hook nil
+(defcustom org-noter--add-highlight-hook nil
   "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
 This can be used in pdf-mode for example to add a permanent highlight to the document."
   :group 'org-noter
@@ -332,7 +341,7 @@ operations instead of the real value of the property."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov org-noter-get-buffer-file-name-pdf)
+(defcustom org-noter-get-buffer-file-name-hook nil
   "Functions that when passed a major mode, will return the current buffer file name.
 
 This is used by the `org-noter' command to determine the file name when
@@ -424,7 +433,18 @@ Used by `org-noter--create-session' when creating a new session."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-highlight-selected-text nil
+  "Highlight selected-text when creating precise notes"
+  :group 'org-noter
+  :type 'boolean)
 
+(defcustom org-noter-max-short-length 80
+  "Maximum length of a short text selection.  Short text selections
+may be used as note title.  When they are quoted in the note,
+they are quoted as ``short-selected-text'' rather than inside a
+QUOTE-block."
+  :group 'org-noter
+  :type 'integer)
 
 ;; --------------------------------------------------------------------------------
 ;;; Private variables or constants
@@ -474,6 +494,9 @@ Used by `org-noter--create-session' when creating a new session."
 
 (defconst org-noter--property-closest-tipping-point "NOTER_CLOSEST_TIPPING_POINT"
   "Property for overriding global `org-noter-closest-tipping-point'.")
+
+(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
+  "List of elements that shouldn't be recursed into when searching for notes.")
 
 (defconst org-noter--note-search-element-type '(headline)
   "List of elements that should be searched for notes.")
@@ -537,7 +560,7 @@ Otherwise return the maximum value for point."
 
 (defun org-noter--create-session (ast document-property-value notes-file-path)
   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
-         (link-p (or (string-match-p org-bracket-link-regexp document-property-value)
+         (link-p (or (string-match-p org-link-bracket-re document-property-value)
                      (string-match-p org-noter--url-regexp document-property-value)))
          (display-name (if raw-value-not-empty
                            (org-element-property :raw-value ast)
@@ -829,11 +852,11 @@ properties, by a margin of NEWLINES-NUMBER."
     (run-hooks 'org-noter-insert-heading-hook)))
 
 (defun org-noter--narrow-to-root (ast)
-  (when ast
+  (when (and ast (not (org-noter--no-heading-p)))
     (save-excursion
       (goto-char (org-element-property :contents-begin ast))
       (org-show-entry)
-      (when (org-at-heading-p) (org-narrow-to-subtree))
+      (org-narrow-to-subtree)
       (org-cycle-hide-drawers 'all))))
 
 (defun org-noter--get-doc-window ()
@@ -1014,7 +1037,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--check-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (or (and (consp value) (integerp (car value)) (numberp (cdr value)))
-                (and (consp value) (integerp (car value)) (integerp (cadr value)) (integerp (cddr value)))
+                (and (consp value) (integerp (car value)) (numberp (cadr value)) (numberp (cddr value)))
                 (integerp value)))))))
 
 (defun org-noter--parse-location-property (arg)
@@ -1095,13 +1118,21 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (list slice-top slice-height slice-left slice-width)))
 
 (defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
+  "Convert CHAR based position to percent-base position"
   (let* ((slice (org-noter--doc-get-page-slice))
-         (display-size (image-display-size (image-get-display-property)))
-         (display-percentage-height (/ vscroll (cdr display-size)))
-         (hpercentage (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-height))))))
-    (if hscroll
-        (cons hpercentage (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) (/ vscroll (car display-size)))))))
-      (cons hpercentage 0))))
+         (display-size (image-display-size (image-get-display-property))) ;(width height)
+         (display-width (car display-size))
+         (display-height (cdr display-size))
+         (window-geom (window-inside-edges)) ; (L T R B)
+         (display-left-edge (/ (- (nth 2 window-geom) (nth 0 window-geom) display-width) 2))
+         (display-percentage-v (/ vscroll display-height))
+         (percentage-v (max 0 (min 1 (+ (nth 0 slice) (* (nth 1 slice) display-percentage-v)))))
+         (display-percentage-h 0)
+         (percentage-h 0))
+    (when hscroll
+      (setq display-percentage-h (/ (- hscroll display-left-edge) display-width)
+            percentage-h (max 0 (min 1 (+ (nth 2 slice) (* (nth 3 slice) display-percentage-h))))))
+    (cons percentage-v percentage-h)))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
   (let* ((slice (org-noter--doc-get-page-slice))
@@ -1192,7 +1223,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
    (let ((window (org-noter--get-doc-window))
          (mode (org-noter--session-doc-mode session)))
      (with-selected-window window
-       (run-hook-with-args-until-success 'org-noter--doc-goto-location-hook mode location)
+       (run-hook-with-args-until-success 'org-noter--doc-goto-location-hook mode location window)
        (redisplay)))))
 
 (defun org-noter--compare-location-cons (comp l1 l2)
@@ -1413,87 +1444,85 @@ relative to."
            ignore-until-level
            current-region-info) ;; NOTE(nox): [REGIONS-LIST-PTR START MAX-END REGIONS-LIST-NAME]
 
-       (with-current-buffer (or (buffer-base-buffer (org-noter--session-notes-buffer session))
-                                (org-noter--session-notes-buffer session))
-         (org-element-map contents org-noter--note-search-element-type
-           (lambda (element)
-             (let ((doc-file (org-noter--doc-file-property element))
-                   (location (org-noter--parse-location-property element)))
-               (when (and ignore-until-level (<= (org-element-property :level element) ignore-until-level))
-                 (setq ignore-until-level nil))
+       (org-element-map contents org-noter--note-search-element-type
+         (lambda (element)
+           (let ((doc-file (org-noter--doc-file-property element))
+                 (location (org-noter--parse-location-property element)))
+             (when (and ignore-until-level (<= (org-element-property :level element) ignore-until-level))
+               (setq ignore-until-level nil))
 
-               (cond
-                (ignore-until-level) ;; NOTE(nox): This heading is ignored, do nothing
+             (cond
+              (ignore-until-level) ;; NOTE(nox): This heading is ignored, do nothing
 
-                ((and doc-file (not (string= doc-file (org-noter--session-property-text session))))
-                 (org-noter--view-region-finish current-region-info element)
-                 (setq ignore-until-level (org-element-property :level element))
-                 (when (and preamble new-location
-                            (or (not reference-for-insertion)
-                                (>= (org-element-property :begin element)
-                                    (org-element-property :end (cdr reference-for-insertion)))))
-                   (setq reference-for-insertion (cons 'after element))))
+              ((and doc-file (not (string= doc-file (org-noter--session-property-text session))))
+               (org-noter--view-region-finish current-region-info element)
+               (setq ignore-until-level (org-element-property :level element))
+               (when (and preamble new-location
+                          (or (not reference-for-insertion)
+                              (>= (org-element-property :begin element)
+                                  (org-element-property :end (cdr reference-for-insertion)))))
+                 (setq reference-for-insertion (cons 'after element))))
 
-                (location
-                 (let ((relative-position (org-noter--relative-position-to-view location view)))
-                   (cond
-                    ((eq relative-position 'inside)
-                     (push (cons element nil) notes-in-view)
+              (location
+               (let ((relative-position (org-noter--relative-position-to-view location view)))
+                 (cond
+                  ((eq relative-position 'inside)
+                   (push (cons element nil) notes-in-view)
 
-                     (org-noter--view-region-add current-region-info regions-in-view element)
+                   (org-noter--view-region-add current-region-info regions-in-view element)
 
-                     (setq all-after-tipping-point
-                           (and all-after-tipping-point (org-noter--note-after-tipping-point
-                                                         closest-tipping-point location view))))
+                   (setq all-after-tipping-point
+                         (and all-after-tipping-point (org-noter--note-after-tipping-point
+                                                       closest-tipping-point location view))))
 
-                    (t
-                     (when current-region-info
-                       (let ((note-cons-to-change (cond ((eq (aref current-region-info 3) 'regions-in-view)
-                                                         (car notes-in-view))
-                                                        ((eq (aref current-region-info 3) 'closest-notes-regions)
-                                                         (car closest-notes)))))
-                         (when (< (org-element-property :begin element)
-                                  (org-element-property :end (car note-cons-to-change)))
-                           (setcdr note-cons-to-change element))))
+                  (t
+                   (when current-region-info
+                     (let ((note-cons-to-change (cond ((eq (aref current-region-info 3) 'regions-in-view)
+                                                       (car notes-in-view))
+                                                      ((eq (aref current-region-info 3) 'closest-notes-regions)
+                                                       (car closest-notes)))))
+                       (when (< (org-element-property :begin element)
+                                (org-element-property :end (car note-cons-to-change)))
+                         (setcdr note-cons-to-change element))))
 
-                     (let ((eligible-for-before (and closest-tipping-point all-after-tipping-point
-                                                     (eq relative-position 'before))))
-                       (cond ((and eligible-for-before
-                                   (org-noter--compare-locations '> location closest-notes-location))
-                              (setq closest-notes (list (cons element nil))
-                                    closest-notes-location location
-                                    current-region-info nil
-                                    closest-notes-regions nil)
-                              (org-noter--view-region-add current-region-info closest-notes-regions element))
+                   (let ((eligible-for-before (and closest-tipping-point all-after-tipping-point
+                                                   (eq relative-position 'before))))
+                     (cond ((and eligible-for-before
+                                 (org-noter--compare-locations '> location closest-notes-location))
+                            (setq closest-notes (list (cons element nil))
+                                  closest-notes-location location
+                                  current-region-info nil
+                                  closest-notes-regions nil)
+                            (org-noter--view-region-add current-region-info closest-notes-regions element))
 
-                             ((and eligible-for-before (equal location closest-notes-location))
-                              (push (cons element nil) closest-notes)
-                              (org-noter--view-region-add current-region-info closest-notes-regions element))
+                           ((and eligible-for-before (equal location closest-notes-location))
+                            (push (cons element nil) closest-notes)
+                            (org-noter--view-region-add current-region-info closest-notes-regions element))
 
-                             (t (org-noter--view-region-finish current-region-info element)))))))
+                           (t (org-noter--view-region-finish current-region-info element)))))))
 
-                 (when new-location
-                   (setq preamble nil)
-                   (cond ((and (org-noter--compare-locations '<= location new-location)
-                               (or (eq (car reference-for-insertion) 'before)
-                                   (org-noter--compare-locations '>= location reference-location)))
-                          (setq reference-for-insertion (cons 'after element)
-                                reference-location location))
+               (when new-location
+                 (setq preamble nil)
+                 (cond ((and (org-noter--compare-locations '<= location new-location)
+                             (or (eq (car reference-for-insertion) 'before)
+                                 (org-noter--compare-locations '>= location reference-location)))
+                        (setq reference-for-insertion (cons 'after element)
+                              reference-location location))
 
-                         ((and (eq (car reference-for-insertion) 'after)
-                               (< (org-element-property :begin element)
-                                  (org-element-property :end (cdr reference-for-insertion)))
-                               (org-noter--compare-locations '>= location new-location))
-                          (setq reference-for-insertion (cons 'before element)
-                                reference-location location)))))
+                       ((and (eq (car reference-for-insertion) 'after)
+                             (< (org-element-property :begin element)
+                                (org-element-property :end (cdr reference-for-insertion)))
+                             (org-noter--compare-locations '>= location new-location))
+                        (setq reference-for-insertion (cons 'before element)
+                              reference-location location)))))
 
-                (t
-                 (when (and preamble new-location
-                            (or (not reference-for-insertion)
-                                (>= (org-element-property :begin element)
-                                    (org-element-property :end (cdr reference-for-insertion)))))
-                   (setq reference-for-insertion (cons 'after element)))))))
-           nil nil (delete 'headline (append org-element-all-elements nil))))
+              (t
+               (when (and preamble new-location
+                          (or (not reference-for-insertion)
+                              (>= (org-element-property :begin element)
+                                  (org-element-property :end (cdr reference-for-insertion)))))
+                 (setq reference-for-insertion (cons 'after element)))))))
+         nil nil org-noter--note-search-no-recurse)
 
        (org-noter--view-region-finish current-region-info)
 
@@ -1875,7 +1904,7 @@ want to kill."
       (with-current-buffer notes-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
         (restore-buffer-modified-p nil))
-      (unless org-noter-use-indirect-buffer
+      (when org-noter-use-indirect-buffer
         (kill-buffer notes-buffer))
 
       (when base-buffer
@@ -1908,7 +1937,8 @@ want to kill."
 
 This command will prompt for a title of the note and then insert
 it in the notes buffer. When the input is empty, a title based on
-`org-noter-default-heading-title' will be generated.
+either the selected text (if it is <= `org-noter-max-short-length')
+or `org-noter-default-heading-title' will be generated.
 
 If there are other notes related to the current location, the
 prompt will also suggest them. Depending on the value of the
@@ -1921,21 +1951,30 @@ info).
 
 When you insert into an existing note and have text selected on
 the document buffer, the variable `org-noter-insert-selected-text-inside-note'
-defines if the text should be inserted inside the note."
+defines if the text should be inserted inside the note.
+
+Guiding principles for note generation
+  1. The preferred title is the one the user enters in the minibuffer.
+  2. Selected text should be used in the note, either as the title or in the body
+  3. Refrain from making notes in the same location with the same title
+  4. Precise notes generally have different locations, so always make new
+     precise notes"
   (interactive)
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
-          (selected-text
-           (run-hook-with-args-until-success
-            'org-noter-get-selected-text-hook
-            (org-noter--session-doc-mode session)))
-
+          (selected-text (run-hook-with-args-until-success
+                          'org-noter-get-selected-text-hook
+                          (org-noter--session-doc-mode session)))
+          (selected-text-p (> (length selected-text) 0))
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
-          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
+          (current-view (org-noter--get-current-view)))
 
-     (let ((inhibit-quit t))
+     (let ((inhibit-quit t)
+           (short-selected-text (if (and selected-text-p
+                                         (<= (length selected-text) org-noter-max-short-length))
+                                    selected-text)))
        (with-local-quit
          (select-frame-set-input-focus (window-frame window))
          (select-window window)
@@ -1943,39 +1982,37 @@ defines if the text should be inserted inside the note."
          ;; IMPORTANT(nox): Need to be careful changing the next part, it is a bit
          ;; complicated to get it right...
 
-         (let ((point (point))
+         (let ((view-info (org-noter--get-view-info current-view location))
+               (point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
-               collection default default-begin title selection quote-p
+               collection title note-body existing-note
+               (default-title (or short-selected-text
+                                  (replace-regexp-in-string (regexp-quote "$p$")
+                                                            (org-noter--pretty-print-location location)
+                                                            org-noter-default-heading-title)))
                (empty-lines-number (if org-noter-separate-notes-from-heading 2 1)))
 
-           (cond
-            ;; NOTE(nox): Both precise and without questions will create new notes
-            ((or precise-info force-new)
-             (setq quote-p (with-temp-buffer
-                             (insert (or selected-text ""))
-                             (> (how-many "\n" (point-min)) 2)))
-             (setq default (and selected-text
-                                (replace-regexp-in-string "\n" " " selected-text))))
-            (org-noter-insert-note-no-questions)
-            (t
+           ;; NOTE(phm): prompt for title unless this is a precise note
+           (unless precise-info
+             ;; construct collection for matching existing notes
              (dolist (note-cons (org-noter--view-info-notes view-info))
-               (let ((display (org-element-property :raw-value (car note-cons)))
-                     (begin (org-element-property :begin (car note-cons))))
-                 (push (cons display note-cons) collection)
-                 (when (and (>= point begin) (> begin (or default-begin 0)))
-                   (setq default display
-                         default-begin begin))))))
+               (let ((display (org-element-property :raw-value (car note-cons))))
+                 (push (cons display note-cons) collection))))
 
            (setq collection (nreverse collection)
-                 title (if (or org-noter-insert-note-no-questions note-title)
-                           (or org-noter-default-heading-title note-title)
-                         (completing-read "Note: " collection nil nil nil nil default))
-                 selection (unless org-noter-insert-note-no-questions (cdr (assoc title collection))))
+                 ;; prompt for title (unless no-Q's)
+                 title (if org-noter-insert-note-no-questions default-title
+                         (completing-read "Note: " collection nil nil nil nil default-title))
+                 note-body (if (and selected-text-p
+                                    (not (equal title short-selected-text)))
+                               selected-text)
+                 ;; is this an existing note? skip for precise notes
+                 existing-note (unless precise-info (cdr (assoc title collection))))
 
-           (if selection
+           (if existing-note
                ;; NOTE(nox): Inserting on an existing note
-               (let* ((note (car selection))
-                      (insert-before-element (cdr selection))
+               (let* ((note (car existing-note))
+                      (insert-before-element (cdr existing-note))
                       (has-content
                        (eq (org-element-map (org-element-contents note) org-element-all-elements
                              (lambda (element)
@@ -1989,7 +2026,6 @@ defines if the text should be inserted inside the note."
                      (goto-char (org-element-property :begin insert-before-element))
                    (goto-char (org-element-property :end note)))
 
-
                  (if (org-at-heading-p)
                      (progn
                        (org-N-empty-lines-before-current empty-lines-number)
@@ -1997,16 +2033,14 @@ defines if the text should be inserted inside the note."
                    (unless (bolp) (insert "\n"))
                    (org-N-empty-lines-before-current (1- empty-lines-number)))
 
-                 (when (and org-noter-insert-selected-text-inside-note selected-text) (insert selected-text)))
+                 (when (and org-noter-insert-selected-text-inside-note note-body)
+                   (if short-selected-text
+                       (insert "``" note-body "''")
+                     (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE"))))
 
              ;; NOTE(nox): Inserting a new note
              (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
                    level)
-               (when (or quote-p (zerop (length title)))
-                 (setq title (replace-regexp-in-string (regexp-quote "$p$")
-                                                       (org-noter--pretty-print-location location)
-                                                       title)))
-
                (if reference-element-cons
                    (progn
                      (cond
@@ -2025,7 +2059,8 @@ defines if the text should be inserted inside the note."
                                   nil t org-element-all-elements)
                                 (point-max))))
 
-               (setq level (1+ (or (org-element-property :level ast) 0)))
+               (setq level (or level
+                               (1+ (or (org-element-property :level ast) 0))))
 
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
@@ -2034,9 +2069,11 @@ defines if the text should be inserted inside the note."
                (when-let ((highlight-location)
                           (serialized-highlight (org-noter--get-serialized-highlight highlight-location)))
                 (org-entry-put nil "HIGHLIGHT" serialized-highlight))
-               (when quote-p
+               (when note-body
                  (save-excursion
-                   (insert "#+BEGIN_QUOTE\n" selected-text "\n#+END_QUOTE")))
+                   (if short-selected-text
+                       (insert "``" note-body "''")
+                     (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE"))))
                (when (org-noter--session-hide-other session) (org-overview))
 
                (setf (org-noter--session-num-notes-in-view session)
@@ -2071,12 +2108,12 @@ See `org-noter-insert-note' docstring for more."
          (highlight-location (org-noter--get-highlight-location)))
 
      (org-noter-insert-note precise-info nil highlight-location)
-     (select-frame-set-input-focus (org-noter--session-frame session))
-     (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
+     (when org-noter-highlight-selected-text
+       (select-frame-set-input-focus (org-noter--session-frame session))
+       (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
 
-     ;; this adds the highlight to the document
-     (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode highlight-location)
-     )))
+       ;; this adds the highlight to the document
+       (run-hook-with-args-until-success 'org-noter--add-highlight-hook major-mode highlight-location)))))
 
 (defun org-noter--get-highlight-location ()
   "Returns a highlight location. This is mode specific.

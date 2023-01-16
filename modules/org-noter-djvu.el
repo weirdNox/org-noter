@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; 
+;;
 
 ;;; Code:
 (require 'org-noter)
@@ -34,8 +34,8 @@
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-djvu--pretty-print-location)
 
-(defun org-noter-djvu-approx-location-cons (major-mode &optional precise-info _force-new-ref)
-  (when (eq major-mode 'djvu-read-mode)
+(defun org-noter-djvu-approx-location-cons (mode &optional precise-info _force-new-ref)
+  (when (eq mode 'djvu-read-mode)
     (cons djvu-doc-page (if (or (numberp precise-info)
                                 (and (consp precise-info)
                                      (numberp (car precise-info))
@@ -45,25 +45,26 @@
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-djvu-approx-location-cons)
 
-(defun org-noter-djvu--get-precise-info (major-mode)
-  (when (eq major-mode 'djvu-read-mode)
+(defun org-noter-djvu--get-precise-info (mode window)
+  (when (eq mode 'djvu-read-mode)
     (if (region-active-p)
         (cons (mark) (point))
-      (while (not (and (eq 'mouse-1 (car event))
-                       (eq window (posn-window (event-start event)))))
-        (setq event (read-event "Click where you want the start of the note to be!")))
-      (posn-point (event-start event)))))
+      (let ((event nil))
+        (while (not (and (eq 'mouse-1 (car event))
+                         (eq window (posn-window (event-start event)))))
+          (setq event (read-event "Click where you want the start of the note to be!")))
+        (posn-point (event-start event))))))
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-djvu--get-precise-info)
 
-(defun org-noter-djvu-setup-handler (major-mode)
-  (when (eq major-mode 'djvu-read-mode)
+(defun org-noter-djvu-setup-handler (mode)
+  (when (eq mode 'djvu-read-mode)
     (advice-add 'djvu-init-page :after 'org-noter--location-change-advice)
     t))
 
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-djvu-setup-handler)
 
-(defun org-noter-djvu-goto-location (mode location)
+(defun org-noter-djvu-goto-location (mode location &optional window)
   (when (eq mode 'djvu-read-mode)
     (djvu-goto-page (car location))
     (goto-char (org-noter--get-location-top location))))

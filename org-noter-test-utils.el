@@ -112,7 +112,7 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-pretty-print-location (location)
   (format "%s" location))
 
-(defun org-noter-core-test-highlight-location (major-mode precise-info)
+(defun org-noter-core-test-add-highlight (major-mode precise-info)
   t)
 
 (defun org-noter-core-test-get-current-view (mode)
@@ -127,11 +127,13 @@ org-noter-core-test-return-text
   ;; if this is not set; make-session fails and the test crashes with a stack overflow.
   (setq org-noter-always-create-frame nil)
 
+  (setq org-noter-highlight-selected-text t)
+
   ;; setup spies so we can verify that things have been called
   (spy-on 'org-noter-test-get-selected-text :and-call-through)
   (spy-on 'org-noter-core-test-approx-location :and-call-through)
   (spy-on 'org-noter-core-test-get-precise-info :and-call-through)
-  (spy-on 'org-noter-core-test-highlight-location :and-call-through)
+  (spy-on 'org-noter-core-test-add-highlight :and-call-through)
   (spy-on 'org-noter-core-test-get-current-view :and-call-through)
 
   ;; register all the hooks so we can fake a org-noter-test mode
@@ -143,7 +145,8 @@ org-noter-core-test-return-text
   (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
   (add-to-list 'org-noter--get-precise-info-hook #'org-noter-core-test-get-precise-info)
   (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-core-test-pretty-print-location)
-  (add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-core-test-highlight-location)
+  (add-to-list 'org-noter--add-highlight-hook  #'org-noter-core-test-add-highlight)
+  (add-to-list 'org-noter--get-highlight-location-hook #'org-noter-core-test-get-highlight-location)
   )
 
 

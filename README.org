@@ -1,39 +1,117 @@
-* Org-noter + DJVU - A fork of [[https://github.com/weirdNox/org-noter][org-noter]] with [[https://elpa.gnu.org/packages/djvu.html][djvu.el]] support.
-** What is org-noter?
-Org-noter is an org-mode document annotator. It is a rewrite of another project, [[https://github.com/rudolfochrist/interleave][Interleave]].
-Read about org-noter’s feature/usage/customization in its README [[file:README-orig.org][here]] or go visit its repository at [[https://github.com/weirdNox/org-noter][github]].
-** Added features
- - =org-noter= can be used on djvu file.
- - =org-noter-create-skeleton= now works on djvu and pdf file.
- - Allow =:NOTER_DOCUMENT:= to be in file-level =:PROPERTIES:= drawer
-   See the issue https://github.com/weirdNox/org-noter/issues/143 for details.
- - There is a module in the [[file:other/][other/]] directory called
-   [[file:other/org-noter-nov-overlay.el][org-noter-nov-overlay]] that highlights your notes with overlays in
-   nov-mode, to use it, either add it to your =load-path= or with [[https://github.com/jwiegley/use-package][use-package]],
-#+begin_src emacs-lisp
-    (use-package org-noter-nov-overlay
-      :ensure nil)
-#+end_src
+* ORG-NOTER (fork of a fork)
+** This is a fork of the *c1-g* fork with some commits picked from *dmitrym*
+   - In essence, this is close to the original *weirdNox* (Gonçalo Santos)
+     version that you find on MELPA with the refactoring that *c1-g* implemented
 
-** Goals
- - [ ] Precise location support djvu.el have both graphical (via
-   =djvu-image-mode=) and textual (default) modes so maybe the textual
-   mode should handle precise location like nov.el and graphical mode
-   should do it like pdf-tools.
-** Installation
-*** Manual installation
-1. Clone this repo =git clone https://notabug.org/c1-g/org-noter-plus-djvu.git=
-2. Add it to your =load-path=.
-** Caveats
-*** This is a fork of a fork 🍴
-The branch =djvu= (the only one I’d worked on so far) of this repository is based on Ahmed Shariff’s pull request of org-noter
-(See https://github.com/weirdNox/org-noter/pull/129).
+   - djvu and epub support have also been advanced by *c1-g*, but I have not
+     tested any of that code.
 
-*** Conflicting keybindings
-The key @@html:<kbd>@@i@@html:</kbd>@@ (lowercase i) for inserting
-note in the document buffer will conflict with the default key to
-enter =djvu-image-mode=. So either you rebind one of them or you can
-just enter =djvu-image-mode= manually via @@html:<kbd>@@M-x djvu-image-mode@@html:</kbd>@@
+   - The main new feature for PDF users is 2-D precise notes (introduced by
+     *Ahmed Shariff*, which can be inserted in two ways:
+     1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
+        changed the position format to use the entire list returned by =edges=.
+        This breaks the other way of inserting precise notes.  On *dmitrym*'s
+        fork, select-precise notes auto-fill the note title with the selected
+        text.  This has deleterious side effects for other note insertion methods.
+     2. "Click-precise": =M-i=, followed by clicking a location on the page.
 
+   - Standard notes can also be inserted in two ways:
+     1. "TAB".  Hitting tab creates a note title "Notes for page ##", where the
+        page number is inserted automatically over the octothorpes.
+     2. "i".  The fundamental =org-noter-insert-note=.  User types note title
+        into the minibuffer.
 
+** Stock vs refactored note insertion
+   - more consistent use of selected text in title or body
+   - more consistent primary default title (short-selected-text)
+   - more consistent secondary default title ("Notes for page <location>")
+   - avoids having different notes with the same heading
 
+     In Stock org-noter, repeated TAB's give multiple notes.  In this refactor,
+     new notes in the same location with the same title are note made.  For now,
+     precise notes are excepted from this rule.
+
+   - long quotes are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
+   - short quotes are enclosed in ``...'' (LaTeX style)
+   - short/long are differentiated by customizable variable (default 80 char)
+
+     In Stock org-noter, long selections have more than 3 lines.
+   - NEW: multicolumn precise-notes defined by property NUM_COLUMNS
+
+     Implements issue #153 in weirdNox/org-noter by adding
+     =org-noter-pdf-convert-to-location-cons= to
+     =org-noter--convert-to-location-cons-hook=, where a "virtual" vertical
+     location is calculated by dividing the page into equal width columns.  This
+     is not a perfect solution, and is probably best for low-integer numbers of
+     columns, since the page is just divided evenly into NUM_COLUMNS vertical
+     strips.
+
+*** Stock
+   |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+   | title prompt?   | Y                              | Y                         | N                       |
+   | default title 1 | prior note by location         | selected-text             | N/A                     |
+   | default title 2 | "Notes for page #"             | "Notes for page # x y"    | "Notes for page #"      |
+   | new note        | with new title                 | always                    | always                  |
+   | body            | selected-text on existing note | selected-text (> 3 lines) | none                    |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+
+*** Refactored
+   |                      | insert-note               | precise note              | no-questions              |
+   |----------------------+---------------------------+---------------------------+---------------------------|
+   | title prompt?        | Y                         | Y                         | N                         |
+   | default title 1      | short-selected-text       | short-selected-text       | short-selected-text       |
+   | default title 2      | "Notes for page #"        | "Notes for page # x y"    | "Notes for page #"        |
+   | new note             | with new title            | always                    | with new title            |
+   | body                 | selected-text (not title) | selected-text (not title) | selected-text (not title) |
+   |----------------------+---------------------------+---------------------------+---------------------------|
+   | highlight selection? | ??                        | ??                        | ??                        |
+** Features wishlist
+   1. Use pdf-view-current-pagelabel to use the page label instead of page in
+      default titles
+
+      May require altering the org-noter-X--pretty-print-location-hook(s).
+
+   2. Profile org-noter -- runs slow on large books (500+ pages)
+      org-element-map is taking 85% of the CPU.  Org 9.6 should have a faster
+      way that Charlie Gordon explored.
+
+   3. Bind M-<mouse-1> to precise-note, no-questions.
+
+   4. Make background of arrow transparent (see org-noter--show-arrow)
+
+   5. Dedicated insert-selected-text-into-page-note
+
+   6. Internationalize precise notes to handle right-to-left languages.
+** Bugs
+*** to fix
+    1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
+       away (or at all), requiring user to manually type in the (existing) title
+*** fixed
+    1. Navigating up from a nested precise note lands in the prior note at the
+       next level up (eg level 3 -> level 2).  page notes behave properly.
+
+       [file:org-noter-core.el:2179]
+       =(org-element-property :begin (org-noter--get-containing-element))= returns
+       the begin of the element one level up when the current note location is of
+       the form (<page#> <vpos> . <hpos>).  It works properly for locations of
+       the form (<page#> . <vpos>).
+
+       It will be one of these two:
+       - =org-noter--get-containing-heading=
+         - =org-noter--check-location-property=
+           found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
+       - =org-noter--get-containing-property-drawer=
+** Highlighting
+   my solution is compact, but too pdf-specific. need to sketch out Dmitry's solution
+   - in precise-notes
+     1. hook to make the highlight in the document
+     2. hook to preserve highlight in org-noter file
+   - what contexts would HL be used?
+     1. only precise?  (current implementation)
+     2. anytime (Peter's implementation)
+   - how does this play with quoting text?
+     1. HL Y/N
+     2. Quoting Y/N
+     3. No HL if Q
+     4. No Q if HL

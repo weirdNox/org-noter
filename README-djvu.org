@@ -1,0 +1,39 @@
+* Org-noter + DJVU - A fork of [[https://github.com/weirdNox/org-noter][org-noter]] with [[https://elpa.gnu.org/packages/djvu.html][djvu.el]] support.
+** What is org-noter?
+Org-noter is an org-mode document annotator. It is a rewrite of another project, [[https://github.com/rudolfochrist/interleave][Interleave]].
+Read about org-noter’s feature/usage/customization in its README [[file:README-orig.org][here]] or go visit its repository at [[https://github.com/weirdNox/org-noter][github]].
+** Added features
+ - =org-noter= can be used on djvu file.
+ - =org-noter-create-skeleton= now works on djvu and pdf file.
+ - Allow =:NOTER_DOCUMENT:= to be in file-level =:PROPERTIES:= drawer
+   See the issue https://github.com/weirdNox/org-noter/issues/143 for details.
+ - There is a module in the [[file:other/][other/]] directory called
+   [[file:other/org-noter-nov-overlay.el][org-noter-nov-overlay]] that highlights your notes with overlays in
+   nov-mode, to use it, either add it to your =load-path= or with [[https://github.com/jwiegley/use-package][use-package]],
+#+begin_src emacs-lisp
+    (use-package org-noter-nov-overlay
+      :ensure nil)
+#+end_src
+
+** Goals
+ - [ ] Precise location support djvu.el have both graphical (via
+   =djvu-image-mode=) and textual (default) modes so maybe the textual
+   mode should handle precise location like nov.el and graphical mode
+   should do it like pdf-tools.
+** Installation
+*** Manual installation
+1. Clone this repo =git clone https://notabug.org/c1-g/org-noter-plus-djvu.git=
+2. Add it to your =load-path=.
+** Caveats
+*** This is a fork of a fork 🍴
+The branch =djvu= (the only one I’d worked on so far) of this repository is based on Ahmed Shariff’s pull request of org-noter
+(See https://github.com/weirdNox/org-noter/pull/129).
+
+*** Conflicting keybindings
+The key @@html:<kbd>@@i@@html:</kbd>@@ (lowercase i) for inserting
+note in the document buffer will conflict with the default key to
+enter =djvu-image-mode=. So either you rebind one of them or you can
+just enter =djvu-image-mode= manually via @@html:<kbd>@@M-x djvu-image-mode@@html:</kbd>@@
+
+
+
