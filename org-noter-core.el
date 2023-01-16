@@ -1571,21 +1571,6 @@ relative to."
            ((= number-of-notes 1) (propertize " 1 note " 'face 'org-noter-notes-exist-face))
            (t (propertize (format " %d notes " number-of-notes) 'face 'org-noter-notes-exist-face))))))
 
-;; NOTE(nox): From machc/pdf-tools-org
-(defun org-noter--pdf-tools-edges-to-region (edges)
-  "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
-  (when edges
-    (let ((left0 (nth 0 (car edges)))
-          (top0 (nth 1 (car edges)))
-          (bottom0 (nth 3 (car edges)))
-          (top1 (nth 1 (car (last edges))))
-          (right1 (nth 2 (car (last edges))))
-          (bottom1 (nth 3 (car (last edges)))))
-      (list left0
-            (+ top0 (/ (- bottom0 top0) 3))
-            right1
-            (- bottom1 (/ (- bottom1 top1) 3))))))
-
 (defun org-noter--check-if-document-is-annotated-on-file (document-path notes-path)
   ;; NOTE(nox): In order to insert the correct file contents
   (let ((buffer (find-buffer-visiting notes-path)))
