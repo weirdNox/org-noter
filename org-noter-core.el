@@ -1942,7 +1942,7 @@ want to kill."
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
 
-(defun org-noter-insert-note (&optional precise-info note-title highlight-location)
+(defun org-noter-insert-note (&optional precise-info note-title)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
@@ -1979,6 +1979,7 @@ Guiding principles for note generation
           (selected-text-p (> (length selected-text) 0))
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
+          (highlight-location (org-noter--get-highlight-location))
           (current-view (org-noter--get-current-view)))
 
      (let ((inhibit-quit t)
@@ -1986,6 +1987,9 @@ Guiding principles for note generation
                                          (<= (length selected-text) org-noter-max-short-length))
                                     selected-text)))
        (with-local-quit
+         (when org-noter-highlight-selected-text
+           (run-hook-with-args-until-success 'org-noter--add-highlight-hook major-mode highlight-location))
+
          (select-frame-set-input-focus (window-frame window))
          (select-window window)
 
@@ -2106,27 +2110,14 @@ that part. Will always create a new note.
 
 When text is selected, it will automatically choose the top of
 the selected text as the location and the text itself as the
-title of the note (you may change it anyway!).
+default title of the note if the text is <=
+`org-noter-max-short-length' (you may change it anyway!).
 
 See `org-noter-insert-note' docstring for more."
   (interactive "P")
   (org-noter--with-valid-session
-   (let ((org-noter-insert-note-no-questions (if toggle-no-questions
-                                                 (not org-noter-insert-note-no-questions)
-                                               org-noter-insert-note-no-questions))
-         (precise-info (org-noter--get-precise-info))
-         (highlight-location (org-noter--get-highlight-location)))
-
-     (org-noter-insert-note precise-info nil highlight-location)
-     (when org-noter-highlight-selected-text
-       (select-frame-set-input-focus (org-noter--session-frame session))
-       (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
-
-       ;; this adds the highlight to the document
-       (run-hook-with-args-until-success 'org-noter--add-highlight-hook major-mode highlight-location)))))
-
-
-
+   (let ((precise-info (org-noter--get-precise-info)))
+     (org-noter-insert-note precise-info))))
 
 (defun org-noter-insert-note-toggle-no-questions ()
   "Insert note associated with the current location.
