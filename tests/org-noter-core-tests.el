@@ -25,7 +25,8 @@
                          mock-contents-simple-notes-file
                          '(lambda ()
                             (org-noter-core-test-create-session)
-                            (org-noter-insert-note nil "NEW NOTE")
+                            (let ((org-noter-insert-note-no-questions t))
+                              (org-noter-insert-note nil "NEW NOTE"))
                             (expect 'org-noter-test-get-selected-text :to-have-been-called)
                             (expect (string-match "Notes for page" (buffer-string))  :not :to-be nil))))
 
@@ -60,7 +61,7 @@
                             (org-noter-core-test-create-session)
                             (with-simulated-input "precise SPC note RET"
                                                   (org-noter-insert-precise-note))
-                            (expect 'org-noter-core-test-highlight-location :to-have-been-called))))
+                            (expect 'org-noter-core-test-add-highlight :to-have-been-called))))
 
                     ;; hit C-g when entering a note; expect no highlight
                     (it "precise note DOES NOT call the highlight hook when the note is aborted"
@@ -72,7 +73,7 @@
                             (condition-case nil
                                 (with-simulated-input "C-g" (org-noter-insert-precise-note))
                               (quit nil))
-                            (expect 'org-noter-core-test-highlight-location :not :to-have-been-called))))
+                            (expect 'org-noter-core-test-add-highlight :not :to-have-been-called))))
 
           )
 
@@ -168,6 +169,9 @@
           (describe "persistent highlights"
                     (describe "no hooks are setup for precise note highlights"
                               ;; if no hooks for highlights are setup we expect no :HIGHLIGHT: property
+                              (before-each
+                               (setq org-noter--get-highlight-location-hook '())
+                               )
                               (it "can take a precise note without a highlight appearing"
                                   (with-mock-contents
                                    mock-contents-simple-notes-file
