@@ -159,3 +159,14 @@ Omitting the header causes =org-noter--parse-root= to work incorrectly.
   cask                     # install dependencies
   cask exec buttercup -L . # exec unit tests, in the root of the project
 #+end_src
+
+*** GNU/Linux
+
+#+begin_src shell
+  git clone https://github.com/cask/cask.git
+  make -C cask install
+
+  cd <to-project-path>
+  cask                     # install dependencies (in root of project, 1 time)
+  cask exec buttercup -L . # exec unit tests, in the root of the project
+#+end_src
