@@ -265,7 +265,7 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter-highlight-precise-note-hook nil
+(defcustom org-noter--add-highlight-hook nil
   "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
 This can be used in pdf-mode for example to add a permanent highlight to the document."
   :group 'org-noter
@@ -437,12 +437,6 @@ Used by `org-noter--create-session' when creating a new session."
   "Highlight selected-text when creating precise notes"
   :group 'org-noter
   :type 'boolean)
-
-(defcustom org-noter-highlight-precise-note-hook nil
-  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
-This can be used in pdf-mode for example to add a permanent highlight to the document."
-  :group 'org-noter
-  :type 'hook)
 
 (defcustom org-noter-max-short-length 80
   "Maximum length of a short text selection.  Short text selections

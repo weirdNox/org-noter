@@ -335,10 +335,11 @@ where (page v-pos . h-pos) is returned"
       (org-noter-pdf-goto-location 'pdf-view-mode location)
       (pdf-annot-add-highlight-markup-annotation (cdr location)))))
 
-(add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-pdf-highlight-location)
+(add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf-highlight-location)
 
 (defun org-noter-pdf-highlight-location (mode precise-location)
   "Highlight a precise location in PDF"
+  (message "---> %s %s" mode precise-location)
   (when (and (memq mode '(doc-view-mode pdf-view-mode))
              (pdf-view-active-region-p))
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
