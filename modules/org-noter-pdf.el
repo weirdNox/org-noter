@@ -24,9 +24,27 @@
 
 ;;; Code:
 (require 'org-noter)
+(require 'ht)
 
-(defun org-noter-pdf-approx-location-cons (major-mode &optional precise-info _force-new-ref)
-  (when (memq major-mode '(doc-view-mode pdf-view-mode))
+(defun org-noter-pdf-get-highlight-location ()
+  "If there's an active pdf selection, returns a ht that contains all
+the relevant info (page, coordinates, highlight type).
+
+Otherwise returns nil"
+    (-if-let* ((_ (pdf-view-active-region-p))
+               (page (image-mode-window-get 'page))
+               (coords (pdf-view-active-region)))
+        (ht->plist (ht ('PAGE page)
+            ('TYPE 'PDF-HIGHLIGHT)
+            ('COORDS coords)))
+      nil))
+
+(add-to-list 'org-noter--get-highlight-location-hook #'org-noter-pdf-get-highlight-location)
+
+(defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
+  "Returns (page . 0) except when creating a precise-note,
+where (page v-pos . h-pos) is returned"
+  (when (memq mode '(doc-view-mode pdf-view-mode))
     (cons (image-mode-window-get 'page) (if (and (consp precise-info)
                                                  (numberp (car precise-info))
                                                  (numberp (cdr precise-info)))
@@ -34,20 +52,14 @@
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
-(defun org-noter-get-buffer-file-name-pdf (&optional major-mode)
+(defun org-noter-get-buffer-file-name-pdf (&optional mode)
   "Return the file naming backing the document buffer"
   (bound-and-true-p pdf-file-name))
 
 (add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-pdf)
 
-(defun org-noter-pdf-check-location-property (&optional property)
-  "Check if PROPERTY is a valid location property"
-  t)
-
-(add-to-list 'org-noter--check-location-property-hook #'org-noter-pdf-check-location-property)
-
-(defun org-noter-pdf-view-setup-handler (major-mode)
-  (when (eq major-mode 'pdf-view-mode)
+(defun org-noter-pdf-view-setup-handler (mode)
+  (when (eq mode 'pdf-view-mode)
     ;; (setq buffer-file-name document-path)
     (pdf-view-mode)
     (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t)
@@ -55,8 +67,8 @@
 
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-pdf-view-setup-handler)
 
-(defun org-noter-doc-view-setup-handler (major-mode)
-  (when (eq major-mode 'doc-view-mode)
+(defun org-noter-doc-view-setup-handler (mode)
+  (when (eq mode 'doc-view-mode)
     ;; (setq buffer-file-name document-path)
     (doc-view-mode)
     (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice)
@@ -73,8 +85,8 @@
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
 
-(defun org-noter-pdf--get-precise-info (major-mode window)
-  (when (eq major-mode 'pdf-view-mode)
+(defun org-noter-pdf--get-precise-info (mode window)
+  (when (eq mode 'pdf-view-mode)
     (let (v-position h-position)
       (if (pdf-view-active-region-p)
           (let ((edges (car (pdf-view-active-region))))
@@ -95,8 +107,8 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
 
-(defun org-noter-doc--get-precise-info (major-mode window)
-  (when (eq major-mode 'doc-view-mode)
+(defun org-noter-doc--get-precise-info (mode window)
+  (when (eq mode 'doc-view-mode)
     (let ((event nil))
       (while (not (and (eq 'mouse-1 (car event))
                        (eq window (posn-window (event-start event)))))
@@ -106,10 +118,10 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-doc--get-precise-info)
 
-
 (defun org-noter-pdf-goto-location (mode location window)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (let ((top (org-noter--get-location-top location))
+          (window (org-noter--get-doc-window))
           (left (org-noter--get-location-left location)))
 
       (if (eq mode 'doc-view-mode)
@@ -308,6 +320,37 @@
        output-data))))
 
 (add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-pdf)
+
+(defun org-noter-pdf--create-missing-annotation ()
+  "Add a highlight from a selected note."
+  (let* ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
+    (with-selected-window (org-noter--get-doc-window)
+      (org-noter-pdf-goto-location 'pdf-view-mode location)
+      (pdf-annot-add-highlight-markup-annotation (cdr location)))))
+
+(add-to-list 'org-noter-highlight-precise-note-hook #'org-noter-pdf-highlight-location)
+
+(defun org-noter-pdf-highlight-location (mode precise-location)
+  "Highlight a precise location in PDF"
+  (when (and (memq mode '(doc-view-mode pdf-view-mode))
+             (pdf-view-active-region-p))
+    (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
+
+(defun org-noter-pdf-convert-to-location-cons (location)
+  "converts (page v . h) precise locations so that v represents the
+fractional distance through the page along column.  Output is nil
+for standard notes and (page v') for precise notes"
+  (if-let* ((_ (and (consp location) (consp (cdr location))))
+            (bb (current-buffer)) ; debugging code - we are in the doc window,
+                                  ; but need to be in the notes window for next
+                                  ; line to work
+            (ncol (max 1 (string-to-number (or (org-entry-get nil "NUM_COLUMNS" t) "1"))))
+            (page (car location))
+            (v-pos (cadr location))
+            (h-pos (cddr location)))
+      (cons page (+ (/ v-pos ncol) (/ (float (floor (* h-pos ncol))) ncol)))))
+
+(add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here

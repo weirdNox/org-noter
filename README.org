@@ -6,8 +6,8 @@
    - djvu and epub support have also been advanced by *c1-g*, but I have not
      tested any of that code.
 
-   - The main new feature for PDF users is 2-D precise notes, which can be
-     inserted in two ways:
+   - The main new feature for PDF users is 2-D precise notes (introduced by
+     *Ahmed Shariff*, which can be inserted in two ways:
      1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
         changed the position format to use the entire list returned by =edges=.
         This breaks the other way of inserting precise notes.  On *dmitrym*'s
@@ -20,38 +20,6 @@
         page number is inserted automatically over the octothorpes.
      2. "i".  The fundamental =org-noter-insert-note=.  User types note title
         into the minibuffer.
-** Note insertion desired features
-   1. The position of the precise note should be at the click (with a
-      configurable horizontal offset) or at the upper-left of the selected text
-      (or configurable to one of the corners or ends of the selected area).
-   2. Highlighting of selected text should be a user settable configuration option
-   3. For any of the note insertion methods, if there is any selected text, then
-      it should be the default title.  (or there should be a configurable
-      switch)
-   4. Add property and/or configuration to make the arrow left or right
-      pointing.
-
-** Bugs to fix
-   1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
-      away (or at all), requiring user to manually type in the (existing) title
-
-** Trying out the refactor of org-noter-insert-note
-   1. load `org-noter-dev.el'
-      - defines org-noter-max-short-note
-      - defines replacement for note insertion commands
-      - sets default note insertion keybindings to the new commands
-   2. Guiding principles for this refactor
-      - The preferred title is the one the user enters in the minibuffer.
-      - Selected text should be used in the note, either as the title or in the body
-      - If there is no title input and no selected text, then use the default title
-      - Refrain from making notes in the same location with the same title
-      - Precise notes generally have different locations, so always make new
-        precise notes
-   3. Caveats
-      - There may be cleaner ways to implement some of the logical tests, namely
-        empty string vs. nil situations.
-      - Not all combinations of text selection, entry command and note title
-        have been tested.
 
 ** Stock vs refactored note insertion
    - more consistent use of selected text in title or body
@@ -68,6 +36,15 @@
    - short/long are differentiated by customizable variable (default 80 char)
 
      In Stock org-noter, long selections have more than 3 lines.
+   - NEW: multicolumn precise-notes defined by property NUM_COLUMNS
+
+     Implements issue #153 in weirdNox/org-noter by adding
+     =org-noter-pdf-convert-to-location-cons= to
+     =org-noter--convert-to-location-cons-hook=, where a "virtual" vertical
+     location is calculated by dividing the page into equal width columns.  This
+     is not a perfect solution, and is probably best for low-integer numbers of
+     columns, since the page is just divided evenly into NUM_COLUMNS vertical
+     strips.
 
 *** Stock
    |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
@@ -80,7 +57,7 @@
    |-----------------+--------------------------------+---------------------------+-------------------------|
 
 *** Refactored
-   |                      | insert-note =i=           | precise note =M-i=        | no-questions =C-i, TAB=   |
+   |                      | insert-note               | precise note              | no-questions              |
    |----------------------+---------------------------+---------------------------+---------------------------|
    | title prompt?        | Y                         | Y                         | N                         |
    | default title 1      | short-selected-text       | short-selected-text       | short-selected-text       |
@@ -96,221 +73,36 @@
       May require altering the org-noter-X--pretty-print-location-hook(s).
 
    2. Profile org-noter -- runs slow on large books (500+ pages)
+      org-element-map is taking 85% of the CPU.  Org 9.6 should have a faster
+      way that Charlie Gordon explored.
 
    3. Bind M-<mouse-1> to precise-note, no-questions.
 
    4. Make background of arrow transparent (see org-noter--show-arrow)
 
-   5. Handle 2-column pdfs with notes in read-order.
+   5. Dedicated insert-selected-text-into-page-note
 
-      Need to define a document property TWO-COLUMN and reference it.  Maybe
-      make page a real number with #.0 for the left column and #.5 for the right
-      column?
+   6. Internationalize precise notes to handle right-to-left languages.
+** Bugs
+*** to fix
+    1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
+       away (or at all), requiring user to manually type in the (existing) title
+*** fixed
+    1. Navigating up from a nested precise note lands in the prior note at the
+       next level up (eg level 3 -> level 2).  page notes behave properly.
 
-   6. Dedicated insert-selected-text-into-page-note
-** Deltas w/ dmitrym
-   In the diffs below the color coding is
-   #+begin_src diff
--  Dmitry
-+  Peter
-   #+end_src
-*** *-get-buffer-file-name-*
-#+begin_src diff
--(defun org-noter-get-buffer-file-name-* (&optional major-mode)
-+(defun org-noter-get-buffer-file-name-* (mode)
-   (bound-and-true-p *-file-name))
+       [file:org-noter-core.el:2179]
+       =(org-element-property :begin (org-noter--get-containing-element))= returns
+       the begin of the element one level up when the current note location is of
+       the form (<page#> <vpos> . <hpos>).  It works properly for locations of
+       the form (<page#> . <vpos>).
 
-+(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-*)
-#+end_src
-
-    - =major-mode= is a native elisp function, =mode= is a better name
-    - the arg is not used, so the =&optional= is appropriate
-    - for the =pdf= variant, we both use =(&optional major-mode)=
-
-    proposal: =(&optional mode)= or remove the argument completely.
-
-    ACTIONS: Do this in our own repos before merge
-    1. major-mode -> mode in module files
-    2. use &optional when the argument is not used in the function
-
-*** -get-buffer-file-name-hook
-#+begin_src diff
--(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov org-noter-get-buffer-file-name-pdf)
-+(defcustom org-noter-get-buffer-file-name-hook nil
-#+end_src
-
-    should be nil in =org-noter-core= and set in modules.
-
-    ACTION: already converged
-*** *-get-precise-info-*
-#+begin_src diff
--(defun org-noter-*--get-precise-info (major-mode)
-+(defun org-noter-*--get-precise-info (major-mode window)
-   (when (eq major-mode 'djvu-read-mode)
-     (if (region-active-p)
-         (cons (mark) (point))
--      (while (not (and (eq 'mouse-1 (car event))
--                       (eq window (posn-window (event-start event)))))
--        (setq event (read-event "Click where you want the start of the note to be!")))
--      (posn-point (event-start event)))))
-+      (let ((event nil))
-+        (while (not (and (eq 'mouse-1 (car event))
-+                         (eq window (posn-window (event-start event)))))
-+          (setq event (read-event "Click where you want the start of the note to be!")))
-+        (posn-point (event-start event))))))
-#+end_src
-
-    - calling function already calls =org-noter--get-doc-window=
-    - =window= is used in all document modes
-
-    proposal: change =major-mode= to =mode=, pass in =window=
-
-    ACTION: (done) Dmitry took mine
-*** *-goto-location
-#+begin_src diff
--(defun org-noter-pdf-goto-location (mode location)
-+(defun org-noter-pdf-goto-location (mode location window)
-   (when (memq mode '(doc-view-mode pdf-view-mode))
-     (let ((top (org-noter--get-location-top location))
--          (window (org-noter--get-doc-window))
-           (left (org-noter--get-location-left location)))
-#+end_src
-    - calling function already calls =org-noter--get-doc-window=
-    - nov and djvu don't need the =window= argument
-
-    proposal: we discuss this one, but I think it's better to not call functions
-    unnecessarily
-
-    ACTION:
-    pass in window, use &optional as appropriate.
-
-*** *-check-location-property
- #+begin_src diff
- (defun org-noter-pdf-check-location-property (&optional property)
-   "Check if PROPERTY is a valid location property"
--  (equal 5 (length (read property))))
-+  t)
- #+end_src
-
-    location can be
-    1. page
-    2. page v-pos
-    3. page v-pos . h-pos
-
-    neither function works properly.  need to read the calling function to
-    determine course of action..
-
-    ACTION: done, gone on Dmitry's side.
-    P: check diff, remove if it's still there.
-*** -doc--get-precise-info
-#+begin_src diff
-+(defun org-noter-doc--get-precise-info (major-mode window)
-+  (when (eq major-mode 'doc-view-mode)
-     (let ((event nil))
-       (while (not (and (eq 'mouse-1 (car event))
-                        (eq window (posn-window (event-start event)))))
-         (setq event (read-event "Click where you want the start of the note to be!")))
--      (let ((col-row (posn-col-row (event-start event))))
--        (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
--                                                (+ (window-hscroll) (car col-row))))))))
-+      (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
-+                                                 (cdr (posn-col-row (event-start event))))))))
-#+end_src
-Dmitry removed this function at [9d437bf]
-
-ACTION: Dmitry revive on his side.
-*** --doc-approx-location-hook
- #+begin_src diff
- (defcustom org-noter--doc-approx-location-hook nil
--  "This returns an approximate location if no precise info is passed: (PAGE 0)
--   or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
--"
-+  "TODO"
-   :group 'org-noter
-   :type 'hook)
- #+end_src
-
-    docstring needs to be updated.
-
-    ACTION: Dmitry reverted
-*** --note-search-no-recurse                                :11fc0a8:9dfac53:
-#+begin_src diff
-+(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
-+  "List of elements that shouldn't be recursed into when searching for notes.")
-#+end_src
-
-    called in =org-noter--get-view-info= by =org-element-map=
-#+begin_src diff
--           nil nil (delete 'headline (append org-element-all-elements nil))))
-+         nil nil org-noter--note-search-no-recurse)
-#+end_src
-
-    but this defconst is used by =org-noter--map-ignore-headings-with-doc-file=, which is
-    used by all of the sync functions
-
-    probably should keep it, and since we keep it, use it in
-    =org-noter--get-view-info=
-
-    ACTION: safe for Dmitry to cherry-pick these commits, but
-    =with-current-buffer= call gets removed.  This is the one change I took from
-    ~cbpnk~
-*** org-noter--create-session                                       :9dfac53:
- #+begin_src diff
- (defun org-noter--create-session (ast document-property-value notes-file-path)
-   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
--         (link-p (or (string-match-p org-bracket-link-regexp document-property-value)
-+         (link-p (or (string-match-p org-link-bracket-re document-property-value)
-                      (string-match-p org-noter--url-regexp document-property-value)))
- #+end_src
-    =org-link-bracket-re= is obsolete. keep mine.
-
-    ACTION: safe for Dmitry to cherry-pick
-*** org-noter--narrow-to-root (ast)                                 :dfe7df2:
-#+begin_src diff
--  (when ast
-+  (when (and ast (not (org-noter--no-heading-p)))
-     (save-excursion
-       (goto-char (org-element-property :contents-begin ast))
-       (org-show-entry)
--      (when (org-at-heading-p) (org-narrow-to-subtree))
-+      (org-narrow-to-subtree)
-       (org-cycle-hide-drawers 'all))))
-#+end_src
-    "I don't really understand this bit of code, especially what `ast' is, but
-    it breaks narrowing when multiple documents' notes are stored in a single
-    file."
-
-    ACTION: safe for Dmitry to cherry-pick
-*** org-noter--get-location-page (location)                  commit?
-   #+begin_src diff
-   "Get the page number given a LOCATION of form (page top . left) or (page . top)."
--  (message "===> %s" location)
--  (if (listp location)
--      (car location)
--      location))
-+  (car location))
-   #+end_src
-
-   ACTION: Peter -- what happens with bare page?  does (car location) make an error?
-*** org-noter-kill-session                                          :9dfac53:
-    #+begin_src diff
-    (with-current-buffer notes-buffer
-      (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
-      (restore-buffer-modified-p nil))
--   (unless org-noter-use-indirect-buffer
-+   (when org-noter-use-indirect-buffer
-      (kill-buffer notes-buffer))
-    #+end_src
-    kill the notes buffer **when** an indirect buffer is used, not **unless** it
-    is used
-
-    ACTION: safe for Dmitry to cherry-pick
-** precise note fix
-*** *pdf--get-precise-info-*
-    keep mine.
-*** org-noter--conv-page-scroll-percentage
-    diffs are part of my precise-note fix.
-** highlighting
+       It will be one of these two:
+       - =org-noter--get-containing-heading=
+         - =org-noter--check-location-property=
+           found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
+       - =org-noter--get-containing-property-drawer=
+** Highlighting
    my solution is compact, but too pdf-specific. need to sketch out Dmitry's solution
    - in precise-notes
      1. hook to make the highlight in the document
@@ -322,4 +114,4 @@ ACTION: Dmitry revive on his side.
      1. HL Y/N
      2. Quoting Y/N
      3. No HL if Q
-     4. No Q if NL
+     4. No Q if HL

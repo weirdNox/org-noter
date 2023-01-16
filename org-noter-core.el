@@ -254,6 +254,11 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter--get-highlight-location-hook nil
+  "Hook that runs to get the location of a highlight"
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter-find-additional-notes-functions nil
   "Functions that when given a document file path as argument, give out
 an org note file path.
@@ -394,7 +399,9 @@ major modes uses the `buffer-file-name' variable."
   :type 'hook)
 
 (defcustom org-noter--doc-approx-location-hook nil
-  "TODO"
+  "This returns an approximate location if no precise info is passed: (PAGE 0)
+   or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
+"
   :group 'org-noter
   :type 'hook)
 
@@ -413,6 +420,25 @@ Used by `org-noter-create-skeleton'."
 Used by `org-noter--create-session' when creating a new session."
   :group 'org-noter
   :type 'hook)
+
+(defcustom org-noter-highlight-selected-text nil
+  "Highlight selected-text when creating precise notes"
+  :group 'org-noter
+  :type 'boolean)
+
+(defcustom org-noter-highlight-precise-note-hook nil
+  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
+This can be used in pdf-mode for example to add a permanent highlight to the document."
+  :group 'org-noter
+  :type 'hook)
+
+(defcustom org-noter-max-short-length 80
+  "Maximum length of a short text selection.  Short text selections
+may be used as note title.  When they are quoted in the note,
+they are quoted as ``short-selected-text'' rather than inside a
+QUOTE-block."
+  :group 'org-noter
+  :type 'integer)
 
 ;; --------------------------------------------------------------------------------
 ;;; Private variables or constants
@@ -1005,7 +1031,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (or (run-hook-with-args-until-success 'org-noter--check-location-property-hook property)
           (let ((value (car (read-from-string property))))
             (or (and (consp value) (integerp (car value)) (numberp (cdr value)))
-                (and (consp value) (integerp (car value)) (integerp (cadr value)) (integerp (cddr value)))
+                (and (consp value) (integerp (car value)) (numberp (cadr value)) (numberp (cddr value)))
                 (integerp value)))))))
 
 (defun org-noter--parse-location-property (arg)
@@ -1173,7 +1199,9 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 
 (defun org-noter--get-location-page (location)
   "Get the page number given a LOCATION of form (page top . left) or (page . top)."
-  (car location))
+  (if (listp location)
+      (car location)
+      location))
 
 (defun org-noter--get-location-left (location)
   "Get the left coordinate given a LOCATION of form (page top . left) or (page . top). If later form of vector is passed return 0."
@@ -1898,12 +1926,13 @@ want to kill."
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
 
-(defun org-noter-insert-note (&optional precise-info note-title)
+(defun org-noter-insert-note (&optional precise-info note-title highlight-location)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
 it in the notes buffer. When the input is empty, a title based on
-`org-noter-default-heading-title' will be generated.
+either the selected text (if it is <= `org-noter-max-short-length')
+or `org-noter-default-heading-title' will be generated.
 
 If there are other notes related to the current location, the
 prompt will also suggest them. Depending on the value of the
@@ -1916,21 +1945,30 @@ info).
 
 When you insert into an existing note and have text selected on
 the document buffer, the variable `org-noter-insert-selected-text-inside-note'
-defines if the text should be inserted inside the note."
+defines if the text should be inserted inside the note.
+
+Guiding principles for note generation
+  1. The preferred title is the one the user enters in the minibuffer.
+  2. Selected text should be used in the note, either as the title or in the body
+  3. Refrain from making notes in the same location with the same title
+  4. Precise notes generally have different locations, so always make new
+     precise notes"
   (interactive)
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))
           (window (org-noter--get-notes-window 'force))
-          (selected-text
-           (run-hook-with-args-until-success
-            'org-noter-get-selected-text-hook
-            (org-noter--session-doc-mode session)))
-
+          (selected-text (run-hook-with-args-until-success
+                          'org-noter-get-selected-text-hook
+                          (org-noter--session-doc-mode session)))
+          (selected-text-p (> (length selected-text) 0))
           force-new
           (location (org-noter--doc-approx-location (or precise-info 'interactive) (gv-ref force-new)))
-          (view-info (org-noter--get-view-info (org-noter--get-current-view) location)))
+          (current-view (org-noter--get-current-view)))
 
-     (let ((inhibit-quit t))
+     (let ((inhibit-quit t)
+           (short-selected-text (if (and selected-text-p
+                                         (<= (length selected-text) org-noter-max-short-length))
+                                    selected-text)))
        (with-local-quit
          (select-frame-set-input-focus (window-frame window))
          (select-window window)
@@ -1938,39 +1976,37 @@ defines if the text should be inserted inside the note."
          ;; IMPORTANT(nox): Need to be careful changing the next part, it is a bit
          ;; complicated to get it right...
 
-         (let ((point (point))
+         (let ((view-info (org-noter--get-view-info current-view location))
+               (point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
-               collection default default-begin title selection quote-p
+               collection title note-body existing-note
+               (default-title (or short-selected-text
+                                  (replace-regexp-in-string (regexp-quote "$p$")
+                                                            (org-noter--pretty-print-location location)
+                                                            org-noter-default-heading-title)))
                (empty-lines-number (if org-noter-separate-notes-from-heading 2 1)))
 
-           (cond
-            ;; NOTE(nox): Both precise and without questions will create new notes
-            ((or precise-info force-new)
-             (setq quote-p (with-temp-buffer
-                             (insert (or selected-text ""))
-                             (> (how-many "\n" (point-min)) 2)))
-             (setq default (and selected-text
-                                (replace-regexp-in-string "\n" " " selected-text))))
-            (org-noter-insert-note-no-questions)
-            (t
+           ;; NOTE(phm): prompt for title unless this is a precise note
+           (unless precise-info
+             ;; construct collection for matching existing notes
              (dolist (note-cons (org-noter--view-info-notes view-info))
-               (let ((display (org-element-property :raw-value (car note-cons)))
-                     (begin (org-element-property :begin (car note-cons))))
-                 (push (cons display note-cons) collection)
-                 (when (and (>= point begin) (> begin (or default-begin 0)))
-                   (setq default display
-                         default-begin begin))))))
+               (let ((display (org-element-property :raw-value (car note-cons))))
+                 (push (cons display note-cons) collection))))
 
            (setq collection (nreverse collection)
-                 title (if (or org-noter-insert-note-no-questions note-title)
-                           (or default note-title)
-                         (completing-read "Note: " collection nil nil nil nil default))
-                 selection (unless org-noter-insert-note-no-questions (cdr (assoc title collection))))
+                 ;; prompt for title (unless no-Q's)
+                 title (if org-noter-insert-note-no-questions default-title
+                         (completing-read "Note: " collection nil nil nil nil default-title))
+                 note-body (if (and selected-text-p
+                                    (not (equal title short-selected-text)))
+                               selected-text)
+                 ;; is this an existing note? skip for precise notes
+                 existing-note (unless precise-info (cdr (assoc title collection))))
 
-           (if selection
+           (if existing-note
                ;; NOTE(nox): Inserting on an existing note
-               (let* ((note (car selection))
-                      (insert-before-element (cdr selection))
+               (let* ((note (car existing-note))
+                      (insert-before-element (cdr existing-note))
                       (has-content
                        (eq (org-element-map (org-element-contents note) org-element-all-elements
                              (lambda (element)
@@ -1984,7 +2020,6 @@ defines if the text should be inserted inside the note."
                      (goto-char (org-element-property :begin insert-before-element))
                    (goto-char (org-element-property :end note)))
 
-
                  (if (org-at-heading-p)
                      (progn
                        (org-N-empty-lines-before-current empty-lines-number)
@@ -1992,16 +2027,14 @@ defines if the text should be inserted inside the note."
                    (unless (bolp) (insert "\n"))
                    (org-N-empty-lines-before-current (1- empty-lines-number)))
 
-                 (when (and org-noter-insert-selected-text-inside-note selected-text) (insert selected-text)))
+                 (when (and org-noter-insert-selected-text-inside-note note-body)
+                   (if short-selected-text
+                       (insert "``" note-body "''")
+                     (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE"))))
 
              ;; NOTE(nox): Inserting a new note
              (let ((reference-element-cons (org-noter--view-info-reference-for-insertion view-info))
                    level)
-               (when (or quote-p (zerop (length title)))
-                 (setq title (replace-regexp-in-string (regexp-quote "$p$")
-                                                       (org-noter--pretty-print-location location)
-                                                       org-noter-default-heading-title)))
-
                (if reference-element-cons
                    (progn
                      (cond
@@ -2020,14 +2053,17 @@ defines if the text should be inserted inside the note."
                                   nil t org-element-all-elements)
                                 (point-max))))
 
-               (setq level (1+ (or (org-element-property :level ast) 0)))
+               (setq level (or level
+                               (1+ (or (org-element-property :level ast) 0))))
 
                ;; NOTE(nox): This is needed to insert in the right place
                (unless (org-noter--no-heading-p) (outline-show-entry))
                (org-noter--insert-heading level title empty-lines-number location)
-               (when quote-p
+               (when note-body
                  (save-excursion
-                   (insert "#+BEGIN_QUOTE\n" selected-text "\n#+END_QUOTE")))
+                   (if short-selected-text
+                       (insert "``" note-body "''")
+                     (insert "#+BEGIN_QUOTE\n" note-body "\n#+END_QUOTE"))))
                (when (org-noter--session-hide-other session) (org-overview))
 
                (setf (org-noter--session-num-notes-in-view session)
@@ -2057,9 +2093,21 @@ See `org-noter-insert-note' docstring for more."
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (if toggle-no-questions
                                                  (not org-noter-insert-note-no-questions)
-                                               org-noter-insert-note-no-questions)))
-     (org-noter-insert-note (org-noter--get-precise-info)))))
+                                               org-noter-insert-note-no-questions))
+         (precise-info (org-noter--get-precise-info))
+         (highlight-location (org-noter--get-highlight-location)))
 
+     (org-noter-insert-note precise-info nil highlight-location)
+     (when org-noter-highlight-selected-text
+       (select-frame-set-input-focus (org-noter--session-frame session))
+       (select-window (get-buffer-window (org-noter--session-doc-buffer session)))
+
+       ;; TODO precise info is wrong here. should be removed
+       (run-hook-with-args-until-success 'org-noter-highlight-precise-note-hook major-mode precise-info)))))
+
+(defun org-noter--get-highlight-location ()
+  (with-selected-window (org-noter--get-doc-window)
+     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
 
 (defun org-noter-insert-note-toggle-no-questions ()
   "Insert note associated with the current location.

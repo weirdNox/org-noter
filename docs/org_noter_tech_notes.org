@@ -1,0 +1,172 @@
+:PROPERTIES:
+:ID:       4333050B-D293-4A41-8A14-00E6248FD17B
+:DRILL_LAST_INTERVAL: -1.0
+:DRILL_REPEATS_SINCE_FAIL: 1
+:DRILL_TOTAL_REPEATS: 1
+:DRILL_FAILURE_COUNT: 1
+:DRILL_AVERAGE_QUALITY: 1.0
+:DRILL_EASE: 2.5
+:NEXT_REVIEW: [2022-12-29 Thu]
+:MATURITY: seedling
+:LAST_REVIEW: [2022-12-30 Fri]
+:END:
+#+title: org-noter-tech-notes
+#+filetags: :seedling:
+
+Context for developing org-noter.
+
+* TOC :TOC:
+- [[#brief-history-of-org-noter][Brief history of org-noter]]
+- [[#tech-notes][Tech Notes]]
+  - [[#session][Session]]
+  - [[#hooks][Hooks]]
+  - [[#notes][Notes]]
+  - [[#locations][Locations]]
+  - [[#note-taking-behavior][Note taking behavior]]
+  - [[#notes-file][Notes file]]
+- [[#solove-nothing-to-hide][solove-nothing-to-hide]]
+  - [[#note-from-page-1][Note from page 1]]
+- [[#development][Development]]
+  - [[#unit-tests][Unit tests]]
+
+* Brief history of org-noter
+
+[[https://github.com/weirdNox/org-noter][org-noter]] (2018-2020), a re-implementation of the [[https://github.com/rudolfochrist/interleave/][interleave packaage]] (2015-2018) by weirdNox:
+
+#+begin_quote
+Yeah, I made org-noter because it is something I need for studying everyday, but I bet that if I didn't use it, then I would probably lose interest too... We don't have time for everything, so decisions must be made :P
+#+end_quote
+
+ [[https://github.com/rudolfochrist/interleave/issues/55][source]]
+
+In early 2022, c1-g created a fork, [[https://github.com/c1-g/org-noter-plus-djvu][org-noter-plus-djvu]] that split up note creation functionality from the underlying document format making it possible to take notes with pdf, epub and djvu documents.
+
+
+* Tech Notes
+
+** Session
+org-noter session contains all the relevant info for the current session.
+- notes file (or buffer)
+- backing document
+- ...
+
+prereq for getting everything else going see =make-org-noter-session=.
+
+** Hooks
+Hooks are used extensively to manage "non-core" functionality, that is functionality that is mode dependent.
+
+There are mode specific implementation in =modules/= directory, as well as in =tests/= (for testing).
+
+
+*** Errors
+An error like so:
+#+begin_src shell
+  Lisp nesting exceeds ‘max-lisp-eval-depth’
+#+end_src
+
+possibly indicates that a ~run-hook-with-args-until-success~ has failed:
+
+#+begin_src elisp
+  (run-hook-with-args-until-success 'org-noter-set-up-document-hook document-property-value)
+#+end_src
+
+in my experience the error indicates a problem with one of the hooks. For example in the code above one of the hooks in =org-noter-set-up-document-hook= may not be valid elisp code (requires more than one argument or another lisp issue).
+
+I haven't figured out a good way to identify these.
+
+** Notes
+
+There are two types of notes:
+
+- regular notes
+- precise notes
+
+
+
+*** Regular Notes
+
+Notes attached to a "page".
+
+#+begin_src org-mode
+:PROPERTIES:
+:NOTER_PAGE: 2
+:END:
+#+end_src
+
+
+*** Precise notes
+
+Precise notes include a coordinate vector that allows to identify the selection in the backing document and act accordingly, ie create a highlight.
+
+#+begin_src org-mode
+:PROPERTIES:
+:NOTER_PAGE: (75 0.14417344173441735 0.7955390334572491 0.6834688346883468 0.8199091284593144)
+:END:
+#+end_src
+
+** Locations
+
+Location is a property of every note (see [[Notes]]).
+
+The concept seems to be poorly defined currently, and most of the code lives in =core=, but maybe it should move to document implementation.
+
+Currently it's either
+
+=:NOTER_PAGE: (75 0.14417344173441735 0.7955390334572491 0.6834688346883468 0.8199091284593144)=
+
+or
+
+=:NOTER_PAGE: 2=
+
+** Note taking behavior
+
+Sophisticated note taking behavior is possible, based on selection size, etc see [[https://github.com/petermao/org-noter/blob/doc/README.org][Peter's matrix]].
+
+
+** Notes file
+
+=notes.org= is in this format:
+
+#+begin_src org-mode
+:PROPERTIES:
+:ID:       FAKE_90283
+:END:
+#+TITLE: Test book notes
+
+* solove-nothing-to-hide
+:PROPERTIES:
+:NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
+:END:
+** Note from page 1
+:PROPERTIES:
+:NOTER_PAGE: 99
+:END:
+#+end_src
+
+Omitting the header causes =org-noter--parse-root= to work incorrectly.
+
+* Development
+** Unit tests
+*** Requirements
+
+- [[https://github.com/cask/cask][Cask]], a project management tool for Emacs
+- [[https://github.com/jorgenschaefer/emacs-buttercup][Buttercup]], behavior driven Emacs testing
+
+*** Mac
+
+#+begin_src shell
+  brew install cask
+  cask                     # install dependencies
+  cask exec buttercup -L . # exec unit tests, in the root of the project
+#+end_src
+
+*** GNU/Linux
+
+#+begin_src shell
+  git clone https://github.com/cask/cask.git
+  make -C cask install
+
+  cd <to-project-path>
+  cask                     # install dependencies (in root of project, 1 time)
+  cask exec buttercup -L . # exec unit tests, in the root of the project
+#+end_src
