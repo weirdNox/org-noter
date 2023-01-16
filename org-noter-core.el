@@ -59,8 +59,6 @@
 (declare-function pdf-view-active-region-text "ext:pdf-view")
 (declare-function pdf-view-goto-page "ext:pdf-view")
 (declare-function pdf-view-mode "ext:pdf-view")
-(defvar nov-documents-index)
-(defvar nov-file-name)
 
 ;; --------------------------------------------------------------------------------
 ;;; User variables
