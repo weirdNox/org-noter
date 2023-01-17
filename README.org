@@ -1,13 +1,19 @@
 * ORG-NOTER (fork of a fork)
-** This is a fork of the *c1-g* fork with some commits picked from *dmitrym*
+
+** If you are new to *ORG-NOTER*
+   Please first look at [[https://github.com/petermao/org-noter/blob/master/docs/README-orig.org][Gonçalo Santos's README]] ([[file:docs/README-orig.org]] in
+   this repo).
+
+** This is a refactor of the *c1-g* fork done collaborative by [[https://github.com/petermao/org-noter][*petermao*]] and [[https://github.com/dmitrym0/org-noter-plus-djvu][*dmitrym0*]]
    - In essence, this is close to the original *weirdNox* (Gonçalo Santos)
-     version that you find on MELPA with the refactoring that *c1-g* implemented
+     version that you find on MELPA with the refactoring that *c1-g* implemented.
 
-   - djvu and epub support have also been advanced by *c1-g*, but I have not
-     tested any of that code.
+   - djvu and epub support have also been advanced by *c1-g*, but we have not
+     tested any of that code.  See [[https://github.com/petermao/org-noter/blob/master/docs/README-djvu.org][Charlie Gordon's README]]
+     ([[file:docs/README-djvu.org]] in this repo).
 
-   - The main new feature for PDF users is 2-D precise notes (introduced by
-     *Ahmed Shariff*, which can be inserted in two ways:
+   - Prior to our work, the main new feature for PDF users was 2-D precise notes
+     (introduced by *Ahmed Shariff*, which can be inserted in two ways:
      1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
         changed the position format to use the entire list returned by =edges=.
         This breaks the other way of inserting precise notes.  On *dmitrym*'s
@@ -28,23 +34,37 @@
    - avoids having different notes with the same heading
 
      In Stock org-noter, repeated TAB's give multiple notes.  In this refactor,
-     new notes in the same location with the same title are note made.  For now,
-     precise notes are excepted from this rule.
+     new notes in the same location with the same title are not made, but
+     selected text is added to the note body.  For now, precise notes are
+     excepted from this rule.
 
-   - long quotes are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
-   - short quotes are enclosed in ``...'' (LaTeX style)
-   - short/long are differentiated by customizable variable (default 80 char)
+   - long text-selections are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
+   - short text-selections are enclosed in ``...'' (LaTeX style) when they are
+     not used as the title of the note.
+   - short/long text-selections are differentiated by the custom variable
+     =org-noter-max-short-selected-text-length= (default: 80 char)
 
-     In Stock org-noter, long selections have more than 3 lines.
-   - NEW: multicolumn precise-notes defined by property NUM_COLUMNS
+     In Stock org-noter, long selections are those with more than 3 lines.
+
+   - *NEW:* Highlighting of selected text
+
+     Default setting is customizable, see =org-noter-highlight-selected-text=.
+     Calling insertions with a non-nil prefix (eg, =C-u=) toggles this setting for
+     individual note insertions.
+
+   - *NEW:* multicolumn precise-notes defined by property NUM_COLUMNS
 
      Implements issue #153 in weirdNox/org-noter by adding
      =org-noter-pdf-convert-to-location-cons= to
      =org-noter--convert-to-location-cons-hook=, where a "virtual" vertical
      location is calculated by dividing the page into equal width columns.  This
      is not a perfect solution, and is probably best for low-integer numbers of
-     columns, since the page is just divided evenly into NUM_COLUMNS vertical
+     columns, since the page is just divided evenly into =NUM_COLUMNS= vertical
      strips.
+
+     This can be set using =org-set-property-and-value=, but eventually we will
+     write a user function to prevent users from mistyping the name of the
+     property (=NUM_COLUMNS=).
 
 *** Stock
    |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
@@ -57,15 +77,15 @@
    |-----------------+--------------------------------+---------------------------+-------------------------|
 
 *** Refactored
-   |                      | insert-note               | precise note              | no-questions              |
-   |----------------------+---------------------------+---------------------------+---------------------------|
-   | title prompt?        | Y                         | Y                         | N                         |
-   | default title 1      | short-selected-text       | short-selected-text       | short-selected-text       |
-   | default title 2      | "Notes for page #"        | "Notes for page # x y"    | "Notes for page #"        |
-   | new note             | with new title            | always                    | with new title            |
-   | body                 | selected-text (not title) | selected-text (not title) | selected-text (not title) |
-   |----------------------+---------------------------+---------------------------+---------------------------|
-   | highlight selection? | ??                        | ??                        | ??                        |
+   |                     | insert-note               | precise note              | no-questions              |
+   |---------------------+---------------------------+---------------------------+---------------------------|
+   | title prompt?       | Y                         | Y                         | N                         |
+   | default title 1     | short-selected-text       | short-selected-text       | short-selected-text       |
+   | default title 2     | "Notes for page #"        | "Notes for page # x y"    | "Notes for page #"        |
+   | new note            | with new title            | always                    | with new title            |
+   | body                | selected-text (not title) | selected-text (not title) | selected-text (not title) |
+   |---------------------+---------------------------+---------------------------+---------------------------|
+   | highlight selection | user setting/toggle       | user setting/toggle       | user setting/toggle       |
 ** Features wishlist
    1. Use pdf-view-current-pagelabel to use the page label instead of page in
       default titles
@@ -102,16 +122,3 @@
          - =org-noter--check-location-property=
            found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
        - =org-noter--get-containing-property-drawer=
-** Highlighting
-   my solution is compact, but too pdf-specific. need to sketch out Dmitry's solution
-   - in precise-notes
-     1. hook to make the highlight in the document
-     2. hook to preserve highlight in org-noter file
-   - what contexts would HL be used?
-     1. only precise?  (current implementation)
-     2. anytime (Peter's implementation)
-   - how does this play with quoting text?
-     1. HL Y/N
-     2. Quoting Y/N
-     3. No HL if Q
-     4. No Q if HL
