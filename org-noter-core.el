@@ -2001,11 +2001,20 @@ Guiding principles for note generation
 
            (setq collection (nreverse collection)
                  ;; prompt for title (unless no-Q's)
-                 title (if org-noter-insert-note-no-questions default-title
-                         (completing-read "Note: " collection nil nil nil nil default-title))
-                 note-body (if (and selected-text-p
-                                    (not (equal title short-selected-text)))
-                               selected-text)
+                 title (cond
+                        ;; for precise notes we want the selection to be the title
+                        ((and precise-info selected-text-p)
+                         selected-text)
+                        (org-noter-insert-note-no-questions
+                         default-title)
+                        (t
+                         (completing-read "Note: " collection nil nil nil nil default-title)))
+                 note-body (cond
+                            ;; if we're making a precise note; note-body should be selected-text
+                            ((and precise-info selected-text-p)
+                             selected-text)
+                            ((and selected-text-p (not (equal title short-selected-text)))
+                                  selected-text))
                  ;; is this an existing note? skip for precise notes
                  existing-note (unless precise-info (cdr (assoc title collection))))
 
