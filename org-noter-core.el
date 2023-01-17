@@ -253,21 +253,20 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--pretty-print-highlight-location-hook nil
-  "Hook that runs to serialize a highlight location so that it can be stored in org."
+(defcustom org-noter-highlight-selected-text nil
+  "If non-nil, highlight selected-text when creating notes.  This
+variable is temporarily toggled by prefixing the insertion
+command with any non-nil prefix such as \\[universal-argument]."
   :group 'org-noter
-  :type 'hook)
+  :type 'boolean)
 
-(defcustom org-noter--get-highlight-location-hook nil
-  "Hook that runs to get the location of a highlight"
+(defcustom org-noter-max-short-selected-text-length 80
+  "Maximum length of a short text selection.  Short text selections
+may be used as note title.  When they are quoted in the note,
+they are quoted as ``short-selected-text'' rather than inside a
+QUOTE-block."
   :group 'org-noter
-  :type 'hook)
-
-(defcustom org-noter--add-highlight-hook nil
-  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
-This can be used in pdf-mode for example to add a permanent highlight to the document."
-  :group 'org-noter
-  :type 'hook)
+  :type 'integer)
 
 (defcustom org-noter-highlight-selected-text nil
   "If non-nil, highlight selected-text when creating notes.  This
@@ -376,7 +375,6 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
-
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
   :group 'org-noter
@@ -402,6 +400,22 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter--pretty-print-highlight-location-hook nil
+  "Hook that runs to serialize a highlight location so that it can be stored in org."
+  :group 'org-noter
+  :type 'hook)
+
+(defcustom org-noter--get-highlight-location-hook nil
+  "Hook that runs to get the location of a highlight"
+  :group 'org-noter
+  :type 'hook)
+
+(defcustom org-noter--add-highlight-hook nil
+  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
+This can be used in pdf-mode for example to add a permanent highlight to the document."
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter--note-after-tipping-point-hook nil
   "TODO"
   :group 'org-noter
@@ -416,7 +430,6 @@ major modes uses the `buffer-file-name' variable."
   "TODO"
   :group 'org-noter
   :type 'hook)
-
 
 (defcustom org-noter--get-current-view-hook nil
   "TODO"
