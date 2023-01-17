@@ -269,6 +269,21 @@ This can be used in pdf-mode for example to add a permanent highlight to the doc
   :group 'org-noter
   :type 'hook)
 
+(defcustom org-noter-highlight-selected-text nil
+  "If non-nil, highlight selected-text when creating notes.  This
+variable is temporarily toggled by prefixing the insertion
+command with any non-nil prefix such as \\[universal-argument]."
+  :group 'org-noter
+  :type 'boolean)
+
+(defcustom org-noter-max-short-selected-text-length 80
+  "Maximum length of a short text selection.  Short text selections
+may be used as note title.  When they are quoted in the note,
+they are quoted as ``short-selected-text'' rather than inside a
+QUOTE-block."
+  :group 'org-noter
+  :type 'integer)
+
 (defcustom org-noter-find-additional-notes-functions nil
   "Functions that when given a document file path as argument, give out
 an org note file path.
@@ -430,19 +445,6 @@ Used by `org-noter-create-skeleton'."
 Used by `org-noter--create-session' when creating a new session."
   :group 'org-noter
   :type 'hook)
-
-(defcustom org-noter-highlight-selected-text nil
-  "Highlight selected-text when creating precise notes"
-  :group 'org-noter
-  :type 'boolean)
-
-(defcustom org-noter-max-short-length 80
-  "Maximum length of a short text selection.  Short text selections
-may be used as note title.  When they are quoted in the note,
-they are quoted as ``short-selected-text'' rather than inside a
-QUOTE-block."
-  :group 'org-noter
-  :type 'integer)
 
 ;; --------------------------------------------------------------------------------
 ;;; Private variables or constants
@@ -1930,7 +1932,7 @@ want to kill."
 
 This command will prompt for a title of the note and then insert
 it in the notes buffer. When the input is empty, a title based on
-either the selected text (if it is <= `org-noter-max-short-length')
+either the selected text (if it is <= `org-noter-max-short-selected-text-length')
 or `org-noter-default-heading-title' will be generated.
 
 If there are other notes related to the current location, the
@@ -1966,7 +1968,7 @@ Guiding principles for note generation
 
      (let* ((inhibit-quit t)
             (short-selected-text (if (and selected-text-p
-                                          (<= (length selected-text) org-noter-max-short-length))
+                                          (<= (length selected-text) org-noter-max-short-selected-text-length))
                                      selected-text))
             (org-noter-highlight-selected-text (if toggle-highlight (not org-noter-highlight-selected-text)
                                                  org-noter-highlight-selected-text))
@@ -2098,7 +2100,7 @@ that part. Will always create a new note.
 When text is selected, it will automatically choose the top of
 the selected text as the location and the text itself as the
 default title of the note if the text is <=
-`org-noter-max-short-length' (you may change it anyway!).
+`org-noter-max-short-selected-text-length' (you may change it anyway!).
 
 See `org-noter-insert-note' docstring for more."
   (interactive "P")
