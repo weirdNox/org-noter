@@ -315,6 +315,11 @@ the user select to use as the note file of the document."
 
 ;; --------------------------------------------------------------------------------
 ;;; Integration with other packages
+(defgroup org-noter-module-hooks nil
+  "Hooks for integrating org-noter with other packages (pdfview, nov, djvu)"
+  :group 'org-noter
+  :version "25.3.1")
+
 (defcustom org-noter--get-location-property-hook nil
   "The list of functions that will return the note location of an org element.
 
@@ -323,7 +328,7 @@ These functions is used by `org-noter--parse-location-property' and
 `org-noter--check-location-property' when they can't find the note location
 of the org element given to them, that org element will be passed to
 the functions in this list."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading
@@ -331,7 +336,7 @@ the functions in this list."
   "The list of functions that will be called by
 `org-noter--get-containing-element' to get the org element of the note
 at point."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-parse-document-property-hook nil
@@ -350,7 +355,7 @@ the property \"NOTER_DOCUMENT\" (the default value of
 citation key, it will return the path to the note file associated
 with the citation key and that path will be used for other
 operations instead of the real value of the property."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-get-buffer-file-name-hook nil
@@ -362,85 +367,85 @@ user calls `org-noter' on a document buffer.
 For example, `nov-mode', a renderer for EPUB documents uses a unique variable
 called `nov-file-name' to store the file name of its document while the other
 major modes uses the `buffer-file-name' variable."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-set-up-document-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-get-selected-text-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--parse-location-property-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--pretty-print-location-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--convert-to-location-cons-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--doc-goto-location-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--pretty-print-highlight-location-hook nil
   "Hook that runs to serialize a highlight location so that it can be stored in org."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-highlight-location-hook nil
   "Hook that runs to get the location of a highlight"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--add-highlight-hook nil
   "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
 This can be used in pdf-mode for example to add a permanent highlight to the document."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--note-after-tipping-point-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--relative-position-to-view-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-precise-info-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-current-view-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--doc-approx-location-hook nil
   "This returns an approximate location if no precise info is passed: (PAGE 0)
    or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
 "
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-create-skeleton-functions nil
@@ -450,13 +455,13 @@ The functions will be given a major mode of the document and must
 return a non-nil value when the outline is created.
 
 Used by `org-noter-create-skeleton'."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-open-document-functions nil
   "Functions that gives a buffer when passed with a document property.
 Used by `org-noter--create-session' when creating a new session."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 ;; --------------------------------------------------------------------------------
