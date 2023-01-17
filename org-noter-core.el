@@ -253,21 +253,35 @@ The title used will be the default one."
   :group 'org-noter
   :type 'hook)
 
-(defcustom org-noter--pretty-print-highlight-location-hook nil
-  "Hook that runs to serialize a highlight location so that it can be stored in org."
+(defcustom org-noter-highlight-selected-text nil
+  "If non-nil, highlight selected-text when creating notes.  This
+variable is temporarily toggled by prefixing the insertion
+command with any non-nil prefix such as \\[universal-argument]."
   :group 'org-noter
-  :type 'hook)
+  :type 'boolean)
 
-(defcustom org-noter--get-highlight-location-hook nil
-  "Hook that runs to get the location of a highlight"
+(defcustom org-noter-max-short-selected-text-length 80
+  "Maximum length of a short text selection.  Short text selections
+may be used as note title.  When they are quoted in the note,
+they are quoted as ``short-selected-text'' rather than inside a
+QUOTE-block."
   :group 'org-noter
-  :type 'hook)
+  :type 'integer)
 
-(defcustom org-noter--add-highlight-hook nil
-  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
-This can be used in pdf-mode for example to add a permanent highlight to the document."
+(defcustom org-noter-highlight-selected-text nil
+  "If non-nil, highlight selected-text when creating notes.  This
+variable is temporarily toggled by prefixing the insertion
+command with any non-nil prefix such as \\[universal-argument]."
   :group 'org-noter
-  :type 'hook)
+  :type 'boolean)
+
+(defcustom org-noter-max-short-selected-text-length 80
+  "Maximum length of a short text selection.  Short text selections
+may be used as note title.  When they are quoted in the note,
+they are quoted as ``short-selected-text'' rather than inside a
+QUOTE-block."
+  :group 'org-noter
+  :type 'integer)
 
 (defcustom org-noter-find-additional-notes-functions nil
   "Functions that when given a document file path as argument, give out
@@ -301,6 +315,11 @@ the user select to use as the note file of the document."
 
 ;; --------------------------------------------------------------------------------
 ;;; Integration with other packages
+(defgroup org-noter-module-hooks nil
+  "Hooks for integrating org-noter with other packages (pdfview, nov, djvu)"
+  :group 'org-noter
+  :version "25.3.1")
+
 (defcustom org-noter--get-location-property-hook nil
   "The list of functions that will return the note location of an org element.
 
@@ -309,7 +328,7 @@ These functions is used by `org-noter--parse-location-property' and
 `org-noter--check-location-property' when they can't find the note location
 of the org element given to them, that org element will be passed to
 the functions in this list."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading
@@ -317,7 +336,7 @@ the functions in this list."
   "The list of functions that will be called by
 `org-noter--get-containing-element' to get the org element of the note
 at point."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-parse-document-property-hook nil
@@ -336,7 +355,7 @@ the property \"NOTER_DOCUMENT\" (the default value of
 citation key, it will return the path to the note file associated
 with the citation key and that path will be used for other
 operations instead of the real value of the property."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-get-buffer-file-name-hook nil
@@ -348,71 +367,85 @@ user calls `org-noter' on a document buffer.
 For example, `nov-mode', a renderer for EPUB documents uses a unique variable
 called `nov-file-name' to store the file name of its document while the other
 major modes uses the `buffer-file-name' variable."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-set-up-document-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-get-selected-text-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
-
 
 (defcustom org-noter--check-location-property-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--parse-location-property-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--pretty-print-location-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--convert-to-location-cons-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--doc-goto-location-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
+  :type 'hook)
+
+(defcustom org-noter--pretty-print-highlight-location-hook nil
+  "Hook that runs to serialize a highlight location so that it can be stored in org."
+  :group 'org-noter-module-hooks
+  :type 'hook)
+
+(defcustom org-noter--get-highlight-location-hook nil
+  "Hook that runs to get the location of a highlight"
+  :group 'org-noter-module-hooks
+  :type 'hook)
+
+(defcustom org-noter--add-highlight-hook nil
+  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
+This can be used in pdf-mode for example to add a permanent highlight to the document."
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--note-after-tipping-point-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--relative-position-to-view-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-precise-info-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
-
 
 (defcustom org-noter--get-current-view-hook nil
   "TODO"
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--doc-approx-location-hook nil
   "This returns an approximate location if no precise info is passed: (PAGE 0)
    or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
 "
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-create-skeleton-functions nil
@@ -422,27 +455,14 @@ The functions will be given a major mode of the document and must
 return a non-nil value when the outline is created.
 
 Used by `org-noter-create-skeleton'."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-open-document-functions nil
   "Functions that gives a buffer when passed with a document property.
 Used by `org-noter--create-session' when creating a new session."
-  :group 'org-noter
+  :group 'org-noter-module-hooks
   :type 'hook)
-
-(defcustom org-noter-highlight-selected-text nil
-  "Highlight selected-text when creating precise notes"
-  :group 'org-noter
-  :type 'boolean)
-
-(defcustom org-noter-max-short-length 80
-  "Maximum length of a short text selection.  Short text selections
-may be used as note title.  When they are quoted in the note,
-they are quoted as ``short-selected-text'' rather than inside a
-QUOTE-block."
-  :group 'org-noter
-  :type 'integer)
 
 ;; --------------------------------------------------------------------------------
 ;;; Private variables or constants
@@ -1930,7 +1950,7 @@ want to kill."
 
 This command will prompt for a title of the note and then insert
 it in the notes buffer. When the input is empty, a title based on
-either the selected text (if it is <= `org-noter-max-short-length')
+either the selected text (if it is <= `org-noter-max-short-selected-text-length')
 or `org-noter-default-heading-title' will be generated.
 
 If there are other notes related to the current location, the
@@ -1966,7 +1986,7 @@ Guiding principles for note generation
 
      (let* ((inhibit-quit t)
             (short-selected-text (if (and selected-text-p
-                                          (<= (length selected-text) org-noter-max-short-length))
+                                          (<= (length selected-text) org-noter-max-short-selected-text-length))
                                      selected-text))
             (org-noter-highlight-selected-text (if toggle-highlight (not org-noter-highlight-selected-text)
                                                  org-noter-highlight-selected-text))
@@ -2098,7 +2118,7 @@ that part. Will always create a new note.
 When text is selected, it will automatically choose the top of
 the selected text as the location and the text itself as the
 default title of the note if the text is <=
-`org-noter-max-short-length' (you may change it anyway!).
+`org-noter-max-short-selected-text-length' (you may change it anyway!).
 
 See `org-noter-insert-note' docstring for more."
   (interactive "P")
