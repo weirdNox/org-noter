@@ -1,15 +1,15 @@
 * ORG-NOTER (fork of a fork)
 
 ** If you are new to *ORG-NOTER*
-   Please first look at [[https://github.com/petermao/org-noter/blob/master/docs/README-orig.org][Gonçalo Santos's README]] ([[file:docs/README-orig.org]] in
+   Please first look at [[https://github.com/weirdNox/org-noter/blob/master/README.org][Gonçalo Santos's README]] ([[file:docs/README-orig.org]] in
    this repo).
 
-** This is a refactor of the *c1-g* fork done collaborative by [[https://github.com/petermao/org-noter][*petermao*]] and [[https://github.com/dmitrym0/org-noter-plus-djvu][*dmitrym0*]]
+** This is a refactor of the *c1-g* fork done collaboratively by [[https://github.com/petermao/org-noter][petermao]] and [[https://github.com/dmitrym0/org-noter-plus-djvu][dmitrym0]]
    - In essence, this is close to the original *weirdNox* (Gonçalo Santos)
      version that you find on MELPA with the refactoring that *c1-g* implemented.
 
    - djvu and epub support have also been advanced by *c1-g*, but we have not
-     tested any of that code.  See [[https://github.com/petermao/org-noter/blob/master/docs/README-djvu.org][Charlie Gordon's README]]
+     tested any of that code.  See [[https://github.com/c1-g/org-noter-plus-djvu/blob/master/README.org][Charlie Gordon's README]]
      ([[file:docs/README-djvu.org]] in this repo).
 
    - Prior to our work, the main new feature for PDF users was 2-D precise notes

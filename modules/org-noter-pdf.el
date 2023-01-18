@@ -34,7 +34,7 @@
 the relevant info (page, coordinates)
 
 Otherwise returns nil"
-    (-if-let* ((_ (pdf-view-active-region-p))
+    (if-let* ((_ (pdf-view-active-region-p))
                (page (image-mode-window-get 'page))
                (coords (pdf-view-active-region)))
        (make-pdf-highlight :page page :coords coords)
