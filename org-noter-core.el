@@ -1999,14 +1999,12 @@ Guiding principles for note generation
                (let ((display (org-element-property :raw-value (car note-cons))))
                  (push (cons display note-cons) collection))))
 
-           ;; we're doing a precise note, so we're not going to insert into an existing note/heading.
-           ;; make the selected text available in completing read instead.
-           (if (and precise-info selected-text-p)
-               (cl-pushnew selected-text collection))
-
            (setq collection (nreverse collection)
                  ;; prompt for title (unless no-Q's)
                  title (cond
+                        ;; for precise notes we want the selection to be the title
+                        ((and precise-info selected-text-p)
+                         selected-text)
                         (org-noter-insert-note-no-questions
                          default-title)
                         (t
