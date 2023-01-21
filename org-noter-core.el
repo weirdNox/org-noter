@@ -735,8 +735,7 @@ If nil, the session used will be `org-noter--session'."
           (org-with-wide-buffer
            (catch 'break
              (while t
-               (let ((document-property (or (org-entry-get nil org-noter-property-doc-file t)
-                                            (cadar (org-collect-keywords (list org-noter-property-doc-file))))))
+               (let ((document-property (org-entry-get nil org-noter-property-doc-file t)))
                  (when (string= (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook document-property)
                                     document-property)
                                 wanted-prop)
@@ -1039,7 +1038,6 @@ properties, by a margin of NEWLINES-NUMBER."
 
 (defsubst org-noter--doc-file-property (headline)
   (let ((doc-prop (or (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline)
-                      (cadar (org-collect-keywords (list org-noter-property-doc-file)))
                       (org-entry-get nil org-noter-property-doc-file t))))
     (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
         doc-prop)))
@@ -1597,9 +1595,8 @@ relative to."
       (insert-file-contents notes-path)
       (catch 'break
         (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
-          (when (file-equal-p (or (expand-file-name (match-string 3) (file-name-directory notes-path))
-                                  (cadar (org-collect-keywords '(org-noter-property-doc-file))))
-                                 document-path)
+          (when (file-equal-p (expand-file-name (match-string 3) (file-name-directory notes-path))
+                              document-path)
             ;; NOTE(nox): This notes file has the document we want!
             (throw 'break t)))))))
 
@@ -1609,8 +1606,7 @@ relative to."
                     (and (not (file-directory-p doc-prop)) (file-readable-p doc-prop)))))
 
 (defun org-noter--get-or-read-document-property (inherit-prop &optional force-new)
-  (let ((doc-prop (and (not force-new) (or (org-entry-get nil org-noter-property-doc-file inherit-prop)
-                                           (cadar (org-collect-keywords (list org-noter-property-doc-file)))))))
+  (let ((doc-prop (and (not force-new) (org-entry-get nil org-noter-property-doc-file inherit-prop))))
 
     (setq doc-prop (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
                        doc-prop))
@@ -2243,9 +2239,7 @@ As such, it will only work when the notes window exists."
   (interactive)
   (org-noter--with-selected-notes-window
    "No notes window exists"
-   (if (string= (or (org-noter--get-or-read-document-property t)
-                    (cadar (org-collect-keywords (list org-noter-property-doc-file))))
-
+   (if (string= (org-noter--get-or-read-document-property t)
                 (org-noter--session-property-text session))
        (let ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
          (if location
