@@ -44,7 +44,6 @@ Test
                                    '(lambda ()
                                       (org-noter-core-test-create-session)
                                       (search-forward "Heading2")
-                                      (message "%s" (org-noter--get-containing-heading))
                                       (expect (org-noter--get-containing-heading) :not :to-be nil)
                                       (expect (org-noter--parse-location-property (org-noter--get-containing-element)) :to-equal (read "(41 0.09 . 0.16)"))
                                       )
