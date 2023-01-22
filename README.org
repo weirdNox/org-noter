@@ -92,17 +92,13 @@
 
       May require altering the org-noter-X--pretty-print-location-hook(s).
 
-   2. Profile org-noter -- runs slow on large books (500+ pages)
-      org-element-map is taking 85% of the CPU.  Org 9.6 should have a faster
-      way that Charlie Gordon explored.
+   2. Bind M-<mouse-1> to precise-note, no-questions.
 
-   3. Bind M-<mouse-1> to precise-note, no-questions.
+   3. Make background of arrow transparent (see org-noter--show-arrow)
 
-   4. Make background of arrow transparent (see org-noter--show-arrow)
+   4. Dedicated insert-selected-text-into-page-note
 
-   5. Dedicated insert-selected-text-into-page-note
-
-   6. Internationalize precise notes to handle right-to-left languages.
+   5. Internationalize precise notes to handle right-to-left languages.
 ** Bugs
 *** to fix
     1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
