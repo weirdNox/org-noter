@@ -2195,7 +2195,7 @@ chapter, skipping precise notes.  This will force the notes window to popup."
          target-location)
 
      (org-noter--map-ignore-headings-with-doc-file
-      contents nil
+      contents t
       (when (and (org-noter--compare-locations '> location this-location)
                  (org-noter--compare-locations '< location target-location))
         (setq target-location location)))

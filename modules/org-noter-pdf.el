@@ -50,11 +50,12 @@ Otherwise returns nil"
 
 (defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
   "Returns (page . 0) except when creating a precise-note,
-where (page v-pos . h-pos) is returned"
+where (pabe v-pos) or (page v-pos . h-pos) is returned"
   (when (memq mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (and (consp precise-info)
-                                                 (numberp (car precise-info))
-                                                 (numberp (cdr precise-info)))
+    (cons (image-mode-window-get 'page) (if (or (numberp precise-info)
+                                                (and (consp precise-info)
+                                                     (numberp (car precise-info))
+                                                     (numberp (cdr precise-info))))
                                             precise-info 0))))
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
