@@ -1,5 +1,5 @@
+#+STARTUP: hidestars
 * ORG-NOTER (fork of a fork)
-
 ** If you are new to *ORG-NOTER*
    Please first look at [[https://github.com/weirdNox/org-noter/blob/master/README.org][Gonçalo Santos's README]] ([[file:docs/README-orig.org]] in
    this repo).
@@ -118,3 +118,47 @@
          - =org-noter--check-location-property=
            found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
        - =org-noter--get-containing-property-drawer=
+** Custom variables
+   Presently, the custom variables listed under =customize-group org-noter= is a
+   flat list.  I would like to group them into logical categories.
+
+*** start-stop
+   - org-noter-supported-modes '(doc-view-mode pdf-view-mode nov-mode djvu-read-mode)
+   - org-noter-auto-save-last-location nil
+   - org-noter-default-notes-file-names '("Notes.org")
+   - org-noter-notes-search-path '("~/Documents")
+   - org-noter-notes-window-behavior '(start scroll)
+   - org-noter-suggest-from-attachments t
+   - org-noter-find-additional-notes-functions nil
+   - org-noter-kill-frame-at-session-end t
+
+*** layout
+   - org-noter-notes-window-location 'horizontal-split
+   - org-noter-doc-split-fraction '(0.5 . 0.5)
+   - org-noter-always-create-frame t
+   - org-noter-disable-narrowing nil
+   - org-noter-use-indirect-buffer t
+   - org-noter-swap-window nil
+   - org-noter-hide-other t
+
+*** note-insertion
+   - org-noter-default-heading-title "Notes for page $p$"
+   - org-noter-separate-notes-from-heading nil
+   - org-noter-insert-selected-text-inside-note t
+   - org-noter-highlight-selected-text nil
+   - org-noter-max-short-selected-text-length 80
+   - org-noter-insert-heading-hook nil
+   - org-noter-insert-note-no-questions nil
+   - org-noter-doc-property-in-notes nil
+
+*** navigation-display
+   - org-noter-arrow-delay 0.2
+   - org-noter-arrow-horizontal-offset -0.02
+   - org-noter-arrow-foreground-color "orange red"
+   - org-noter-arrow-background-color "white"
+   - org-noter-closest-tipping-point 0.3
+
+*** other
+   - org-noter-property-doc-file "NOTER_DOCUMENT"
+   - org-noter-property-note-location "NOTER_PAGE"
+   - org-noter-prefer-root-as-file-level nil # used in org-noter--parse-root
