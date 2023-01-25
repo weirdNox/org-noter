@@ -2154,8 +2154,8 @@ This is like `org-noter-insert-precise-note', except it will toggle `org-noter-i
        nil ,match-first org-noter--note-search-no-recurse)))
 
 (defun org-noter-sync-prev-page-or-chapter ()
-  "Show previous page or chapter that has notes, in relation to the current page or
-chapter, skipping precise notes.  This will force the notes window to popup."
+  "Show previous page or chapter that has notes, in relation to the current page or chapter.
+This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
    (let ((this-location (org-noter--doc-approx-location 0))
@@ -2186,8 +2186,8 @@ This will force the notes window to popup."
      (org-noter--doc-location-change-handler))))
 
 (defun org-noter-sync-next-page-or-chapter ()
-  "Show next page or chapter that has notes, in relation to the current page or
-chapter, skipping precise notes.  This will force the notes window to popup."
+  "Show next page or chapter that has notes, in relation to the current page or chapter.
+This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
    (let ((this-location (org-noter--doc-approx-location most-positive-fixnum))
