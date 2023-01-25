@@ -277,21 +277,6 @@ QUOTE-block."
   :group 'org-noter
   :type 'integer)
 
-(defcustom org-noter-highlight-selected-text nil
-  "If non-nil, highlight selected-text when creating notes.  This
-variable is temporarily toggled by prefixing the insertion
-command with any non-nil prefix such as \\[universal-argument]."
-  :group 'org-noter
-  :type 'boolean)
-
-(defcustom org-noter-max-short-selected-text-length 80
-  "Maximum length of a short text selection.  Short text selections
-may be used as note title.  When they are quoted in the note,
-they are quoted as ``short-selected-text'' rather than inside a
-QUOTE-block."
-  :group 'org-noter
-  :type 'integer)
-
 (defcustom org-noter-find-additional-notes-functions nil
   "Functions that when given a document file path as argument, give out
 an org note file path.

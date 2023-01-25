@@ -1,5 +1,5 @@
+#+STARTUP: hidestars
 * ORG-NOTER (fork of a fork)
-
 ** If you are new to *ORG-NOTER*
    Please first look at [[https://github.com/weirdNox/org-noter/blob/master/README.org][Gonçalo Santos's README]] ([[file:docs/README-orig.org]] in
    this repo).
@@ -86,6 +86,57 @@
    | body                | selected-text (not title) | selected-text (not title) | selected-text (not title) |
    |---------------------+---------------------------+---------------------------+---------------------------|
    | highlight selection | user setting/toggle       | user setting/toggle       | user setting/toggle       |
+** Customizations
+   Out of respect for the existing user base of =org-noter=, almost all of the
+   user-interface features of this fork remain the same those of as the original
+   =org-noter=.  However, users may be interested in our variations on the theme
+   of Gonçalos Santos.
+*** Peter's mods
+    In order of frequency, I use precise notes the most, standard notes next and
+    no-questions notes the least, so I have bound keys to reflect those
+    preferences with =i= for precise notes, =TAB= for standard notes; for
+    no-questions (no-prompt) notes, =I= is for precise notes and =M-i= for
+    standard notes.:
+    #+begin_src elisp
+      (with-eval-after-load 'org-noter
+        (define-key org-noter-doc-mode-map (kbd "i")   'org-noter-insert-precise-note)
+        (define-key org-noter-doc-mode-map (kbd "C-i") 'org-noter-insert-note)
+        (define-key org-noter-doc-mode-map (kbd "I")   'org-noter-insert-precise-note-toggle-no-questions)
+        (define-key org-noter-doc-mode-map (kbd "M-i") 'org-noter-insert-note-toggle-no-questions))
+    #+end_src
+
+    For navigation, I use =..-sync-..-note= more than =..-sync-..-page-..=, so I
+    bound the =note= commands to the easier-to-type =M-[p.n]= bindings and the
+    less-used =page-..= commands to the harder-to-type =C-M-[p.n]= bindings.
+    #+begin_src elisp
+      (with-eval-after-load 'org-noter
+        (define-key org-noter-doc-mode-map (kbd "M-p") 'org-noter-sync-prev-note)
+        (define-key org-noter-doc-mode-map (kbd "M-.") 'org-noter-sync-current-note)
+        (define-key org-noter-doc-mode-map (kbd "M-n") 'org-noter-sync-next-note)
+        (define-key org-noter-doc-mode-map (kbd "C-M-p") 'org-noter-sync-prev-page-or-chapter)
+        (define-key org-noter-doc-mode-map (kbd "C-M-.") 'org-noter-sync-current-page-or-chapter)
+        (define-key org-noter-doc-mode-map (kbd "C-M-n") 'org-noter-sync-next-page-or-chapter)
+
+        (define-key org-noter-notes-mode-map (kbd "M-p") 'org-noter-sync-prev-note)
+        (define-key org-noter-notes-mode-map (kbd "M-.") 'org-noter-sync-current-note)
+        (define-key org-noter-notes-mode-map (kbd "M-n") 'org-noter-sync-next-note)
+        (define-key org-noter-notes-mode-map (kbd "C-M-p") 'org-noter-sync-prev-page-or-chapter)
+        (define-key org-noter-notes-mode-map (kbd "C-M-.") 'org-noter-sync-current-page-or-chapter)
+        (define-key org-noter-notes-mode-map (kbd "C-M-n") 'org-noter-sync-next-page-or-chapter))
+    #+end_src
+
+    In the original code, the tooltip arrow on PDFs is *Orange-Red on White*,
+    which works fine when the arrow is always on the left side of the page.  I
+    found that with the 2D precise notes introduced by Ahmed Shariff, I sometime
+    had trouble locating the arrow as I navigated through my notes.  The *Black
+    on Cyan* color-scheme that I use is more jarring, hence easier to locate.
+    #+begin_src elisp
+      (with-eval-after-load 'org-noter
+        (setq org-noter-arrow-background-color "cyan"
+        org-noter-arrow-foreground-color "black"))
+    #+end_src
+
+*** Dmitry's mods
 ** Features wishlist
    1. Use pdf-view-current-pagelabel to use the page label instead of page in
       default titles
@@ -104,7 +155,11 @@
     1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
        away (or at all), requiring user to manually type in the (existing) title
 *** fixed
-    1. Navigating up from a nested precise note lands in the prior note at the
+    1. vertically stacked doc/notes layout fixed
+
+    2. =org-noter-sync-next-page-or-chapter= navigation fixed
+
+    3. Navigating up from a nested precise note lands in the prior note at the
        next level up (eg level 3 -> level 2).  page notes behave properly.
 
        [file:org-noter-core.el:2179]
@@ -118,3 +173,49 @@
          - =org-noter--check-location-property=
            found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
        - =org-noter--get-containing-property-drawer=
+** Custom variables
+   Presently, the custom variables listed under =customize-group org-noter= is a
+   flat list.  I would like to group them into logical categories.
+
+*** start-stop
+   - org-noter-supported-modes '(doc-view-mode pdf-view-mode nov-mode djvu-read-mode)
+   - org-noter-auto-save-last-location nil
+   - org-noter-default-notes-file-names '("Notes.org")
+   - org-noter-notes-search-path '("~/Documents")
+   - org-noter-notes-window-behavior '(start scroll)
+   - org-noter-suggest-from-attachments t
+   - org-noter-find-additional-notes-functions nil
+   - org-noter-kill-frame-at-session-end t
+
+*** layout
+   - org-noter-notes-window-location 'horizontal-split
+   - org-noter-doc-split-fraction '(0.5 . 0.5)
+   - org-noter-always-create-frame t
+   - org-noter-disable-narrowing nil
+   - org-noter-use-indirect-buffer t
+   - org-noter-swap-window nil
+   - org-noter-hide-other t
+
+*** note-insertion
+   - org-noter-default-heading-title "Notes for page $p$"
+   - org-noter-separate-notes-from-heading nil
+   - org-noter-insert-selected-text-inside-note t
+   - org-noter-highlight-selected-text nil
+   - org-noter-max-short-selected-text-length 80
+   - org-noter-insert-heading-hook nil
+   - org-noter-insert-note-no-questions nil
+   - org-noter-doc-property-in-notes nil
+
+*** navigation-display
+   - org-noter-arrow-delay 0.2
+   - org-noter-arrow-horizontal-offset -0.02
+   - org-noter-arrow-foreground-color "orange red"
+   - org-noter-arrow-background-color "white"
+   - org-noter-closest-tipping-point 0.3
+   - org-noter-no-notes-exist-face
+   - org-noter-notes-exist-face
+
+*** other
+   - org-noter-property-doc-file "NOTER_DOCUMENT"
+   - org-noter-property-note-location "NOTER_PAGE"
+   - org-noter-prefer-root-as-file-level nil # used in org-noter--parse-root
