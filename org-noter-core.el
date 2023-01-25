@@ -911,7 +911,7 @@ properties, by a margin of NEWLINES-NUMBER."
                     (if horizontal
                         (split-window-right (ceiling (* (car (org-noter--session-doc-split-fraction session))
                                                         (window-total-width))))
-                      (split-window-below (ceiling (* (cadr (org-noter--session-doc-split-fraction session))
+                      (split-window-below (ceiling (* (cdr (org-noter--session-doc-split-fraction session))
                                                       (window-total-height)))))))))
 
              (set-window-buffer notes-window notes-buffer))
@@ -956,7 +956,7 @@ properties, by a margin of NEWLINES-NUMBER."
               (enlarge-window (- (ceiling (* (- 1 (car (org-noter--session-doc-split-fraction session)))
                                              (frame-width)))
                                  (window-total-width)) t)
-            (enlarge-window (- (ceiling (* (- 1 (cadr (org-noter--session-doc-split-fraction session)))
+            (enlarge-window (- (ceiling (* (- 1 (cdr (org-noter--session-doc-split-fraction session)))
                                            (frame-height)))
                                (window-total-height)))))
 
