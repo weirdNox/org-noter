@@ -230,6 +230,16 @@ left."
   :group 'org-noter
   :type 'number)
 
+(defcustom org-noter-arrow-foreground-color "orange red"
+  "Default color of the tooltip arrow"
+  :group 'org-noter
+  :type 'string)
+
+(defcustom org-noter-arrow-background-color "white"
+  "Default background color of the tooltip arrow"
+  :group 'org-noter
+  :type 'string)
+
 (defcustom org-noter-doc-property-in-notes nil
   "If non-nil, every new note will have the document property too.
 This makes moving notes out of the root heading easier."
@@ -1204,11 +1214,11 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                         "\u2192" ;; right arrow
                         'display '(height 2)
                         'face `(:foreground
-                                "orange red"
+                                ,org-noter-arrow-foreground-color
                                 :background
                                 ,(if (bound-and-true-p pdf-view-midnight-minor-mode)
                                      (cdr pdf-view-midnight-colors)
-                                   "white"))))
+                                   org-noter-arrow-background-color))))
          dx dy))
       (setq org-noter--arrow-location nil))))
 
