@@ -137,19 +137,32 @@
     #+end_src
 
 *** Dmitry's mods
-** Features wishlist
+** Features
+*** New
    1. Use pdf-view-current-pagelabel to use the page label instead of page in
       default titles
 
-      May require altering the org-noter-X--pretty-print-location-hook(s).
+      new function/hook =...-pretty-print-location-for-title=
 
-   2. Bind M-<mouse-1> to precise-note, no-questions.
+   2. Customizable tooltip arrow colors
+      - =...-arrow-foreground-color=
+      - =...-arrow-background-color=
 
-   3. Make background of arrow transparent (see org-noter--show-arrow)
+   3. Text-selection higlighting: customizable default behavior, toggle
+      =...-highlight-selected-text= with =C-u= prefix on note-insertion
+      commands.
 
-   4. Dedicated insert-selected-text-into-page-note
+   4. Rudimentary support for multicolumn PDFs with inheritable =NUM_COLUMNS=
+      property.  See =...-pdf-convert-to-location-cons=
 
-   5. Internationalize precise notes to handle right-to-left languages.
+*** Wishlist
+   1. Bind M-<mouse-1> to precise-note, no-questions.
+
+   2. Make background of arrow transparent (see org-noter--show-arrow)
+
+   3. Dedicated insert-selected-text-into-page-note
+
+   4. Internationalize precise notes to handle right-to-left languages.
 ** Bugs
 *** to fix
     1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
