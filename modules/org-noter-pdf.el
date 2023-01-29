@@ -85,6 +85,7 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-doc-view-setup-handler)
 
 (defun org-noter-pdf--pretty-print-location (location)
+  "Full precision location for property drawers"
   (org-noter--with-valid-session
    (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
      (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
@@ -92,6 +93,28 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                     location)))))
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
+
+(defun org-noter-pdf--pretty-print-location-for-title (location)
+  "Human readable location with page label and v/h percentages. Doc-view falls back to original pp function."
+  (org-noter--with-valid-session
+   (let ((mode (org-noter--session-doc-mode session))
+         (vpos (org-noter--get-location-top location))
+         (hpos (org-noter--get-location-left location))
+         (vtxt "") (htxt "")
+         pagelabel)
+     (cond ((eq mode 'pdf-view-mode) ; for default title, reference pagelabel instead of page
+            (if (> hpos 0)
+                (setq htxt (format " H: %d%%" (round (* 100 hpos)))))
+            (if (or (> vpos 0) (> hpos 0))
+                (setq vtxt (format " V: %d%%" (round (* 100 vpos)))))
+            (save-excursion
+              (select-window (org-noter--get-doc-window))
+              (setq pagelabel (pdf-view-current-pagelabel)))
+            (format "%s%s%s" pagelabel vtxt htxt))
+           ((eq mode 'doc-view-mode) ; fall back to original pp for doc-mode
+            (org-noter-pdf--pretty-print-location location))))))
+
+(add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-pdf--pretty-print-location-for-title)
 
 (defun org-noter-pdf--get-precise-info (mode window)
   (when (eq mode 'pdf-view-mode)

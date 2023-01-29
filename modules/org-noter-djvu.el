@@ -33,6 +33,7 @@
                     location)))))
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-djvu--pretty-print-location)
+(add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-djvu--pretty-print-location)
 
 (defun org-noter-djvu-approx-location-cons (mode &optional precise-info _force-new-ref)
   (when (eq mode 'djvu-read-mode)
