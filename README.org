@@ -168,6 +168,15 @@
 *** to fix
     1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
        away (or at all), requiring user to manually type in the (existing) title
+
+    2. With NUM_COLUMNS > 1, point in notes document doesn't land in the correct
+       place
+
+    3. With NUM_COLUMNS > 1, columns don't necessarily start at horizontal
+       positions k/NUM_COLUMNS for k \in {1,..,NUM_COLUMNS}.  We need to write a
+       user interface that builds a list of horizontal fractions to delimit the
+       columns.
+
 *** fixed
     1. vertically stacked doc/notes layout fixed
 
