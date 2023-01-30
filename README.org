@@ -159,6 +159,7 @@
    1. Bind M-<mouse-1> to precise-note, no-questions.
 
    2. Make background of arrow transparent (see org-noter--show-arrow)
+      maybe https://emacs.stackexchange.com/questions/45588/how-to-make-tooltip-background-transparent
 
    3. Dedicated insert-selected-text-into-page-note
 
