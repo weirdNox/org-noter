@@ -16,7 +16,7 @@
      (introduced by *Ahmed Shariff*, which can be inserted in two ways:
      1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
         changed the position format to use the entire list returned by =edges=.
-        This breaks the other way of inserting precise notes.  On *dmitrym*'s
+        This breaks the other way of inserting precise notes.  On *dmitrym0*'s
         fork, select-precise notes auto-fill the note title with the selected
         text.  This has deleterious side effects for other note insertion methods.
      2. "Click-precise": =M-i=, followed by clicking a location on the page.
