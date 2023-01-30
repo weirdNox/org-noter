@@ -384,9 +384,10 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
 
 (defun org-noter-pdf-convert-to-location-cons (location)
-  "converts (page v . h) precise locations so that v represents the
-fractional distance through the page along column.  Output is nil
-for standard notes and (page v') for precise notes"
+  "converts (page v . h) precise locations to (page v') such that
+v' represents the fractional distance through the page along
+columns, so it takes values between 0 and NUM_COLUMNS.  Output is
+nil for standard notes and (page v') for precise notes"
   (if-let* ((_ (and (consp location) (consp (cdr location))))
             (bb (current-buffer)) ; debugging code - we are in the doc window,
                                   ; but need to be in the notes window for next
@@ -395,7 +396,7 @@ for standard notes and (page v') for precise notes"
             (page (car location))
             (v-pos (cadr location))
             (h-pos (cddr location)))
-      (cons page (+ (/ v-pos ncol) (/ (float (floor (* h-pos ncol))) ncol)))))
+      (cons page (+ v-pos (float (floor (* h-pos ncol)))))))
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
 
