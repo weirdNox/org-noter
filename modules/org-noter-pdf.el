@@ -107,9 +107,9 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                 (setq htxt (format " H: %d%%" (round (* 100 hpos)))))
             (if (or (> vpos 0) (> hpos 0))
                 (setq vtxt (format " V: %d%%" (round (* 100 vpos)))))
-            (save-excursion
-              (select-window (org-noter--get-doc-window))
-              (setq pagelabel (pdf-view-current-pagelabel)))
+            (select-window (org-noter--get-doc-window))
+            (setq pagelabel (pdf-view-current-pagelabel))
+            (select-window (org-noter--get-notes-window))
             (format "%s%s%s" pagelabel vtxt htxt))
            ((eq mode 'doc-view-mode) ; fall back to original pp for doc-mode
             (org-noter-pdf--pretty-print-location location))))))
