@@ -16,7 +16,7 @@
      (introduced by *Ahmed Shariff*, which can be inserted in two ways:
      1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
         changed the position format to use the entire list returned by =edges=.
-        This breaks the other way of inserting precise notes.  On *dmitrym*'s
+        This breaks the other way of inserting precise notes.  On *dmitrym0*'s
         fork, select-precise notes auto-fill the note title with the selected
         text.  This has deleterious side effects for other note insertion methods.
      2. "Click-precise": =M-i=, followed by clicking a location on the page.
@@ -137,23 +137,46 @@
     #+end_src
 
 *** Dmitry's mods
-** Features wishlist
+** Features
+*** New
    1. Use pdf-view-current-pagelabel to use the page label instead of page in
       default titles
 
-      May require altering the org-noter-X--pretty-print-location-hook(s).
+      new function/hook =...-pretty-print-location-for-title=
 
-   2. Bind M-<mouse-1> to precise-note, no-questions.
+   2. Customizable tooltip arrow colors
+      - =...-arrow-foreground-color=
+      - =...-arrow-background-color=
 
-   3. Make background of arrow transparent (see org-noter--show-arrow)
+   3. Text-selection higlighting: customizable default behavior, toggle
+      =...-highlight-selected-text= with =C-u= prefix on note-insertion
+      commands.
 
-   4. Dedicated insert-selected-text-into-page-note
+   4. Rudimentary support for multicolumn PDFs with inheritable =NUM_COLUMNS=
+      property.  See =...-pdf-convert-to-location-cons=
 
-   5. Internationalize precise notes to handle right-to-left languages.
+*** Wishlist
+   1. Bind M-<mouse-1> to precise-note, no-questions.
+
+   2. Make background of arrow transparent (see org-noter--show-arrow)
+      maybe https://emacs.stackexchange.com/questions/45588/how-to-make-tooltip-background-transparent
+
+   3. Dedicated insert-selected-text-into-page-note
+
+   4. Internationalize precise notes to handle right-to-left languages.
 ** Bugs
 *** to fix
     1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
        away (or at all), requiring user to manually type in the (existing) title
+
+    2. With NUM_COLUMNS > 1, point in notes document doesn't land in the correct
+       place
+
+    3. With NUM_COLUMNS > 1, columns don't necessarily start at horizontal
+       positions k/NUM_COLUMNS for k \in {1,..,NUM_COLUMNS}.  We need to write a
+       user interface that builds a list of horizontal fractions to delimit the
+       columns.
+
 *** fixed
     1. vertically stacked doc/notes layout fixed
 

@@ -389,6 +389,11 @@ major modes uses the `buffer-file-name' variable."
   :group 'org-noter-module-hooks
   :type 'hook)
 
+(defcustom org-noter--pretty-print-location-for-title-hook nil
+  "TODO"
+  :group 'org-noter-module-hooks
+  :type 'hook)
+
 (defcustom org-noter--convert-to-location-cons-hook nil
   "TODO"
   :group 'org-noter-module-hooks
@@ -1064,9 +1069,17 @@ properties, by a margin of NEWLINES-NUMBER."
                   ((integerp value) (cons value 0))))))))
 
 (defun org-noter--pretty-print-location (location)
+  "Original pretty-print for property drawer."
   (org-noter--with-valid-session
    (run-hook-with-args-until-success
     'org-noter--pretty-print-location-hook location)))
+
+(defun org-noter--pretty-print-location-for-title (location)
+  "Pretty-print for titles.  Compared to the original
+functions/hook, this one may present more human-readable text"
+  (org-noter--with-valid-session
+   (run-hook-with-args-until-success
+    'org-noter--pretty-print-location-for-title-hook location)))
 
 ;; TODO: Documentation
 (defun org-noter--get-containing-element (&optional include-root)
@@ -1995,7 +2008,7 @@ Guiding principles for note generation
                collection title note-body existing-note
                (default-title (or short-selected-text
                                   (replace-regexp-in-string (regexp-quote "$p$")
-                                                            (org-noter--pretty-print-location location)
+                                                            (org-noter--pretty-print-location-for-title location)
                                                             org-noter-default-heading-title)))
                (empty-lines-number (if org-noter-separate-notes-from-heading 2 1)))
 

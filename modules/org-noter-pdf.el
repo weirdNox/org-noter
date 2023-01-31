@@ -85,6 +85,7 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-doc-view-setup-handler)
 
 (defun org-noter-pdf--pretty-print-location (location)
+  "Full precision location for property drawers"
   (org-noter--with-valid-session
    (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
      (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
@@ -92,6 +93,28 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                     location)))))
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
+
+(defun org-noter-pdf--pretty-print-location-for-title (location)
+  "Human readable location with page label and v/h percentages. Doc-view falls back to original pp function."
+  (org-noter--with-valid-session
+   (let ((mode (org-noter--session-doc-mode session))
+         (vpos (org-noter--get-location-top location))
+         (hpos (org-noter--get-location-left location))
+         (vtxt "") (htxt "")
+         pagelabel)
+     (cond ((eq mode 'pdf-view-mode) ; for default title, reference pagelabel instead of page
+            (if (> hpos 0)
+                (setq htxt (format " H: %d%%" (round (* 100 hpos)))))
+            (if (or (> vpos 0) (> hpos 0))
+                (setq vtxt (format " V: %d%%" (round (* 100 vpos)))))
+            (select-window (org-noter--get-doc-window))
+            (setq pagelabel (pdf-view-current-pagelabel))
+            (select-window (org-noter--get-notes-window))
+            (format "%s%s%s" pagelabel vtxt htxt))
+           ((eq mode 'doc-view-mode) ; fall back to original pp for doc-mode
+            (org-noter-pdf--pretty-print-location location))))))
+
+(add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-pdf--pretty-print-location-for-title)
 
 (defun org-noter-pdf--get-precise-info (mode window)
   (when (eq mode 'pdf-view-mode)
@@ -361,18 +384,24 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
 
 (defun org-noter-pdf-convert-to-location-cons (location)
-  "converts (page v . h) precise locations so that v represents the
-fractional distance through the page along column.  Output is nil
-for standard notes and (page v') for precise notes"
+  "converts (page v . h) precise locations to (page v') such that
+v' represents the fractional distance through the page along
+columns, so it takes values between 0 and the number of columns.
+Each column is specified by its right edge as a fractional
+horizontal position.  Output is nil for standard notes and (page
+v') for precise notes."
   (if-let* ((_ (and (consp location) (consp (cdr location))))
             (bb (current-buffer)) ; debugging code - we are in the doc window,
                                   ; but need to be in the notes window for next
                                   ; line to work
-            (ncol (max 1 (string-to-number (or (org-entry-get nil "NUM_COLUMNS" t) "1"))))
+            (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
+            (right-edge-list (car (read-from-string column-edges-string)))
+            ;;(ncol (length left-edge-list))
             (page (car location))
             (v-pos (cadr location))
-            (h-pos (cddr location)))
-      (cons page (+ (/ v-pos ncol) (/ (float (floor (* h-pos ncol))) ncol)))))
+            (h-pos (cddr location))
+            (column-index (seq-position right-edge-list h-pos #'>=)))
+      (cons page (+ v-pos column-index))))
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
 
