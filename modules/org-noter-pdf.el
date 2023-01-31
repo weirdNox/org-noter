@@ -386,17 +386,22 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
 (defun org-noter-pdf-convert-to-location-cons (location)
   "converts (page v . h) precise locations to (page v') such that
 v' represents the fractional distance through the page along
-columns, so it takes values between 0 and NUM_COLUMNS.  Output is
-nil for standard notes and (page v') for precise notes"
+columns, so it takes values between 0 and the number of columns.
+Each column is specified by its right edge as a fractional
+horizontal position.  Output is nil for standard notes and (page
+v') for precise notes."
   (if-let* ((_ (and (consp location) (consp (cdr location))))
             (bb (current-buffer)) ; debugging code - we are in the doc window,
                                   ; but need to be in the notes window for next
                                   ; line to work
-            (ncol (max 1 (string-to-number (or (org-entry-get nil "NUM_COLUMNS" t) "1"))))
+            (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
+            (right-edge-list (car (read-from-string column-edges-string)))
+            ;;(ncol (length left-edge-list))
             (page (car location))
             (v-pos (cadr location))
-            (h-pos (cddr location)))
-      (cons page (+ v-pos (float (floor (* h-pos ncol)))))))
+            (h-pos (cddr location))
+            (column-index (seq-position right-edge-list h-pos #'>=)))
+      (cons page (+ v-pos column-index))))
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
 
