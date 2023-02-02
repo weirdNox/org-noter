@@ -405,5 +405,31 @@ v') for precise notes."
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
 
+(defun org-noter-pdf-set-columns (num-columns)
+  "Interactively set the COLUMN_EDGES property for the current heading.
+
+The number of columns can be given as a prefix or in the
+minibuffer.  The user is then prompted to click on the right edge
+of each column, except for the last one.  Subheadings of the
+current heading inherit the COLUMN_EDGES property."
+  (interactive "NEnter number of columns: ")
+  (select-window (org-noter--get-doc-window))
+  (let (event
+        edge-list
+        (window (car (window-list))))
+    (dotimes (ii (1- num-columns))
+      (while (not (and (eq 'mouse-1 (car event))
+                       (eq window (posn-window (event-start event)))))
+        (setq event (read-event (format "Click on the right boundary of column %d" (1+ ii)))))
+      (let* ((col-row (posn-col-row (event-start event)))
+             (click-position (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+                                                                     (+ (window-hscroll) (car col-row))))
+             (h-position (cdr click-position)))
+        (setq event nil)
+        (setq edge-list (append edge-list (list h-position)))))
+    (setq edge-list (append edge-list '(1)))
+    (select-window (org-noter--get-notes-window))
+    (org-entry-put nil "COLUMN_EDGES" (format "%s" (princ edge-list)))))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
