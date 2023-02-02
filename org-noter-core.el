@@ -2287,7 +2287,7 @@ Keymap:
   :keymap `((,(kbd   "i")   . org-noter-insert-note)
             (,(kbd "C-i")   . org-noter-insert-note-toggle-no-questions)
             (,(kbd "M-i")   . org-noter-insert-precise-note)
-            (,(kbd "M-I")   . org-noter-insert-precise-note-toggle-no-questions)
+            (,(kbd "C-M-i") . org-noter-insert-precise-note-toggle-no-questions)
             (,(kbd   "q")   . org-noter-kill-session)
             (,(kbd "M-p")   . org-noter-sync-prev-page-or-chapter)
             (,(kbd "M-.")   . org-noter-sync-current-page-or-chapter)
