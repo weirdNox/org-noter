@@ -40,13 +40,12 @@ Otherwise returns nil"
        (make-pdf-highlight :page page :coords coords)
       nil))
 
-
+(add-to-list 'org-noter--get-highlight-location-hook 'org-noter-pdf--get-highlight)
 
 (defun org-noter-pdf--pretty-print-highlight (highlight-info)
   (format "%s" highlight-info))
 
 (add-to-list 'org-noter--pretty-print-highlight-location-hook #'org-noter-pdf--pretty-print-highlight)
-(add-to-list 'org-noter--get-highlight-location-hook 'org-noter-pdf--get-highlight)
 
 (defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
   "Returns (page . 0) except when creating a precise-note,
