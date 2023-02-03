@@ -66,6 +66,21 @@
   :group 'convenience
   :version "25.3.1")
 
+(defgroup org-noter-layout nil
+  "Org-noter layout and visibility variables"
+  :group 'org-noter
+  :version "28.2")
+
+(defgroup org-noter-navigation nil
+  "Org-noter navigation and display variables"
+  :group 'org-noter
+  :version "28.2")
+
+(defgroup org-noter-insertion nil
+  "Org-noter note-insertion variables"
+  :group 'org-noter
+  :version "28.2")
+
 (defcustom org-noter-supported-modes '(doc-view-mode pdf-view-mode nov-mode djvu-read-mode)
   "Major modes that are supported by org-noter."
   :group 'org-noter
@@ -86,7 +101,7 @@ The default value is still NOTER_PAGE for backwards compatibility."
   "The default title for headings created with `org-noter-insert-note'.
 $p$ is replaced with the number of the page or chapter you are in
 at the moment."
-  :group 'org-noter
+  :group 'org-noter-insertion
   :type 'string)
 
 (defcustom org-noter-notes-window-behavior '(start scroll)
@@ -107,7 +122,7 @@ When the list contains:
 
 Note that this will only have effect on session startup if `start'
 is member of `org-noter-notes-window-behavior' (which see)."
-  :group 'org-noter
+  :group 'org-noter-layout
   :type '(choice (const :tag "Horizontal" horizontal-split)
                  (const :tag "Vertical" vertical-split)
                  (const :tag "Other frame" other-frame)))
@@ -116,7 +131,7 @@ is member of `org-noter-notes-window-behavior' (which see)."
 (defcustom org-noter-doc-split-fraction '(0.5 . 0.5)
   "Fraction of the frame that the document window will occupy when split.
 This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
-  :group 'org-noter
+  :group 'org-noter-layout
   :type '(cons (number :tag "Horizontal fraction") (number :tag "Vertical fraction")))
 
 (defcustom org-noter-auto-save-last-location nil
@@ -137,7 +152,7 @@ there is at least one heading."
   "When non-nil, hide all headings not related to the command used.
 For example, when scrolling to pages with notes, collapse all the
 notes that are not annotating the current page."
-  :group 'org-noter
+  :group 'org-noter-layout
   :type 'boolean)
 
 (defcustom org-noter-always-create-frame t
@@ -148,7 +163,7 @@ When nil, it will use the selected frame if it does not belong to any other sess
 
 (defcustom org-noter-disable-narrowing nil
   "Disable narrowing in notes/org buffer."
-  :group 'org-noter
+  :group 'org-noter-layout
   :type 'boolean)
 
 (defcustom org-noter-use-indirect-buffer t
@@ -163,7 +178,7 @@ When nil, it will use the real buffer."
 to the document buffer then split with the window of the notes buffer on the right.
 
 If this variable is non-nil, the buffers of the two windows will be the other way around."
-  :group 'org-noter
+  :group 'org-noter-layout
   :type 'boolean)
 
 
@@ -175,12 +190,12 @@ when creating a session, if the document is missing."
 
 (defcustom org-noter-separate-notes-from-heading nil
   "When non-nil, add an empty line between each note's heading and content."
-  :group 'org-noter
+  :group 'org-noter-insertion
   :type 'boolean)
 
 (defcustom org-noter-insert-selected-text-inside-note t
   "When non-nil, it will automatically append the selected text into an existing note."
-  :group 'org-noter
+  :group 'org-noter-insertion
   :type 'boolean)
 
 (defcustom org-noter-closest-tipping-point 0.3
@@ -200,7 +215,7 @@ When this value is negative, disable this feature.
 
 This setting may be overridden in a document with the function
 `org-noter-set-closest-tipping-point', which see."
-  :group 'org-noter
+  :group 'org-noter-navigation
   :type 'number)
 
 (defcustom org-noter-default-notes-file-names '("Notes.org")
@@ -218,8 +233,9 @@ This setting may be overridden in a document with the function
 
 When set to a negative number, the arrow tooltip is disabled.
 This is needed in order to keep Emacs from hanging when doing many syncs."
-  :group 'org-noter
-  :type 'number)
+  :group 'org-noter-navigation
+  :type 'number
+  :version "28.2")
 
 (defcustom org-noter-arrow-horizontal-offset -0.02
   "Horizontal offset in the position of the tooltip arrow relative
@@ -227,18 +243,21 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
 to precise location.  Units are % of page, positive values move
 the arrow to the right, while negative values move it to the
 left."
-  :group 'org-noter
-  :type 'number)
+  :group 'org-noter-navigation
+  :type 'number
+  :version "28.2")
 
 (defcustom org-noter-arrow-foreground-color "orange red"
   "Default color of the tooltip arrow"
-  :group 'org-noter
-  :type 'string)
+  :group 'org-noter-navigation
+  :type 'string
+  :version "28.2")
 
 (defcustom org-noter-arrow-background-color "white"
   "Default background color of the tooltip arrow"
-  :group 'org-noter
-  :type 'string)
+  :group 'org-noter-navigation
+  :type 'string
+  :version "28.2")
 
 (defcustom org-noter-doc-property-in-notes nil
   "If non-nil, every new note will have the document property too.
@@ -249,7 +268,7 @@ This makes moving notes out of the root heading easier."
 (defcustom org-noter-insert-note-no-questions nil
   "When non-nil, `org-noter-insert-note' won't ask for a title and will always insert a new note.
 The title used will be the default one."
-  :group 'org-noter
+  :group 'org-noter-insertion
   :type 'boolean)
 
 (defcustom org-noter-kill-frame-at-session-end t
@@ -259,23 +278,25 @@ The title used will be the default one."
 
 (defcustom org-noter-insert-heading-hook nil
   "Hook being run after inserting a new heading."
-  :group 'org-noter
+  :group 'org-noter-insertion
   :type 'hook)
 
 (defcustom org-noter-highlight-selected-text nil
   "If non-nil, highlight selected-text when creating notes.  This
 variable is temporarily toggled by prefixing the insertion
 command with any non-nil prefix such as \\[universal-argument]."
-  :group 'org-noter
-  :type 'boolean)
+  :group 'org-noter-insertion
+  :type 'boolean
+  :version "28.2")
 
 (defcustom org-noter-max-short-selected-text-length 80
   "Maximum length of a short text selection.  Short text selections
 may be used as note title.  When they are quoted in the note,
 they are quoted as ``short-selected-text'' rather than inside a
 QUOTE-block."
-  :group 'org-noter
-  :type 'integer)
+  :group 'org-noter-insertion
+  :type 'integer
+  :version "28.2")
 
 (defcustom org-noter-find-additional-notes-functions nil
   "Functions that when given a document file path as argument, give out
@@ -298,21 +319,21 @@ the user select to use as the note file of the document."
      :foreground "chocolate"
      :weight bold))
   "Face for modeline note count, when 0."
-  :group 'org-noter)
+  :group 'org-noter-navigation)
 
 (defface org-noter-notes-exist-face
   '((t
      :foreground "SpringGreen"
      :weight bold))
   "Face for modeline note count, when not 0."
-  :group 'org-noter)
+  :group 'org-noter-navigation)
 
 ;; --------------------------------------------------------------------------------
 ;;; Integration with other packages
 (defgroup org-noter-module-hooks nil
   "Hooks for integrating org-noter with other packages (pdfview, nov, djvu)"
   :group 'org-noter
-  :version "25.3.1")
+  :version "28.2")
 
 (defcustom org-noter--get-location-property-hook nil
   "The list of functions that will return the note location of an org element.
