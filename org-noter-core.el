@@ -259,6 +259,14 @@ left."
   :type 'string
   :version "28.2")
 
+(defcustom org-noter-vscroll-buffer 5
+  "Number of document display lines to leave above note location
+when navigating to precise note.  A value of 0 places the precise
+note at the top of the window when possible."
+  :group 'org-noter-navigation
+  :type 'number
+  :version "28.2")
+
 (defcustom org-noter-doc-property-in-notes nil
   "If non-nil, every new note will have the document property too.
 This makes moving notes out of the root heading easier."

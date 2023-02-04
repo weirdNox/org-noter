@@ -167,7 +167,8 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                         top
                         left))))
       (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
-                          (window-vscroll))))))
+                          (floor (+ (window-vscroll) org-noter-vscroll-buffer)))
+    ))))
 
 (add-to-list 'org-noter--doc-goto-location-hook #'org-noter-pdf-goto-location)
 
