@@ -237,12 +237,14 @@ This is needed in order to keep Emacs from hanging when doing many syncs."
   :type 'number
   :version "28.2")
 
-(defcustom org-noter-arrow-horizontal-offset -0.02
+(defcustom org-noter-arrow-horizontal-offset -20
   "Horizontal offset in the position of the tooltip arrow relative
 
-to precise location.  Units are % of page, positive values move
-the arrow to the right, while negative values move it to the
-left."
+to precise location.  Units are display pixels; positive values
+move the arrow to the right, while negative values move it to the
+left.  The intent is to move the arrow so that it does not cover
+text of intereest, but roundoff errors cause the arrow position
+still to be dependent upon magnification at the 1-em level"
   :group 'org-noter-navigation
   :type 'number
   :version "28.2")
@@ -1207,12 +1209,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
       ;; From `pdf-util-tooltip-arrow'.
       (pdf-util-assert-pdf-window)
       (let* (x-gtk-use-system-tooltips
-             (image-top (if (floatp (aref org-noter--arrow-location 2))
-                            (round (* (aref org-noter--arrow-location 2)
-                                      (cdr (pdf-view-image-size))))))
-             (image-left (if (floatp (aref org-noter--arrow-location 3))
-                             (round (* (aref org-noter--arrow-location 3) (car (pdf-view-image-size))))))
-
+             (arrow-top  (aref org-noter--arrow-location 2)) ; % of page
+             (arrow-left (aref org-noter--arrow-location 3))
+             (image-top  (if (floatp arrow-top)
+                             (round (* arrow-top  (cdr (pdf-view-image-size)))))) ; pixel location on page (magnification-dependent)
+             (image-left (if (floatp arrow-left)
+                             (floor (* arrow-left (car (pdf-view-image-size))))))
              (dx (or image-left
                      (+ (or (car (window-margins)) 0)
                         (car (window-fringes)))))
@@ -1233,8 +1235,10 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
                            (frame-char-height))))
         (when (overlay-get (pdf-view-current-overlay) 'before-string)
           (let* ((e (window-inside-pixel-edges))
-                 (xw (pdf-util-with-edges (e) e-width)))
-            (cl-incf dx (/ (- xw (car (pdf-view-image-size t))) 2))))
+                 (xw (pdf-util-with-edges (e) e-width))
+                 (display-left-margin (/ (- xw (car (pdf-view-image-size t))) 2)))
+            (cl-incf dx display-left-margin)))
+        (setq dx (max 0 (+ dx org-noter-arrow-horizontal-offset)))
         (pdf-util-tooltip-in-window
          (propertize
           " " 'display (propertize

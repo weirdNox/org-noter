@@ -132,7 +132,6 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                                                                          (+ (window-hscroll) (car col-row)))))
             (setq v-position (car click-position)
                   h-position (cdr click-position)))))
-      (setq h-position (max 0 (+ h-position org-noter-arrow-horizontal-offset)))
       (cons v-position h-position))))
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
@@ -167,8 +166,7 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                         top
                         left))))
       (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
-                          (floor (+ (window-vscroll) org-noter-vscroll-buffer)))
-    ))))
+                          (floor (+ (window-vscroll) org-noter-vscroll-buffer)))))))
 
 (add-to-list 'org-noter--doc-goto-location-hook #'org-noter-pdf-goto-location)
 
