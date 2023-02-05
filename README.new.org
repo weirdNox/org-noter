@@ -1,0 +1,199 @@
+* Org-noter: an interleaving/note-taking package for documents
+
+  ~Org-noter~, by [[https://github.com/weirdNox][Gonçalo Santos]], was inspired by the now-orphaned ~Interleave~
+  package, by [[https://github.com/rudolfochrist][Sebastian Christ]].  In Sebastian's words (with minor edits):
+
+  #+begin_quote
+  In the past, textbooks were sometimes published as interleaved editions. That
+  meant, each page was followed by a blank page and ambitious students/scholars
+  had the ability to take their notes directly in their copy of the
+  textbook. Newton and Kant were prominent representatives of this
+  technique. [find reference]
+
+  Nowadays, textbooks (or lecture materials) come in PDF format. Although almost
+  every PDF Reader has the ability to add some notes to the PDF itself, it is
+  not as powerful as it could be. This is what this Emacs minor mode tries to
+  accomplish. It presents your PDF side by side with an Org Mode buffer of your
+  notes, narrowed down to just those passages that are relevant to this
+  particular page in the document viewer.
+  #+end_quote
+
+  Org-noter's purpose is to let you create notes that are kept in sync when you
+  scroll through the document, but that are external to it - the notes
+  themselves live in an Org-mode file.  As such, this leverages the power of
+  [[http://orgmode.org/][Org-mode]] (the notes may have outlines, latex fragments, babel, etc...) while
+  acting like notes that are made /inside/ the document.  Also, taking notes is
+  very simple: just press =i= and annotate away!
+
+  Org-noter is compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]], [[https://github.com/wasamasa/nov.el][Nov.el]], and
+  [[DJVU-read][DJVU-image-mode]]. These modes make it possible to annotate *PDF*, *EPUB*,
+  *Microsoft Office*, DVI, PS, OpenDocument, and DJVU formatted files.  Note
+  that PDF support is our prime goal.  Other format have been supported by other
+  contributors, but we need code contributions from users of other formats to
+  maintain/progress usability with those formats.
+
+  
+** Features
+*** original org-noter (up to 2019)
+- Easy to use annotation interface :: Just press =i= in the
+     document buffer and annotate away!
+
+- Keep your notes in sync with the document :: When you take a note by pressing
+     =i=, it saves the location where you took it so it is able to show you
+     the notes while you scroll, automatically!
+
+- Easy navigation :: You may navigate your document as usual, seeing the notes buffer scroll and show you
+     the respective notes; however, you may also navigate by notes, only seeing annotated pages/chapters.
+
+- Isolated interface :: Each session has its own frame and the document and notes buffers are indirect
+     buffers to the original ones. Killing any of these things will terminate your annotation session.
+
+- Simultaneous sessions :: You may open as many annotation sessions as you wish, at the same time! The
+     root heading of each document will be made read-only to prevent you from deleting a heading from an
+     open session.
+
+- Resume annotating from where you left :: When ~org-noter-auto-save-last-location~ is non-nil, it will
+     save the last location you visited and pick it up when you start another session! You may also set
+     this per-document, [[#custom][read more here]].
+
+- Keep your notes organized :: You may arrange your notes however you want! You can create groups and
+     nest notes (and even nest documents inside other documents)!
+
+- Annotate ~org-attach~'ed files :: If you have any attached files, it will let you choose one as
+     the document to annotate.
+
+*** new
+    - 2D precise notes :: ([[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]]) Location tooltip appears at start of
+      selected text or point of click.
+
+    - Multicolumn ordering of precise notes :: (Rudimentary) With the
+      ~NUM_COLUMNS~ property, you can specify the number of columns in a
+      multicolumn document (or pages thereof).  Precise notes are ordered
+      vertically within columns.
+
+    - Highlighting of selected text :: Default behavior (on/off) is
+      user-customizable.  Non-default behavior is activated with a =C-u= prefix
+      to the note insertion command.
+
+    - Customizable tooltip arrow colors :: ~org-noter-arrow-foreground-color~ (default
+      orange-red) and ~org-noter-arrow-foreground-color~ (default white) are
+      both user customizable.
+
+[TODO: make/link to screencast]
+
+** Installation
+
+   1. clone this repo to a local directory
+   2. add to your init file:
+      #+begin_src elisp
+        (add-to-list 'load-path "<path-to-org-noter>/modules")
+        (add-to-list 'load-path "<path-to-org-noter>")
+        ;; then choose one or more of the following modules
+        ;; (require 'org-noter-pdf)
+        ;; (require 'org-noter-nov)
+        ;; (require 'org-noter-djvu)
+      #+end_src
+   
+** Usage
+
+If you want to give it a try without much trouble:
+- Just have an Org file where you want the notes to go
+- Create a root heading to hold the notes
+- Run =M-x org-noter= inside!
+  On the first run, it will ask you for the path of the document and save it in a
+  property. By default, it will also let you annotate an attached file [[https://orgmode.org/manual/Attachments.html][(org-attach documentation)]].
+
+This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
+
+More generally, there are two modes of operation. You may run
+=M-x org-noter=:
+- Inside a heading in an Org notes file :: This will associate that heading with a
+     document and open a session with it. This mode is the one described in the example
+     above.
+
+- In a document :: Run =M-x org-noter= when viewing a
+                   document (eg. PDF, epub...).
+
+                   This will try to find the respective notes file automatically. It will
+                   search in all parent folders and some specific folders set by you. See
+                   ~org-noter-default-notes-file-names~ and ~org-noter-notes-search-path~
+                   for more information.
+
+There is, of course, more information in the docstrings of each command.
+
+** TODO Customization
+There are two kinds of customizations you may do:
+1. Global settings, affecting every session
+2. Document-specific settings, which override the global settings
+
+The *global settings* are changed with either the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html#Easy-Customization][customization interface from Emacs]] or directly in your
+init file. To find which settings are available, you may use the customization interface or you may just
+read =org-noter.el=.
+
+The best way to set *document-specific settings* is by using the utility commands provided (list below).
+In order to use them, you need an open session. The commands may change the settings for that session
+only (not surviving restarts), or for every session with that document.
+
+*List of utility commands* (check the docstrings to learn how to make the changes
+permanent, or revert to the default):
+- You may set a start location for this document, by using ~org-noter-set-start-location~.
+
+- To automatically resume from where you left, use ~org-noter-set-auto-save-last-location~.
+
+- With ~org-noter-set-notes-window-behavior~, you may change /when/ the notes window pops
+  up.
+
+- With ~org-noter-set-notes-window-location~, you may change /where/ the notes window pops
+  up.
+
+- ~org-noter-set-doc-split-fraction~ will ask you for the fraction of the frame that the document window
+  occupies when split.
+
+- ~org-noter-set-hide-other~ will toggle whether or not it should hide headings not
+  related to the executed action.
+
+- ~org-noter-set-closest-tipping-point~ will set the closest note tipping point. Also
+  check the docstring of the variable ~org-noter-closest-tipping-point~ in order to better
+  understand the tipping point.
+
+** TODO Keybindings and commands
+:PROPERTIES:
+:CUSTOM_ID: keys
+:END:
+| Key     | Description                | Where?                    |
+| =i=     | Insert note                | Document buffer           |
+| =M-i=   | Insert precise note        | Document buffer           |
+| =q=     | Kill session               | Document buffer           |
+| =M-p=   | Sync previous page/chapter | Document and notes buffer |
+| =M-.=   | Sync current page/chapter  | Document and notes buffer |
+| =M-n=   | Sync next page/chapter     | Document and notes buffer |
+| =C-M-p= | Sync previous notes        | Document and notes buffer |
+| =C-M-.= | Sync selected notes        | Document and notes buffer |
+| =C-M-n= | Sync next notes            | Document and notes buffer |
+
+You can use the usual keybindings to navigate the document
+(=n=, =p=, =SPC=, ...).
+
+There are two types of sync commands:
+- To sync a page/chapter, means it will find the [previous|current|next] page/chapter and
+  show the corresponding notes for that page/chapter; as such, it will always pop up the
+  notes buffer, if it does not exist. This type of command is in relation to the current
+  page/chapter in the document.
+
+- To sync the notes, means it will find the [previous|current|next] notes and go to the
+  corresponding location on the document. So, you need to have the notes window open,
+  because this type of commands is in relation to the selected notes (ie, where the cursor
+  is).
+
+When using PDF Tools, the command ~org-noter-create-skeleton~ imports the PDF outline or
+annotations (or both!) as notes, and it may be used, for example, as a starting point.
+
+You may also want to check the docstrings of the functions associated with the
+keybindings, because there is some extra functionality in some.
+
+** Acknowledgments
+   - [[https://github.com/rudolfochrist][Sebastian Christ]] :: Author of the ~interleave~ package, inspiration for ~org-noter~
+   - [[https://github.com/weirdNox][Gonçalo Santos]] :: Author of ~org-noter~
+   - [[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]] :: Contributor of 2-D precise notes
+   - [[https://github.com/c1-g/org-noter-plus-djvu][Charlie Gordon]] :: Contributor of DJVU support and document-type modularization
+     
