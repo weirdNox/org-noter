@@ -208,14 +208,14 @@
    - org-noter-notes-window-behavior '(start scroll)
    - org-noter-suggest-from-attachments t
    - org-noter-find-additional-notes-functions nil
+   - org-noter-always-create-frame t
    - org-noter-kill-frame-at-session-end t
+   - org-noter-use-indirect-buffer t
 
 *** layout
    - org-noter-notes-window-location 'horizontal-split
    - org-noter-doc-split-fraction '(0.5 . 0.5)
-   - org-noter-always-create-frame t
    - org-noter-disable-narrowing nil
-   - org-noter-use-indirect-buffer t
    - org-noter-swap-window nil
    - org-noter-hide-other t
 
@@ -227,7 +227,6 @@
    - org-noter-max-short-selected-text-length 80
    - org-noter-insert-heading-hook nil
    - org-noter-insert-note-no-questions nil
-   - org-noter-doc-property-in-notes nil
 
 *** navigation-display
    - org-noter-arrow-delay 0.2
@@ -242,3 +241,4 @@
    - org-noter-property-doc-file "NOTER_DOCUMENT"
    - org-noter-property-note-location "NOTER_PAGE"
    - org-noter-prefer-root-as-file-level nil # used in org-noter--parse-root
+   - org-noter-doc-property-in-notes nil

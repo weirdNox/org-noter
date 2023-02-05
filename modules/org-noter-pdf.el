@@ -40,13 +40,12 @@ Otherwise returns nil"
        (make-pdf-highlight :page page :coords coords)
       nil))
 
-
+(add-to-list 'org-noter--get-highlight-location-hook 'org-noter-pdf--get-highlight)
 
 (defun org-noter-pdf--pretty-print-highlight (highlight-info)
   (format "%s" highlight-info))
 
 (add-to-list 'org-noter--pretty-print-highlight-location-hook #'org-noter-pdf--pretty-print-highlight)
-(add-to-list 'org-noter--get-highlight-location-hook 'org-noter-pdf--get-highlight)
 
 (defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
   "Returns (page . 0) except when creating a precise-note,
@@ -133,7 +132,6 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                                                                          (+ (window-hscroll) (car col-row)))))
             (setq v-position (car click-position)
                   h-position (cdr click-position)))))
-      (setq h-position (max 0 (+ h-position org-noter-arrow-horizontal-offset)))
       (cons v-position h-position))))
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
@@ -168,7 +166,7 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
                         top
                         left))))
       (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
-                          (window-vscroll))))))
+                          (floor (+ (window-vscroll) org-noter-vscroll-buffer)))))))
 
 (add-to-list 'org-noter--doc-goto-location-hook #'org-noter-pdf-goto-location)
 
@@ -404,6 +402,32 @@ v') for precise notes."
       (cons page (+ v-pos column-index))))
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
+
+(defun org-noter-pdf-set-columns (num-columns)
+  "Interactively set the COLUMN_EDGES property for the current heading.
+
+The number of columns can be given as a prefix or in the
+minibuffer.  The user is then prompted to click on the right edge
+of each column, except for the last one.  Subheadings of the
+current heading inherit the COLUMN_EDGES property."
+  (interactive "NEnter number of columns: ")
+  (select-window (org-noter--get-doc-window))
+  (let (event
+        edge-list
+        (window (car (window-list))))
+    (dotimes (ii (1- num-columns))
+      (while (not (and (eq 'mouse-1 (car event))
+                       (eq window (posn-window (event-start event)))))
+        (setq event (read-event (format "Click on the right boundary of column %d" (1+ ii)))))
+      (let* ((col-row (posn-col-row (event-start event)))
+             (click-position (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+                                                                     (+ (window-hscroll) (car col-row))))
+             (h-position (cdr click-position)))
+        (setq event nil)
+        (setq edge-list (append edge-list (list h-position)))))
+    (setq edge-list (append edge-list '(1)))
+    (select-window (org-noter--get-notes-window))
+    (org-entry-put nil "COLUMN_EDGES" (format "%s" (princ edge-list)))))
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
