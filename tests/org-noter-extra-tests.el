@@ -5,7 +5,6 @@
 (require 'org-noter-test-utils)
 
 
-(describe "org-noter very custom behavior"
 (xdescribe "org-noter very custom behavior"
           (before-each
            (create-org-noter-test-session)
