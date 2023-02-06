@@ -12,6 +12,7 @@
            )
           (describe "with advice"
                     (before-each
+                     (setq org-noter-insert-selected-text-inside-note f)
                      (setq org-noter-max-short-length 80000)
                      (define-advice org-noter--insert-heading (:after (level title &optional newlines-number location) add-full-body-quote)
                        "Advice for org-noter--insert-heading.
