@@ -11,7 +11,8 @@
            )
           (describe "with advice"
                     (before-each
-                     (setq org-noter-max-short-length 80000)
+                     (setq org-noter-max-short-selected-text-length 700000)
+
                      (define-advice org-noter--insert-heading (:after (level title &optional newlines-number location) add-full-body-quote)
                        "Advice for org-noter--insert-heading.
 
@@ -26,7 +27,7 @@
                      (create-org-noter-test-session)
                      )
                     (after-each
-                     (setq org-noter-max-short-length 80)
+                     (setq org-noter-max-short-selected-text-length 80)
                      (advice-remove #'org-noter--insert-heading 'org-noter--insert-heading@add-full-body-quote)
                      )
                     (it "should insert the highlighted text as an org-mode QUOTE when advice is enabled."

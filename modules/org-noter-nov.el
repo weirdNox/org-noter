@@ -25,6 +25,9 @@
 ;;; Code:
 (require 'org-noter)
 
+(defvar nov-documents-index)
+(defvar nov-file-name)
+
 (defun org-noter-get-buffer-file-name-nov (&optional mode)
   (bound-and-true-p nov-file-name))
 
@@ -58,7 +61,7 @@
                     location)))))
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-nov--pretty-print-location)
-
+(add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-nov--pretty-print-location)
 
 (defun org-noter-nov--get-precise-info (mode window)
   (when (eq mode 'nov-mode)

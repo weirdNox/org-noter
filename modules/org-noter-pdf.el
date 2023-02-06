@@ -34,27 +34,27 @@
 the relevant info (page, coordinates)
 
 Otherwise returns nil"
-    (-if-let* ((_ (pdf-view-active-region-p))
+    (if-let* ((_ (pdf-view-active-region-p))
                (page (image-mode-window-get 'page))
                (coords (pdf-view-active-region)))
        (make-pdf-highlight :page page :coords coords)
       nil))
 
-
+(add-to-list 'org-noter--get-highlight-location-hook 'org-noter-pdf--get-highlight)
 
 (defun org-noter-pdf--pretty-print-highlight (highlight-info)
   (format "%s" highlight-info))
 
 (add-to-list 'org-noter--pretty-print-highlight-location-hook #'org-noter-pdf--pretty-print-highlight)
-(add-to-list 'org-noter--get-highlight-location-hook 'org-noter-pdf--get-highlight)
 
 (defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
   "Returns (page . 0) except when creating a precise-note,
-where (page v-pos . h-pos) is returned"
+where (pabe v-pos) or (page v-pos . h-pos) is returned"
   (when (memq mode '(doc-view-mode pdf-view-mode))
-    (cons (image-mode-window-get 'page) (if (and (consp precise-info)
-                                                 (numberp (car precise-info))
-                                                 (numberp (cdr precise-info)))
+    (cons (image-mode-window-get 'page) (if (or (numberp precise-info)
+                                                (and (consp precise-info)
+                                                     (numberp (car precise-info))
+                                                     (numberp (cdr precise-info))))
                                             precise-info 0))))
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
@@ -84,6 +84,7 @@ where (page v-pos . h-pos) is returned"
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-doc-view-setup-handler)
 
 (defun org-noter-pdf--pretty-print-location (location)
+  "Full precision location for property drawers"
   (org-noter--with-valid-session
    (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
      (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
@@ -91,6 +92,28 @@ where (page v-pos . h-pos) is returned"
                     location)))))
 
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
+
+(defun org-noter-pdf--pretty-print-location-for-title (location)
+  "Human readable location with page label and v/h percentages. Doc-view falls back to original pp function."
+  (org-noter--with-valid-session
+   (let ((mode (org-noter--session-doc-mode session))
+         (vpos (org-noter--get-location-top location))
+         (hpos (org-noter--get-location-left location))
+         (vtxt "") (htxt "")
+         pagelabel)
+     (cond ((eq mode 'pdf-view-mode) ; for default title, reference pagelabel instead of page
+            (if (> hpos 0)
+                (setq htxt (format " H: %d%%" (round (* 100 hpos)))))
+            (if (or (> vpos 0) (> hpos 0))
+                (setq vtxt (format " V: %d%%" (round (* 100 vpos)))))
+            (select-window (org-noter--get-doc-window))
+            (setq pagelabel (pdf-view-current-pagelabel))
+            (select-window (org-noter--get-notes-window))
+            (format "%s%s%s" pagelabel vtxt htxt))
+           ((eq mode 'doc-view-mode) ; fall back to original pp for doc-mode
+            (org-noter-pdf--pretty-print-location location))))))
+
+(add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-pdf--pretty-print-location-for-title)
 
 (defun org-noter-pdf--get-precise-info (mode window)
   (when (eq mode 'pdf-view-mode)
@@ -109,7 +132,6 @@ where (page v-pos . h-pos) is returned"
                                                                          (+ (window-hscroll) (car col-row)))))
             (setq v-position (car click-position)
                   h-position (cdr click-position)))))
-      (setq h-position (max 0 (+ h-position org-noter-arrow-horizontal-offset)))
       (cons v-position h-position))))
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
@@ -144,7 +166,7 @@ where (page v-pos . h-pos) is returned"
                         top
                         left))))
       (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
-                          (window-vscroll))))))
+                          (floor (+ (window-vscroll) org-noter-vscroll-buffer)))))))
 
 (add-to-list 'org-noter--doc-goto-location-hook #'org-noter-pdf-goto-location)
 
@@ -160,6 +182,21 @@ where (page v-pos . h-pos) is returned"
     (mapconcat 'identity (pdf-view-active-region-text) ? )))
 
 (add-to-list 'org-noter-get-selected-text-hook #'org-noter-pdf--get-selected-text)
+
+;; NOTE(nox): From machc/pdf-tools-org
+(defun org-noter--pdf-tools-edges-to-region (edges)
+  "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
+  (when edges
+    (let ((left0 (nth 0 (car edges)))
+          (top0 (nth 1 (car edges)))
+          (bottom0 (nth 3 (car edges)))
+          (top1 (nth 1 (car (last edges))))
+          (right1 (nth 2 (car (last edges))))
+          (bottom1 (nth 3 (car (last edges)))))
+      (list left0
+            (+ top0 (/ (- bottom0 top0) 3))
+            right1
+            (- bottom1 (/ (- bottom1 top1) 3))))))
 
 (defun org-noter-create-skeleton-pdf (mode)
   "Create notes skeleton with the PDF outline or annotations."
@@ -345,20 +382,52 @@ where (page v-pos . h-pos) is returned"
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
 
 (defun org-noter-pdf-convert-to-location-cons (location)
-  "converts (page v . h) precise locations so that v represents the
-fractional distance through the page along column.  Output is nil
-for standard notes and (page v') for precise notes"
+  "converts (page v . h) precise locations to (page v') such that
+v' represents the fractional distance through the page along
+columns, so it takes values between 0 and the number of columns.
+Each column is specified by its right edge as a fractional
+horizontal position.  Output is nil for standard notes and (page
+v') for precise notes."
   (if-let* ((_ (and (consp location) (consp (cdr location))))
             (bb (current-buffer)) ; debugging code - we are in the doc window,
                                   ; but need to be in the notes window for next
                                   ; line to work
-            (ncol (max 1 (string-to-number (or (org-entry-get nil "NUM_COLUMNS" t) "1"))))
+            (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
+            (right-edge-list (car (read-from-string column-edges-string)))
+            ;;(ncol (length left-edge-list))
             (page (car location))
             (v-pos (cadr location))
-            (h-pos (cddr location)))
-      (cons page (+ (/ v-pos ncol) (/ (float (floor (* h-pos ncol))) ncol)))))
+            (h-pos (cddr location))
+            (column-index (seq-position right-edge-list h-pos #'>=)))
+      (cons page (+ v-pos column-index))))
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
+
+(defun org-noter-pdf-set-columns (num-columns)
+  "Interactively set the COLUMN_EDGES property for the current heading.
+
+The number of columns can be given as a prefix or in the
+minibuffer.  The user is then prompted to click on the right edge
+of each column, except for the last one.  Subheadings of the
+current heading inherit the COLUMN_EDGES property."
+  (interactive "NEnter number of columns: ")
+  (select-window (org-noter--get-doc-window))
+  (let (event
+        edge-list
+        (window (car (window-list))))
+    (dotimes (ii (1- num-columns))
+      (while (not (and (eq 'mouse-1 (car event))
+                       (eq window (posn-window (event-start event)))))
+        (setq event (read-event (format "Click on the right boundary of column %d" (1+ ii)))))
+      (let* ((col-row (posn-col-row (event-start event)))
+             (click-position (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+                                                                     (+ (window-hscroll) (car col-row))))
+             (h-position (cdr click-position)))
+        (setq event nil)
+        (setq edge-list (append edge-list (list h-position)))))
+    (setq edge-list (append edge-list '(1)))
+    (select-window (org-noter--get-notes-window))
+    (org-entry-put nil "COLUMN_EDGES" (format "%s" (princ edge-list)))))
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here

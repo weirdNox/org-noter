@@ -207,4 +207,4 @@ ACTION: Dmitry revive on his side.
     is used
 
     ACTION: safe for Dmitry to cherry-pick
-** TODO use cl-lib or native elisp hash tables rather than the =ht= package.
+** DONE use cl-lib or native elisp hash tables rather than the =ht= package.

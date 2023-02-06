@@ -1,0 +1,70 @@
+* Opening a notes session
+  - open PDF
+  - ~M-x org-noter~
+  - ~M-x org-noter-set-doc-split-fraction~
+  - ~M-x org-noter-set-notes-window-location, M-n~ (org-noter-set-layout?) side-by-side | stacked
+  - ~M-x org-noter-create-skeleton, M-n~
+
+* Navigating the document and the notes
+  - ~SPC, n, Page-down, down~ to move forward in document
+  - ~BACKSPACE, p, Page-up, up~ to move back in document
+  - ~C-M-n, C-M-p~ to move to next/prev note
+  - ~C-M-.~ sync document to notes
+  - ~M-n, M-p~ to move to next/prev page with note(s).  Always lands on the
+    first note of the page.
+  - ~M-.~ sync notes to document
+
+* Multicolumn setup (as needed)
+  - Multiple column note ordering can be set up at the document or heading level
+  - ~org-noter-pdf-set-columns~ inserts "COLUMN_EDGES" into the property drawer
+    of the current heading.  The command requests the number of columns and then
+    asks you to click on the right edge of all but the last column.  The
+    property is inherited by all sub-headings.
+
+* Note insertion
+
+** ~insert-note~ (~i~)
+   - Inserts a note linked to the current page.  If no title is specified, then
+     default title "Notes for page <P>" is used, where <P> is the pagelabel if
+     it exists or the page number.
+   - If text is selected AND it is "short" (see ~defcustom
+     org-noter-max-short-selected-text-length~) the the selected text becomes
+     the default title.
+   - If you type in a title, then the selected text is quoted in the body of the
+     note.  Short selected text is set in ``LaTeX-style quotes,''
+     #+begin_quote
+     while long selected text is set inside QUOTE block delimiters.
+     #+end_quote
+   - At the title prompt =Note:=, you can use ~M-p~ to "up-arrow" prior note
+     headings, or ~M-n~ to select from the defaults.
+   - If you choose a prior note heading, then selected text will be quoted in
+     that heading.
+  
+** ~insert-precise-note~ (~M-i~)
+   - Precise notes always create a new note, even if you choose an existing
+     prior heading.
+   - Precise notes are linked to a specific point on the page specified with
+     vertical and horizontal coordinates.
+   - The multicolumn property ~COLUMN_EDGES~, set by
+     ~org-noter-pdf-set-columns~, governs the ordering of precise notes on a
+     page.
+   - If no title is specified, then default title "Notes for page <P> V: <v>% H:
+     <h>%" is used, where <P> is the pagelabel if it exists or the page number,
+     <v> is the vertical distance from the top and <h> is the horizontal
+     position from the left.
+   - The behavior with selected text (default title, quoting in the body) is the
+     same as for ~insert-note~.
+   
+** No-questions note insertion
+   - ~defcustom org-noter-insert-note-no-questions~ is default ~nil~.  If set to
+     ~t~, the note title minibuffer prompt is bypassed and a note is always
+     create with the default title.  Activate this setting if you rarely or
+     never type in your own titles.
+   - Both note insertion styles have a ~toggle-no-questions~ variant to get the
+     non-default behavior.
+   - Default keybinding for the ~toggle-no-questions~ variant adds the
+     control-key (~C-i~ and ~C-M-i~, respectively).
+** Highlighting
+   - ~defcustom org-noter-highlight-selected-text~ controls the default
+     highlighting behavior of selected text.
+   - ~C-u~ prefix to any note insertion command toggles this behavior
