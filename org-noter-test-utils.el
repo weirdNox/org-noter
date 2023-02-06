@@ -121,6 +121,8 @@ org-noter-core-test-return-text
 (defun org-noter-core-test-get-highlight-location ()
   "HARDCODED_HIGHLIGHT_LOCATION")
 
+(defun org-noter-core-test-pretty-print-location-for-title (location)
+  "TEST PRETTY PRINT LOCATION")
 
 (defun create-org-noter-test-session ()
 
@@ -145,6 +147,7 @@ org-noter-core-test-return-text
   (add-to-list 'org-noter--get-current-view-hook #'org-noter-core-test-get-current-view)
   (add-to-list 'org-noter--get-precise-info-hook #'org-noter-core-test-get-precise-info)
   (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-core-test-pretty-print-location)
+  (add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-core-test-pretty-print-location-for-title)
   (add-to-list 'org-noter--add-highlight-hook  #'org-noter-core-test-add-highlight)
   (add-to-list 'org-noter--get-highlight-location-hook #'org-noter-core-test-get-highlight-location)
   )
