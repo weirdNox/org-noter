@@ -6,6 +6,7 @@
 
 
 (xdescribe "org-noter very custom behavior"
+(describe "org-noter very custom behavior"
           (before-each
            (create-org-noter-test-session)
            )
@@ -21,6 +22,8 @@
   =org-noter-max-short-length= should be set to a large value to short circuit the normal behavior:
   =(setq org-noter-max-short-length 80000)="
 
+                     ;; (setq org-noter-insert-selected-text-inside-note nil)
+                     (setq org-noter-max-short-selected-text-length 700000)
                        ;; this tells us it's a precise note that's being invoked.
                        (if (consp location)
                            (insert (format "#+BEGIN_QUOTE\n%s\n#+END_QUOTE" title))))
