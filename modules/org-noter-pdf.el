@@ -23,9 +23,6 @@
 ;;
 
 ;;; Code:
-(require 'org-noter)
-
-
 (cl-defstruct pdf-highlight page coords)
 
 
