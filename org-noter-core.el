@@ -460,7 +460,7 @@ major modes uses the `buffer-file-name' variable."
   :type 'hook)
 
 (defcustom org-noter--get-highlight-location-hook nil
-  "Hook that runs to get the location of a highlight"
+  "Hook that runs to get the location of a highlight."
   :group 'org-noter-module-hooks
   :type 'hook)
 
@@ -498,7 +498,7 @@ This can be used in pdf-mode for example to add a permanent highlight to the doc
   :type 'hook)
 
 (defcustom org-noter-create-skeleton-functions nil
-  "Function that inserts a tree of headlines according to the outline of the document.
+  "List of functions that convert document outline into noter headlines.
 
 The functions will be given a major mode of the document and must
 return a non-nil value when the outline is created.
