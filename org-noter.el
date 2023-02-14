@@ -25,10 +25,11 @@
 
 ;;; Commentary:
 
-;; The idea is to let you create notes that are kept in sync when you scroll through the
-;; document, but that are external to it - the notes themselves live in an Org-mode file. As
-;; such, this leverages the power of Org-mode (the notes may have outlines, latex fragments,
-;; babel, etc...) while acting like notes that are made /in/ the document.
+;; The idea is to let you create notes that are kept in sync when you scroll
+;; through the document, but that are external to it - the notes themselves live
+;; in an Org-mode file.  As such, this leverages the power of Org-mode (the
+;; notes may have outlines, latex fragments, babel, etc...) while acting like
+;; notes that are made /in/ the document.
 
 ;; Also, I must thank Sebastian for the original idea and inspiration!
 ;; Link to the original Interleave package:
@@ -56,18 +57,19 @@
 (defun org-noter (&optional arg)
   "Start `org-noter' session.
 
-There are two modes of operation. You may create the session from:
+There are two modes of operation.  You may create the session from:
 - The Org notes file
 - The document to be annotated (PDF, EPUB, ...)
 
-- Creating the session from notes file -----------------------------------------
+- Creating the session from notes file
+--------------------------------------
 This will open a session for taking your notes, with indirect
-buffers to the document and the notes side by side. Your current
+buffers to the document and the notes side by side.  Your current
 window configuration won't be changed, because this opens in a
 new frame.
 
 You only need to run this command inside a heading (which will
-hold the notes for this document). If no document path property is found,
+hold the notes for this document).  If no document path property is found,
 this command will ask you for the target file.
 
 With a prefix universal argument ARG, only check for the property
@@ -81,14 +83,16 @@ With a prefix number ARG:
 -     Equal to 0: Create session with `org-noter-always-create-frame' toggled
 -    Less than 0: Open the folder containing the document
 
-- Creating the session from the document ---------------------------------------
+- Creating the session from the document
+----------------------------------------
 This will try to find a notes file in any of the parent folders.
-The names it will search for are defined in `org-noter-default-notes-file-names'.
-It will also try to find a notes file with the same name as the
-document, giving it the maximum priority.
+The names it will search for are defined in
+`org-noter-default-notes-file-names'.  It will also try to find a
+notes file with the same name as the document, giving it the
+maximum priority.
 
 When it doesn't find anything, it will interactively ask you what
-you want it to do. The target notes file must be in a parent
+you want it to do.  The target notes file must be in a parent
 folder (direct or otherwise) of the document.
 
 You may pass a prefix ARG in order to make it let you choose the

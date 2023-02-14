@@ -25,10 +25,11 @@
 
 ;;; Commentary:
 
-;; The idea is to let you create notes that are kept in sync when you scroll through the
-;; document, but that are external to it - the notes themselves live in an Org-mode file. As
-;; such, this leverages the power of Org-mode (the notes may have outlines, latex fragments,
-;; babel, etc...) while acting like notes that are made /in/ the document.
+;; The idea is to let you create notes that are kept in sync when you scroll
+;; through the document, but that are external to it - the notes themselves live
+;; in an Org-mode file.  As such, this leverages the power of Org-mode (the
+;; notes may have outlines, latex fragments, babel, etc...) while acting like
+;; notes that are made /in/ the document.
 
 ;; Also, I must thank Sebastian for the original idea and inspiration!
 ;; Link to the original Interleave package:
@@ -108,10 +109,12 @@ at the moment."
   "Specifies situations for which the notes window is created.
 
 When the list contains:
-- `start', the notes window will be created when starting a `org-noter' session.
-- `scroll', it will be created when you go to a location with an associated note.
-- `only-prev', it will be created when you go to a location without notes, but
-   that has previous notes that are shown."
+- `start', the notes window will be created when starting an
+  `org-noter' session.
+- `scroll', it will be created when you go to a location with an
+   associated note.
+- `only-prev', it will be created when you go to a location
+   without notes, but that has previous notes that are shown."
   :group 'org-noter
   :type '(set (const :tag "Session start" start)
               (const :tag "Scroll to location with notes" scroll)
@@ -211,8 +214,8 @@ when creating a session, if the document is missing."
 (defcustom org-noter-closest-tipping-point 0.3
   "Defines when to show the closest previous note.
 
-Let x be (this value)*100. The following schematic represents the
-view (eg. a page of a PDF):
+Let x be (this value)*100.  The following schematic represents the
+view (eg., a page of a PDF):
 
 +----+
 |    | -> If there are notes in here, the closest previous note is not shown
@@ -229,7 +232,8 @@ This setting may be overridden in a document with the function
   :type 'number)
 
 (defcustom org-noter-default-notes-file-names '("Notes.org")
-  "List of possible names for the default notes file, in increasing order of priority."
+  "List of possible names for the default notes file.
+The list is in increasing order of priority."
   :group 'org-noter
   :type '(repeat string))
 
@@ -403,14 +407,14 @@ operations instead of the real value of the property."
   :type 'hook)
 
 (defcustom org-noter-get-buffer-file-name-hook nil
-  "Functions that when passed a major mode, will return the current buffer file name.
+  "Functions that when passed a major mode, return the current buffer file name.
 
 This is used by the `org-noter' command to determine the file name when
 user calls `org-noter' on a document buffer.
 
 For example, `nov-mode', a renderer for EPUB documents uses a unique variable
 called `nov-file-name' to store the file name of its document while the other
-major modes uses the `buffer-file-name' variable."
+major modes use the variable `buffer-file-name'."
   :group 'org-noter-module-hooks
   :type 'hook)
 
@@ -455,7 +459,7 @@ major modes uses the `buffer-file-name' variable."
   :type 'hook)
 
 (defcustom org-noter--pretty-print-highlight-location-hook nil
-  "Hook that runs to serialize a highlight location so that it can be stored in org."
+  "Hook that serializes a highlight location so that it can be stored in org."
   :group 'org-noter-module-hooks
   :type 'hook)
 
@@ -465,8 +469,10 @@ major modes uses the `buffer-file-name' variable."
   :type 'hook)
 
 (defcustom org-noter--add-highlight-hook nil
-  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
-This can be used in pdf-mode for example to add a permanent highlight to the document."
+  "Hook called to highlight selected text when creating notes.
+When a note is created this will be given `MAJOR-MODE' and
+`PRECISE-INFO'.  For example, this hook can be used in pdf-mode
+to add a permanent highlight to the document."
   :group 'org-noter-module-hooks
   :type 'hook)
 
@@ -492,8 +498,7 @@ This can be used in pdf-mode for example to add a permanent highlight to the doc
 
 (defcustom org-noter--doc-approx-location-hook nil
   "This returns an approximate location if no precise info is passed: (PAGE 0)
-   or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
-"
+or if precise info is passed, it's (PAGE V . H)."
   :group 'org-noter-module-hooks
   :type 'hook)
 
@@ -536,7 +541,8 @@ Used by `org-noter--create-session' when creating a new session."
   "Timer for synchronizing notes after scrolling.")
 
 (defvar org-noter--arrow-location nil
-  "A vector [TIMER WINDOW TOP LEFT] that shows where the arrow should appear, when idling.")
+  "A vector that shows where the arrow should appear, when idling.
+Format: [TIMER WINDOW TOP LEFT]")
 
 (defvar org-noter--completing-read-keymap (make-sparse-keymap)
   "A `completing-read' keymap that let's the user insert spaces.")
@@ -644,8 +650,8 @@ Otherwise return the maximum value for point."
          (document-major-mode (if (or link-p (eq document (current-buffer)))
                                   document-property-value
                                 (buffer-local-value 'major-mode document)))
-         (document-buffer-name
-          (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
+         ;; (document-buffer-name
+         ;;  (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
          (document-buffer document)
 
          (notes-buffer
@@ -765,8 +771,9 @@ Otherwise return the maximum value for point."
 
 (defun org-noter--parse-root (&optional info)
   "Parse and return the root AST.
-When used, the INFO argument may be an org-noter session or a vector [NotesBuffer PropertyText].
-If nil, the session used will be `org-noter--session'."
+When used, the INFO argument may be an org-noter session or a
+vector [NotesBuffer PropertyText].  If nil, the session used will
+be `org-noter--session'."
   (let* ((arg-is-session (org-noter--session-p info))
          (session (or (and arg-is-session info) org-noter--session))
          root-pos ast)
