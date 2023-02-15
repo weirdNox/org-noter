@@ -1198,8 +1198,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (when (or (> slice-width 1)
               (> slice-left 1))
       (let ((width (car (image-size (image-mode-window-get 'image) t))))
-        (setq slice-width (/ slice-width height)
-              slice-left (/ slice-left height))))
+        (setq slice-width (/ slice-width width)
+              slice-left (/ slice-left width))))
     (list slice-top slice-height slice-left slice-width)))
 
 (defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
