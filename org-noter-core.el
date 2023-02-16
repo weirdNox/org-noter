@@ -1203,7 +1203,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (list slice-top slice-height slice-left slice-width)))
 
 (defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
-  "Convert CHAR based position to percent-base position."
+  "Convert VSCROLL, HSCROLL position to percent-base position.
+Scroll units are character-based."
   (let* ((slice (org-noter--doc-get-page-slice))
          (display-size (image-display-size (image-get-display-property))) ;(width height)
          (display-width (car display-size))
@@ -1220,6 +1221,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (cons percentage-v percentage-h)))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
+  "Convert PERCENTAGE based position to scroll-based position."
   (let* ((slice (org-noter--doc-get-page-slice))
          (display-height (cdr (image-display-size (image-get-display-property))))
          (display-percentage (min 1 (max 0 (/ (- percentage (nth 0 slice)) (nth 1 slice)))))
@@ -2201,13 +2203,15 @@ Guiding principles for note generation
 (defun org-noter-insert-precise-note (&optional toggle-highlight)
   "Insert note associated with a specific location.
 This will ask you to click where you want to scroll to when you
-sync the document to this note. You should click on the top of
-that part. Will always create a new note.
+sync the document to this note.  You should click on the top of
+that part.  Will always create a new note.
 
 When text is selected, it will automatically choose the top of
 the selected text as the location and the text itself as the
-default title of the note if the text is <=
-`org-noter-max-short-selected-text-length' (you may change it anyway!).
+default title of the note if the text does not exceed
+`org-noter-max-short-selected-text-length'.
+
+Use prefix [\\universal-argument] to TOGGLE-HIGHLIGHT.
 
 See `org-noter-insert-note' docstring for more."
   (interactive "P")
@@ -2217,7 +2221,10 @@ See `org-noter-insert-note' docstring for more."
 
 (defun org-noter-insert-note-toggle-no-questions (&optional toggle-highlight)
   "Insert note associated with the current location.
-This is like `org-noter-insert-note', except it will toggle `org-noter-insert-note-no-questions'"
+This is like `org-noter-insert-note', except it will toggle
+`org-noter-insert-note-no-questions'.
+
+Use prefix [\\universal-argument] to TOGGLE-HIGHLIGHT."
   (interactive "P")
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
@@ -2225,7 +2232,10 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
 
 (defun org-noter-insert-precise-note-toggle-no-questions (&optional toggle-highlight)
   "Insert note associated with the current location.
-This is like `org-noter-insert-precise-note', except it will toggle `org-noter-insert-note-no-questions'"
+This is like `org-noter-insert-precise-note', except it will
+toggle `org-noter-insert-note-no-questions'.
+
+Use prefix [\\universal-argument] to TOGGLE-HIGHLIGHT."
   (interactive "P")
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
