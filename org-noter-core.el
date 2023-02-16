@@ -2031,7 +2031,7 @@ want to kill."
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
 
-(defun org-noter-insert-note (&optional toggle-highlight precise-info note-title)
+(defun org-noter-insert-note (&optional toggle-highlight precise-info)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
@@ -2090,7 +2090,6 @@ Guiding principles for note generation
          ;; complicated to get it right...
 
          (let ((view-info (org-noter--get-view-info current-view location))
-               (point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
                collection title note-body existing-note
                (default-title (or short-selected-text
