@@ -136,11 +136,9 @@
          (let* ((toc-path (cdr (aref nov-documents 0)))
                 (toc-tree (with-temp-buffer
                             (insert (nov-ncx-to-html toc-path))
-                            (replace-regexp "\n"
-                                            ""
-                                            nil
-                                            (point-min)
-                                            (point-max))
+                            (goto-char (point-min))
+                            (while (re-search-forward "\n" nil t)
+                              (replace-match "" nil nil))
                             (libxml-parse-html-region (point-min)
                                                       (point-max))))
                 (origin-index nov-documents-index)
@@ -163,21 +161,20 @@
          (goto-char (org-element-property :end ast))
          (with-current-buffer (org-noter--session-notes-buffer session)
            (dolist (data output-data)
-             (setq title          (aref data 0)
-                   location       (aref data 1)
-                   relative-level (aref data 2))
+             (let* ((title          (aref data 0))
+                    (location       (aref data 1))
+                    (relative-level (aref data 2))
+                    (last-absolute-level (+ top-level relative-level))
+                    (level last-absolute-level))
 
-             (setq last-absolute-level (+ top-level relative-level)
-                   level last-absolute-level)
+               (org-noter--insert-heading level title)
 
-             (org-noter--insert-heading level title)
+               (when location
+                 (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
 
-             (when location
-               (org-entry-put nil org-noter-property-note-location (org-noter--pretty-print-location location)))
-
-             (when org-noter-doc-property-in-notes
-               (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
-               (org-entry-put nil org-noter--property-auto-save-last-location "nil")))
+               (when org-noter-doc-property-in-notes
+                 (org-entry-put nil org-noter-property-doc-file (org-noter--session-property-text session))
+                 (org-entry-put nil org-noter--property-auto-save-last-location "nil"))))
            (setq ast (org-noter--parse-root))
            (org-noter--narrow-to-root ast)
            (goto-char (org-element-property :begin ast))
