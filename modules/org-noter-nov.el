@@ -24,6 +24,9 @@
 
 ;;; Code:
 (require 'org-noter-core)
+(if (assq 'nov package-alist)
+    (require 'nov)
+  (message "ATTENTION: org-noter-nov needs the package `nov'."))
 
 (defvar nov-documents-index)
 (defvar nov-file-name)

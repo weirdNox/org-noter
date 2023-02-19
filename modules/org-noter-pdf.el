@@ -25,7 +25,9 @@
 ;;; Code:
 (eval-when-compile (require 'subr-x))
 (require 'cl-lib)
-(require 'pdf-tools)
+(if (assq 'pdf-tools package-alist)
+    (require 'pdf-tools)
+  (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'."))
 (require 'org-noter-core)
 
 (cl-defstruct pdf-highlight page coords)

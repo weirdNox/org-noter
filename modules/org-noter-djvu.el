@@ -24,6 +24,9 @@
 
 ;;; Code:
 (require 'org-noter-core)
+(if (assq 'djvu package-alist)
+    (require 'djvu)
+  (message "ATTENTION: org-noter-dvju needs the package `djvu'."))
 
 (defun org-noter-djvu--pretty-print-location (location)
   (org-noter--with-valid-session
