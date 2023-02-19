@@ -196,7 +196,7 @@ original pretty-print function."
 (add-to-list 'org-noter-get-selected-text-hook #'org-noter-pdf--get-selected-text)
 
 ;; NOTE(nox): From machc/pdf-tools-org
-(defun org-noter--pdf-tools-edges-to-region (edges)
+(defun org-noter-pdf--tools-edges-to-region (edges)
   "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
   (when edges
     (let ((left0 (nth 0 (car edges)))
@@ -263,7 +263,7 @@ original pretty-print function."
              (dolist (item (pdf-info-getannots))
                (let* ((type (alist-get 'type item))
                       (page (alist-get 'page item))
-                      (edges (or (org-noter--pdf-tools-edges-to-region (alist-get 'markup-edges item))
+                      (edges (or (org-noter-pdf--tools-edges-to-region (alist-get 'markup-edges item))
                                  (alist-get 'edges item)))
                       (top (nth 1 edges))
                       (item-subject (alist-get 'subject item))
@@ -402,9 +402,6 @@ Each column is specified by its right edge as a fractional
 horizontal position.  Output is nil for standard notes and (page
 v') for precise notes."
   (if-let* ((_ (and (consp location) (consp (cdr location))))
-            (bb (current-buffer)) ; debugging code - we are in the doc window,
-                                  ; but need to be in the notes window for next
-                                  ; line to work
             (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
             (right-edge-list (car (read-from-string column-edges-string)))
             ;;(ncol (length left-edge-list))
