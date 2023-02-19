@@ -25,10 +25,11 @@
 ;;; Code:
 (eval-when-compile (require 'subr-x))
 (require 'cl-lib)
-(if (assq 'pdf-tools package-alist)
-    (require 'pdf-tools)
-  (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'."))
 (require 'org-noter-core)
+(if (not (assq 'pdf-tools package-alist))
+    (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'.")
+  (require 'pdf-tools)
+  (require 'pdf-annot))
 
 (cl-defstruct pdf-highlight page coords)
 
@@ -162,7 +163,6 @@ original pretty-print function."
 (defun org-noter-pdf-goto-location (mode location window)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (let ((top (org-noter--get-location-top location))
-          (window (org-noter--get-doc-window))
           (left (org-noter--get-location-left location)))
 
       (if (eq mode 'doc-view-mode)
@@ -379,12 +379,10 @@ original pretty-print function."
 
 (defun org-noter-pdf--create-missing-annotation ()
   "Add a highlight from a selected note."
-  (let* ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
-    (with-selected-window (org-noter--get-doc-window)
-      (org-noter-pdf-goto-location 'pdf-view-mode location)
-      (pdf-annot-add-highlight-markup-annotation (cdr location)))))
-
-(add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf-highlight-location)
+  (let ((location (org-noter--parse-location-property (org-noter--get-containing-element)))
+        (window (org-noter--get-doc-window)))
+    (org-noter-pdf-goto-location 'pdf-view-mode location window)
+    (pdf-annot-add-highlight-markup-annotation (cdr location))))
 
 (defun org-noter-pdf-highlight-location (mode precise-location)
   "Highlight a precise location in PDF."
@@ -392,6 +390,8 @@ original pretty-print function."
   (when (and (memq mode '(doc-view-mode pdf-view-mode))
              (pdf-view-active-region-p))
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
+
+(add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf-highlight-location)
 
 (defun org-noter-pdf-convert-to-location-cons (location)
   "Encode precise LOCATION as a cons cell for note insertion ordering.
