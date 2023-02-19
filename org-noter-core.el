@@ -139,16 +139,21 @@ This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
   :type '(cons (number :tag "Horizontal fraction") (number :tag "Vertical fraction")))
 
 (defcustom org-noter-auto-save-last-location nil
-  "When non-nil, save the last visited location automatically; when starting a new session, go to that location."
+  "Option to save document location in notes file.
+When non-nil, save the last visited location automatically; when
+starting a new session, go to that location.  When nil, sessions
+start at the beginning of the document."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-prefer-root-as-file-level nil
-  "When non-nil, org-noter will always try to return the file-level property drawer
-even when there are headings.
+  "Option to preferentially use the file-level property drawer.
 
-With the default value nil, org-noter will always use the first heading as root when
-there is at least one heading."
+When non-nil, org-noter will always try to return the file-level
+property drawer even when there are headings.
+
+With the default value nil, org-noter will always use the first
+heading as root when there is at least one heading."
   :group 'org-noter
   :type 'boolean)
 
@@ -207,7 +212,13 @@ when creating a session, if the document is missing."
   :type 'boolean)
 
 (defcustom org-noter-insert-selected-text-inside-note t
-  "When non-nil, it will automatically append the selected text into an existing note."
+  "Option to append selected text to existing note.
+
+When non-nil (default), it will automatically append the selected
+text into an existing note.
+
+When nil, selected text will not be appended to existing
+note (not recommended)."
   :group 'org-noter-insertion
   :type 'boolean)
 
@@ -381,9 +392,11 @@ the functions in this list."
 
 (defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading
                                                     org-noter--get-containing-property-drawer)
-  "The list of functions that will be called by
-`org-noter--get-containing-element' to get the org element of the note
-at point."
+  "List of functions that return the Org element of a note.
+
+These functions will be called by
+`org-noter--get-containing-element' to get the Org element of the
+note at point."
   :group 'org-noter-module-hooks
   :type 'hook)
 
@@ -1144,13 +1157,24 @@ optionally, the vertical and/or horizontal positions."
 
 ;; TODO: Documentation
 (defun org-noter--get-containing-element (&optional include-root)
-  "TODO."
+  "Run `org-noter--get-containing-element-hook's until success.
+
+Runs `org-noter--get-containing-heading', then
+`org-noter--get-containing-property-drawer'.  This function is
+used in `org-noter-sync-current-note',
+`org-noter-sync-previous-note', and `org-noter--create-session'.
+
+When INCLUDE-ROOT is non-nil, the root heading is also eligible
+to be returned."
   (run-hook-with-args-until-success 'org-noter--get-containing-element-hook include-root))
 
 (defun org-noter--get-containing-heading (&optional include-root)
-  "Get smallest containing heading that encloses the point and has location property.
-If the point isn't inside any heading with location property, return the outer heading.
-When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
+  "Return the smallest heading around point with a location property.
+
+Get smallest containing heading that encloses the point and has
+location property.  If the point isn't inside any heading with
+location property, return the outer heading.  When INCLUDE-ROOT
+is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
    (org-with-wide-buffer
     (unless (org-before-first-heading-p)
@@ -1171,9 +1195,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
               (setq previous heading)))))))))
 
 (defun org-noter--get-containing-property-drawer (&optional include-root)
-  "Get smallest containing heading that encloses the point and has location property.
-If the point isn't inside any heading with location property, return the outer heading.
-When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
+  "Return the property drawer of the smallest heading around point with location.
+
+Get smallest containing heading that encloses the point and has
+location property.  If the point isn't inside any heading with
+location property, return the outer heading.  When INCLUDE-ROOT
+is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
    (org-with-point-at (point-min)
     (when (org-before-first-heading-p)
