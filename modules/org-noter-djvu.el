@@ -66,6 +66,9 @@
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-djvu-setup-handler)
 
 (defun org-noter-djvu-goto-location (mode location &optional window)
+  "DJVU mode function for `org-noter--doc-goto-location-hook'.
+MODE is the document mode and LOCATION is the note location.
+WINDOW is required by the hook, but not used in this function."
   (when (eq mode 'djvu-read-mode)
     (djvu-goto-page (car location))
     (goto-char (org-noter--get-location-top location))))
@@ -111,7 +114,7 @@
            (goto-char (org-element-property :end ast))
 
            (let (last-absolute-level
-                 title location relative-level contents
+                 title location relative-level
                  level)
 
              (dolist (data (nreverse output-data))
