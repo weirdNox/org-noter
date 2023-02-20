@@ -25,8 +25,11 @@
 ;;; Code:
 (eval-when-compile (require 'subr-x))
 (require 'cl-lib)
-(require 'pdf-tools)
 (require 'org-noter-core)
+(if (not (assq 'pdf-tools package-alist))
+    (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'.")
+  (require 'pdf-tools)
+  (require 'pdf-annot))
 
 (cl-defstruct pdf-highlight page coords)
 
@@ -160,7 +163,6 @@ original pretty-print function."
 (defun org-noter-pdf-goto-location (mode location window)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (let ((top (org-noter--get-location-top location))
-          (window (org-noter--get-doc-window))
           (left (org-noter--get-location-left location)))
 
       (if (eq mode 'doc-view-mode)
@@ -194,7 +196,7 @@ original pretty-print function."
 (add-to-list 'org-noter-get-selected-text-hook #'org-noter-pdf--get-selected-text)
 
 ;; NOTE(nox): From machc/pdf-tools-org
-(defun org-noter--pdf-tools-edges-to-region (edges)
+(defun org-noter-pdf--tools-edges-to-region (edges)
   "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
   (when edges
     (let ((left0 (nth 0 (car edges)))
@@ -261,7 +263,7 @@ original pretty-print function."
              (dolist (item (pdf-info-getannots))
                (let* ((type (alist-get 'type item))
                       (page (alist-get 'page item))
-                      (edges (or (org-noter--pdf-tools-edges-to-region (alist-get 'markup-edges item))
+                      (edges (or (org-noter-pdf--tools-edges-to-region (alist-get 'markup-edges item))
                                  (alist-get 'edges item)))
                       (top (nth 1 edges))
                       (item-subject (alist-get 'subject item))
@@ -377,12 +379,10 @@ original pretty-print function."
 
 (defun org-noter-pdf--create-missing-annotation ()
   "Add a highlight from a selected note."
-  (let* ((location (org-noter--parse-location-property (org-noter--get-containing-element))))
-    (with-selected-window (org-noter--get-doc-window)
-      (org-noter-pdf-goto-location 'pdf-view-mode location)
-      (pdf-annot-add-highlight-markup-annotation (cdr location)))))
-
-(add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf-highlight-location)
+  (let ((location (org-noter--parse-location-property (org-noter--get-containing-element)))
+        (window (org-noter--get-doc-window)))
+    (org-noter-pdf-goto-location 'pdf-view-mode location window)
+    (pdf-annot-add-highlight-markup-annotation (cdr location))))
 
 (defun org-noter-pdf-highlight-location (mode precise-location)
   "Highlight a precise location in PDF."
@@ -390,6 +390,8 @@ original pretty-print function."
   (when (and (memq mode '(doc-view-mode pdf-view-mode))
              (pdf-view-active-region-p))
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
+
+(add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf-highlight-location)
 
 (defun org-noter-pdf-convert-to-location-cons (location)
   "Encode precise LOCATION as a cons cell for note insertion ordering.
@@ -400,9 +402,6 @@ Each column is specified by its right edge as a fractional
 horizontal position.  Output is nil for standard notes and (page
 v') for precise notes."
   (if-let* ((_ (and (consp location) (consp (cdr location))))
-            (bb (current-buffer)) ; debugging code - we are in the doc window,
-                                  ; but need to be in the notes window for next
-                                  ; line to work
             (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
             (right-edge-list (car (read-from-string column-edges-string)))
             ;;(ncol (length left-edge-list))

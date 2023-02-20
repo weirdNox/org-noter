@@ -139,16 +139,21 @@ This is a cons of the type (HORIZONTAL-FRACTION . VERTICAL-FRACTION)."
   :type '(cons (number :tag "Horizontal fraction") (number :tag "Vertical fraction")))
 
 (defcustom org-noter-auto-save-last-location nil
-  "When non-nil, save the last visited location automatically; when starting a new session, go to that location."
+  "Option to save document location in notes file.
+When non-nil, save the last visited location automatically; when
+starting a new session, go to that location.  When nil, sessions
+start at the beginning of the document."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-prefer-root-as-file-level nil
-  "When non-nil, org-noter will always try to return the file-level property drawer
-even when there are headings.
+  "Option to preferentially use the file-level property drawer.
 
-With the default value nil, org-noter will always use the first heading as root when
-there is at least one heading."
+When non-nil, org-noter will always try to return the file-level
+property drawer even when there are headings.
+
+With the default value nil, org-noter will always use the first
+heading as root when there is at least one heading."
   :group 'org-noter
   :type 'boolean)
 
@@ -207,7 +212,13 @@ when creating a session, if the document is missing."
   :type 'boolean)
 
 (defcustom org-noter-insert-selected-text-inside-note t
-  "When non-nil, it will automatically append the selected text into an existing note."
+  "Option to append selected text to existing note.
+
+When non-nil (default), it will automatically append the selected
+text into an existing note.
+
+When nil, selected text will not be appended to existing
+note (not recommended)."
   :group 'org-noter-insertion
   :type 'boolean)
 
@@ -381,9 +392,11 @@ the functions in this list."
 
 (defcustom org-noter--get-containing-element-hook '(org-noter--get-containing-heading
                                                     org-noter--get-containing-property-drawer)
-  "The list of functions that will be called by
-`org-noter--get-containing-element' to get the org element of the note
-at point."
+  "List of functions that return the Org element of a note.
+
+These functions will be called by
+`org-noter--get-containing-element' to get the Org element of the
+note at point."
   :group 'org-noter-module-hooks
   :type 'hook)
 
@@ -1144,13 +1157,24 @@ optionally, the vertical and/or horizontal positions."
 
 ;; TODO: Documentation
 (defun org-noter--get-containing-element (&optional include-root)
-  "TODO."
+  "Run `org-noter--get-containing-element-hook's until success.
+
+Runs `org-noter--get-containing-heading', then
+`org-noter--get-containing-property-drawer'.  This function is
+used in `org-noter-sync-current-note',
+`org-noter-sync-previous-note', and `org-noter--create-session'.
+
+When INCLUDE-ROOT is non-nil, the root heading is also eligible
+to be returned."
   (run-hook-with-args-until-success 'org-noter--get-containing-element-hook include-root))
 
 (defun org-noter--get-containing-heading (&optional include-root)
-  "Get smallest containing heading that encloses the point and has location property.
-If the point isn't inside any heading with location property, return the outer heading.
-When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
+  "Return the smallest heading around point with a location property.
+
+Get smallest containing heading that encloses the point and has
+location property.  If the point isn't inside any heading with
+location property, return the outer heading.  When INCLUDE-ROOT
+is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
    (org-with-wide-buffer
     (unless (org-before-first-heading-p)
@@ -1171,9 +1195,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
               (setq previous heading)))))))))
 
 (defun org-noter--get-containing-property-drawer (&optional include-root)
-  "Get smallest containing heading that encloses the point and has location property.
-If the point isn't inside any heading with location property, return the outer heading.
-When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
+  "Return the property drawer of the smallest heading around point with location.
+
+Get smallest containing heading that encloses the point and has
+location property.  If the point isn't inside any heading with
+location property, return the outer heading.  When INCLUDE-ROOT
+is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
    (org-with-point-at (point-min)
     (when (org-before-first-heading-p)
@@ -1203,7 +1230,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (list slice-top slice-height slice-left slice-width)))
 
 (defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
-  "Convert CHAR based position to percent-base position."
+  "Convert VSCROLL, HSCROLL position to percent-base position.
+Scroll units are character-based."
   (let* ((slice (org-noter--doc-get-page-slice))
          (display-size (image-display-size (image-get-display-property))) ;(width height)
          (display-width (car display-size))
@@ -1220,6 +1248,7 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (cons percentage-v percentage-h)))
 
 (defun org-noter--conv-page-percentage-scroll (percentage)
+  "Convert PERCENTAGE based position to scroll-based position."
   (let* ((slice (org-noter--doc-get-page-slice))
          (display-height (cdr (image-display-size (image-get-display-property))))
          (display-percentage (min 1 (max 0 (/ (- percentage (nth 0 slice)) (nth 1 slice)))))
@@ -2031,7 +2060,7 @@ want to kill."
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
 
-(defun org-noter-insert-note (&optional toggle-highlight precise-info note-title)
+(defun org-noter-insert-note (&optional toggle-highlight precise-info)
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
@@ -2090,7 +2119,6 @@ Guiding principles for note generation
          ;; complicated to get it right...
 
          (let ((view-info (org-noter--get-view-info current-view location))
-               (point (point))
                (minibuffer-local-completion-map org-noter--completing-read-keymap)
                collection title note-body existing-note
                (default-title (or short-selected-text
@@ -2202,13 +2230,15 @@ Guiding principles for note generation
 (defun org-noter-insert-precise-note (&optional toggle-highlight)
   "Insert note associated with a specific location.
 This will ask you to click where you want to scroll to when you
-sync the document to this note. You should click on the top of
-that part. Will always create a new note.
+sync the document to this note.  You should click on the top of
+that part.  Will always create a new note.
 
 When text is selected, it will automatically choose the top of
 the selected text as the location and the text itself as the
-default title of the note if the text is <=
-`org-noter-max-short-selected-text-length' (you may change it anyway!).
+default title of the note if the text does not exceed
+`org-noter-max-short-selected-text-length'.
+
+Use prefix [\\universal-argument] to TOGGLE-HIGHLIGHT.
 
 See `org-noter-insert-note' docstring for more."
   (interactive "P")
@@ -2218,7 +2248,10 @@ See `org-noter-insert-note' docstring for more."
 
 (defun org-noter-insert-note-toggle-no-questions (&optional toggle-highlight)
   "Insert note associated with the current location.
-This is like `org-noter-insert-note', except it will toggle `org-noter-insert-note-no-questions'"
+This is like `org-noter-insert-note', except it will toggle
+`org-noter-insert-note-no-questions'.
+
+Use prefix [\\universal-argument] to TOGGLE-HIGHLIGHT."
   (interactive "P")
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
@@ -2226,7 +2259,10 @@ This is like `org-noter-insert-note', except it will toggle `org-noter-insert-no
 
 (defun org-noter-insert-precise-note-toggle-no-questions (&optional toggle-highlight)
   "Insert note associated with the current location.
-This is like `org-noter-insert-precise-note', except it will toggle `org-noter-insert-note-no-questions'"
+This is like `org-noter-insert-precise-note', except it will
+toggle `org-noter-insert-note-no-questions'.
+
+Use prefix [\\universal-argument] to TOGGLE-HIGHLIGHT."
   (interactive "P")
   (org-noter--with-valid-session
    (let ((org-noter-insert-note-no-questions (not org-noter-insert-note-no-questions)))
