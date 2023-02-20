@@ -23,6 +23,11 @@
 ;;
 
 ;;; Code:
+(eval-when-compile (require 'subr-x))
+(require 'cl-lib)
+(require 'pdf-tools)
+(require 'org-noter-core)
+
 (cl-defstruct pdf-highlight page coords)
 
 
@@ -45,8 +50,11 @@ Otherwise returns nil"
 (add-to-list 'org-noter--pretty-print-highlight-location-hook #'org-noter-pdf--pretty-print-highlight)
 
 (defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
-  "Returns (page . 0) except when creating a precise-note,
-where (pabe v-pos) or (page v-pos . h-pos) is returned"
+  "Return location as a cons cell.
+Runs when MODE is `doc-view-mode' or `pdf-view-mode'
+
+Returns page location as (page . 0).  When processing
+PRECISE-INFO, return (page v-pos) or (page v-pos . h-pos)."
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (cons (image-mode-window-get 'page) (if (or (numberp precise-info)
                                                 (and (consp precise-info)
@@ -57,7 +65,9 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
 
 (defun org-noter-get-buffer-file-name-pdf (&optional mode)
-  "Return the file naming backing the document buffer"
+  "Return the file naming backing the document buffer.
+
+MODE (unused) is required for this type of hook."
   (bound-and-true-p pdf-file-name))
 
 (add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-pdf)
@@ -81,7 +91,7 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-doc-view-setup-handler)
 
 (defun org-noter-pdf--pretty-print-location (location)
-  "Full precision location for property drawers"
+  "Formats LOCATION with full precision for property drawers."
   (org-noter--with-valid-session
    (when (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
      (format "%s" (if (or (not (org-noter--get-location-top location)) (<= (org-noter--get-location-top location) 0))
@@ -91,7 +101,10 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-pdf--pretty-print-location)
 
 (defun org-noter-pdf--pretty-print-location-for-title (location)
-  "Human readable location with page label and v/h percentages. Doc-view falls back to original pp function."
+  "Convert LOCATION to a human readable format.
+With `pdf-view-mode', the format uses pagelabel and vertical and
+horizontal percentages.  With `doc-view-mode', this falls back to
+original pretty-print function."
   (org-noter--with-valid-session
    (let ((mode (org-noter--session-doc-mode session))
          (vpos (org-noter--get-location-top location))
@@ -372,14 +385,15 @@ where (pabe v-pos) or (page v-pos . h-pos) is returned"
 (add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf-highlight-location)
 
 (defun org-noter-pdf-highlight-location (mode precise-location)
-  "Highlight a precise location in PDF"
+  "Highlight a precise location in PDF."
   (message "---> %s %s" mode precise-location)
   (when (and (memq mode '(doc-view-mode pdf-view-mode))
              (pdf-view-active-region-p))
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
 
 (defun org-noter-pdf-convert-to-location-cons (location)
-  "converts (page v . h) precise locations to (page v') such that
+  "Encode precise LOCATION as a cons cell for note insertion ordering.
+Converts (page v . h) precise locations to (page v') such that
 v' represents the fractional distance through the page along
 columns, so it takes values between 0 and the number of columns.
 Each column is specified by its right edge as a fractional
@@ -403,7 +417,7 @@ v') for precise notes."
 (defun org-noter-pdf-set-columns (num-columns)
   "Interactively set the COLUMN_EDGES property for the current heading.
 
-The number of columns can be given as a prefix or in the
+NUM-COLUMNS can be given as an integer prefix or in the
 minibuffer.  The user is then prompted to click on the right edge
 of each column, except for the last one.  Subheadings of the
 current heading inherit the COLUMN_EDGES property."

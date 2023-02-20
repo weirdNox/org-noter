@@ -86,20 +86,16 @@
    1. clone this repo to a local directory
    2. add to your init file:
       #+begin_src elisp
-        (add-to-list 'load-path "<path-to-org-noter>/modules")
         (add-to-list 'load-path "<path-to-org-noter>")
-        ;; then choose one or more of the following modules
-        ;; (require 'org-noter-pdf)
-        ;; (require 'org-noter-nov)
-        ;; (require 'org-noter-djvu)
+        (require 'org-noter)
       #+end_src
    
 ** Usage
 
 If you want to give it a try without much trouble:
-- Just have an Org file where you want the notes to go
-- Create a root heading to hold the notes
-- Run =M-x org-noter= inside!
+- Open an Org file where you want the notes to go.
+- Create a root heading to hold the notes.
+- Run =M-x org-noter= inside the Org file.
   On the first run, it will ask you for the path of the document and save it in a
   property. By default, it will also let you annotate an attached file [[https://orgmode.org/manual/Attachments.html][(org-attach documentation)]].
 
@@ -191,9 +187,9 @@ annotations (or both!) as notes, and it may be used, for example, as a starting 
 You may also want to check the docstrings of the functions associated with the
 keybindings, because there is some extra functionality in some.
 
-** Acknowledgments
-   - [[https://github.com/rudolfochrist][Sebastian Christ]] :: Author of the ~interleave~ package, inspiration for ~org-noter~
-   - [[https://github.com/weirdNox][Gonçalo Santos]] :: Author of ~org-noter~
-   - [[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]] :: Contributor of 2-D precise notes
-   - [[https://github.com/c1-g/org-noter-plus-djvu][Charlie Gordon]] :: Contributor of DJVU support and document-type modularization
+* Acknowledgments
+  - [[https://github.com/rudolfochrist][Sebastian Christ]] :: Author of the ~interleave~ package, inspiration for ~org-noter~
+  - [[https://github.com/weirdNox][Gonçalo Santos]] :: Author of ~org-noter~
+  - [[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]] :: Contributor of 2-D precise notes
+  - [[https://github.com/c1-g/org-noter-plus-djvu][Charlie Gordon]] :: Contributor of DJVU support and document-type modularization
      

@@ -25,10 +25,11 @@
 
 ;;; Commentary:
 
-;; The idea is to let you create notes that are kept in sync when you scroll through the
-;; document, but that are external to it - the notes themselves live in an Org-mode file. As
-;; such, this leverages the power of Org-mode (the notes may have outlines, latex fragments,
-;; babel, etc...) while acting like notes that are made /in/ the document.
+;; The idea is to let you create notes that are kept in sync when you scroll
+;; through the document, but that are external to it - the notes themselves live
+;; in an Org-mode file.  As such, this leverages the power of Org-mode (the
+;; notes may have outlines, latex fragments, babel, etc...) while acting like
+;; notes that are made /in/ the document.
 
 ;; Also, I must thank Sebastian for the original idea and inspiration!
 ;; Link to the original Interleave package:
@@ -62,22 +63,22 @@
 ;; --------------------------------------------------------------------------------
 ;;; User variables
 (defgroup org-noter nil
-  "A synchronized, external annotator"
+  "A synchronized, external annotator."
   :group 'convenience
   :version "25.3.1")
 
 (defgroup org-noter-layout nil
-  "Org-noter layout and visibility variables"
+  "Org-noter layout and visibility variables."
   :group 'org-noter
   :version "28.2")
 
 (defgroup org-noter-navigation nil
-  "Org-noter navigation and display variables"
+  "Org-noter navigation and display variables."
   :group 'org-noter
   :version "28.2")
 
 (defgroup org-noter-insertion nil
-  "Org-noter note-insertion variables"
+  "Org-noter note-insertion variables."
   :group 'org-noter
   :version "28.2")
 
@@ -105,20 +106,23 @@ at the moment."
   :type 'string)
 
 (defcustom org-noter-notes-window-behavior '(start scroll)
-  "This setting specifies in what situations the notes window should be created.
+  "Specifies situations for which the notes window is created.
 
 When the list contains:
-- `start', the window will be created when starting a `org-noter' session.
-- `scroll', it will be created when you go to a location with an associated note.
-- `only-prev', it will be created when you go to a location without notes, but that
-   has previous notes that are shown."
+- `start', the notes window will be created when starting an
+  `org-noter' session.
+- `scroll', it will be created when you go to a location with an
+   associated note.
+- `only-prev', it will be created when you go to a location
+   without notes, but that has previous notes that are shown."
   :group 'org-noter
   :type '(set (const :tag "Session start" start)
               (const :tag "Scroll to location with notes" scroll)
               (const :tag "Scroll to location with previous notes only" only-prev)))
 
 (defcustom org-noter-notes-window-location 'horizontal-split
-  "Whether the notes should appear in the main frame (horizontal or vertical split) or in a separate frame.
+  "The default document/notes window layout.
+Options are: \"Horizontal\", \"Vertical\", or \"Other frame\"
 
 Note that this will only have effect on session startup if `start'
 is member of `org-noter-notes-window-behavior' (which see)."
@@ -149,15 +153,18 @@ there is at least one heading."
   :type 'boolean)
 
 (defcustom org-noter-hide-other t
-  "When non-nil, hide all headings not related to the command used.
+  "Hide notes that are not linked to the current document page.
+When non-nil, hide all headings not related to the command used.
 For example, when scrolling to pages with notes, collapse all the
 notes that are not annotating the current page."
   :group 'org-noter-layout
   :type 'boolean)
 
 (defcustom org-noter-always-create-frame t
-  "When non-nil, org-noter will always create a new frame for the session.
-When nil, it will use the selected frame if it does not belong to any other session."
+  "Create a new frame for each document session.
+When non-nil, org-noter will always create a new frame for the
+session.  When nil, it will use the selected frame if it does not
+belong to any other session."
   :group 'org-noter
   :type 'boolean)
 
@@ -167,23 +174,29 @@ When nil, it will use the selected frame if it does not belong to any other sess
   :type 'boolean)
 
 (defcustom org-noter-use-indirect-buffer t
-  "When non-nil, org-noter will create an indirect buffer of the calling
-org file as a note buffer of the session.
-When nil, it will use the real buffer."
+  "Use indirect buffer for notes.
+When non-nil, org-noter will create an indirect buffer of the
+calling org file as a note buffer of the session.  When nil, it
+will use the real buffer."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-swap-window nil
-  "By default `org-noter' will make a session by setting the buffer of the selected window
-to the document buffer then split with the window of the notes buffer on the right.
+  "Swap the left/right or top/bottom layout of the doc and notes.
 
-If this variable is non-nil, the buffers of the two windows will be the other way around."
+By default `org-noter' will make a session by setting the buffer
+of the selected window to the document buffer then split with the
+window of the notes buffer on the right.
+
+If this variable is non-nil, the buffers of the two windows will
+be the other way around."
   :group 'org-noter-layout
   :type 'boolean)
 
 
 (defcustom org-noter-suggest-from-attachments t
-  "When non-nil, org-noter will suggest files from the attachments
+  "Suggest document files from attachments (in an Org file).
+When non-nil, org-noter will suggest files from the attachments
 when creating a session, if the document is missing."
   :group 'org-noter
   :type 'boolean)
@@ -201,8 +214,8 @@ when creating a session, if the document is missing."
 (defcustom org-noter-closest-tipping-point 0.3
   "Defines when to show the closest previous note.
 
-Let x be (this value)*100. The following schematic represents the
-view (eg. a page of a PDF):
+Let x be (this value)*100.  The following schematic represents the
+view (eg., a page of a PDF):
 
 +----+
 |    | -> If there are notes in here, the closest previous note is not shown
@@ -219,7 +232,8 @@ This setting may be overridden in a document with the function
   :type 'number)
 
 (defcustom org-noter-default-notes-file-names '("Notes.org")
-  "List of possible names for the default notes file, in increasing order of priority."
+  "List of possible names for the default notes file.
+The list is in increasing order of priority."
   :group 'org-noter
   :type '(repeat string))
 
@@ -229,42 +243,43 @@ This setting may be overridden in a document with the function
   :type '(repeat string))
 
 (defcustom org-noter-arrow-delay 0.2
-  "Number of seconds from when the command was invoked until the tooltip arrow appears.
+  "Delay (in seconds) afte a sync before showing the tooltip arrow.
 
 When set to a negative number, the arrow tooltip is disabled.
 This is needed in order to keep Emacs from hanging when doing many syncs."
   :group 'org-noter-navigation
-  :type 'number
-  :version "28.2")
+  :type 'number)
 
 (defcustom org-noter-arrow-horizontal-offset -20
-  "Horizontal offset in the position of the tooltip arrow relative
+  "Horizontal offset of the tooltip arrow relative to a precise location.
 
-to precise location.  Units are display pixels; positive values
-move the arrow to the right, while negative values move it to the
-left.  The intent is to move the arrow so that it does not cover
-text of intereest, but roundoff errors cause the arrow position
-still to be dependent upon magnification at the 1-em level"
+Units are display pixels; positive values move the arrow to the
+right, while negative values move it to the left.  The intent is
+to move the arrow so that it does not cover text of intereest,
+but roundoff errors cause the arrow position still to be
+dependent upon magnification at the 1-em level"
   :group 'org-noter-navigation
   :type 'number
   :version "28.2")
 
 (defcustom org-noter-arrow-foreground-color "orange red"
-  "Default color of the tooltip arrow"
+  "Default color of the tooltip arrow."
   :group 'org-noter-navigation
   :type 'string
   :version "28.2")
 
 (defcustom org-noter-arrow-background-color "white"
-  "Default background color of the tooltip arrow"
+  "Default background color of the tooltip arrow."
   :group 'org-noter-navigation
   :type 'string
   :version "28.2")
 
 (defcustom org-noter-vscroll-buffer 5
-  "Number of document display lines to leave above note location
-when navigating to precise note.  A value of 0 places the precise
-note at the top of the window when possible."
+  "Minimum number of document display lines to leave above precise note.
+Navigation will scroll precise notes to the top of the buffer.  A
+value of 0 places the precise note at the top of the window when
+possible.  A positive number leaves some context above the
+precise note location."
   :group 'org-noter-navigation
   :type 'number
   :version "28.2")
@@ -276,13 +291,19 @@ This makes moving notes out of the root heading easier."
   :type 'boolean)
 
 (defcustom org-noter-insert-note-no-questions nil
-  "When non-nil, `org-noter-insert-note' won't ask for a title and will always insert a new note.
-The title used will be the default one."
+  "Do not prompt for a note title.
+When non-nil, `org-noter-insert-note' won't ask for a title and
+will always insert a new note.  The title used will be the one of
+defaults: the selected text (if it does not exceed
+`org-noter-max-short-selected-text-length') or
+`org-noter-default-heading-title'."
   :group 'org-noter-insertion
   :type 'boolean)
 
 (defcustom org-noter-kill-frame-at-session-end t
-  "If non-nil, `org-noter-kill-session' will delete the frame if others exist on the current display.'"
+  "Close the frame when exiting a session.
+If non-nil, `org-noter-kill-session' will delete the frame if
+others exist on the current display.'"
   :group 'org-noter
   :type 'boolean)
 
@@ -292,7 +313,8 @@ The title used will be the default one."
   :type 'hook)
 
 (defcustom org-noter-highlight-selected-text nil
-  "If non-nil, highlight selected-text when creating notes.  This
+  "Highlight selected text when creating notes.
+If non-nil, highlight selected-text when creating notes.  This
 variable is temporarily toggled by prefixing the insertion
 command with any non-nil prefix such as \\[universal-argument]."
   :group 'org-noter-insertion
@@ -300,27 +322,28 @@ command with any non-nil prefix such as \\[universal-argument]."
   :version "28.2")
 
 (defcustom org-noter-max-short-selected-text-length 80
-  "Maximum length of a short text selection.  Short text selections
-may be used as note title.  When they are quoted in the note,
-they are quoted as ``short-selected-text'' rather than inside a
-QUOTE-block."
+  "Maximum length of a short text selection.
+Short text selections are the primary default note title.  When
+they are quoted in the note, they are quoted as
+``short-selected-text'' rather than inside a QUOTE-block."
   :group 'org-noter-insertion
   :type 'integer
   :version "28.2")
 
 (defcustom org-noter-find-additional-notes-functions nil
-  "Functions that when given a document file path as argument, give out
-an org note file path.
+  "List of functions that map a document to an Org-noter filepath.
 
 The functions in this list must accept 1 argument, a file name.
 The argument will be given by `org-noter'.
 
-The return value must be a path to an org file. No matter if it's
-an absolute or relative path, the file name will be expanded to
-each directory set in `org-noter-notes-search-path' to test if it exists.
+The return value must be a path to an org file.  No matter if
+it's an absolute or relative path, the file name will be expanded
+to each directory set in `org-noter-notes-search-path' to test if
+it exists.
 
-If it exists, it will be listed as a candidate that `org-noter' will have
-the user select to use as the note file of the document."
+If it exists, it will be listed as a candidate that `org-noter'
+will have the user select to use as the note file of the
+document."
   :group 'org-noter
   :type 'hook)
 
@@ -341,7 +364,7 @@ the user select to use as the note file of the document."
 ;; --------------------------------------------------------------------------------
 ;;; Integration with other packages
 (defgroup org-noter-module-hooks nil
-  "Hooks for integrating org-noter with other packages (pdfview, nov, djvu)"
+  "Hooks for integrating org-noter with other packages (pdfview, nov, djvu)."
   :group 'org-noter
   :version "28.2")
 
@@ -384,102 +407,103 @@ operations instead of the real value of the property."
   :type 'hook)
 
 (defcustom org-noter-get-buffer-file-name-hook nil
-  "Functions that when passed a major mode, will return the current buffer file name.
+  "Functions that when passed a major mode, return the current buffer file name.
 
 This is used by the `org-noter' command to determine the file name when
 user calls `org-noter' on a document buffer.
 
 For example, `nov-mode', a renderer for EPUB documents uses a unique variable
 called `nov-file-name' to store the file name of its document while the other
-major modes uses the `buffer-file-name' variable."
+major modes use the variable `buffer-file-name'."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-set-up-document-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-get-selected-text-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--check-location-property-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--parse-location-property-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--pretty-print-location-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--pretty-print-location-for-title-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--convert-to-location-cons-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--doc-goto-location-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--pretty-print-highlight-location-hook nil
-  "Hook that runs to serialize a highlight location so that it can be stored in org."
+  "Hook that serializes a highlight location so that it can be stored in org."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-highlight-location-hook nil
-  "Hook that runs to get the location of a highlight"
+  "Hook that runs to get the location of a highlight."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--add-highlight-hook nil
-  "When a precise note is created this will be called with the `MAJOR-MODE' and `PRECISE-INFO'.
-This can be used in pdf-mode for example to add a permanent highlight to the document."
+  "Hook called to highlight selected text when creating notes.
+When a note is created this will be given `MAJOR-MODE' and
+`PRECISE-INFO'.  For example, this hook can be used in pdf-mode
+to add a permanent highlight to the document."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--note-after-tipping-point-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--relative-position-to-view-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-precise-info-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--get-current-view-hook nil
-  "TODO"
+  "TODO."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter--doc-approx-location-hook nil
   "This returns an approximate location if no precise info is passed: (PAGE 0)
-   or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
-"
+or if precise info is passed, it's (PAGE V . H)."
   :group 'org-noter-module-hooks
   :type 'hook)
 
 (defcustom org-noter-create-skeleton-functions nil
-  "Function that inserts a tree of headlines according to the outline of the document.
+  "List of functions that convert document outline into noter headlines.
 
 The functions will be given a major mode of the document and must
 return a non-nil value when the outline is created.
@@ -517,7 +541,8 @@ Used by `org-noter--create-session' when creating a new session."
   "Timer for synchronizing notes after scrolling.")
 
 (defvar org-noter--arrow-location nil
-  "A vector [TIMER WINDOW TOP LEFT] that shows where the arrow should appear, when idling.")
+  "A vector that shows where the arrow should appear, when idling.
+Format: [TIMER WINDOW TOP LEFT]")
 
 (defvar org-noter--completing-read-keymap (make-sparse-keymap)
   "A `completing-read' keymap that let's the user insert spaces.")
@@ -625,8 +650,8 @@ Otherwise return the maximum value for point."
          (document-major-mode (if (or link-p (eq document (current-buffer)))
                                   document-property-value
                                 (buffer-local-value 'major-mode document)))
-         (document-buffer-name
-          (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
+         ;; (document-buffer-name
+         ;;  (generate-new-buffer-name (concat (unless raw-value-not-empty "Org-noter: ") display-name)))
          (document-buffer document)
 
          (notes-buffer
@@ -746,8 +771,9 @@ Otherwise return the maximum value for point."
 
 (defun org-noter--parse-root (&optional info)
   "Parse and return the root AST.
-When used, the INFO argument may be an org-noter session or a vector [NotesBuffer PropertyText].
-If nil, the session used will be `org-noter--session'."
+When used, the INFO argument may be an org-noter session or a
+vector [NotesBuffer PropertyText].  If nil, the session used will
+be `org-noter--session'."
   (let* ((arg-is-session (org-noter--session-p info))
          (session (or (and arg-is-session info) org-noter--session))
          root-pos ast)
@@ -949,7 +975,7 @@ properties, by a margin of NEWLINES-NUMBER."
            notes-window)))))
 
 (defun org-noter--setup-windows (session)
-  "Setup windows when starting session, respecting user configuration."
+  "Setup windows when starting SESSION, respecting user configuration."
   (when (org-noter--valid-session session)
     (with-selected-frame (org-noter--session-frame session)
       (delete-other-windows)
@@ -1049,7 +1075,7 @@ properties, by a margin of NEWLINES-NUMBER."
       (ignore-errors (string-to-number property)))))
 
 (defun org-noter--doc-approx-location (&optional precise-info force-new-ref)
-  "TODO"
+  "TODO."
   (let ((window (if (org-noter--valid-session org-noter--session)
                     (org-noter--get-doc-window)
                   (selected-window))))
@@ -1100,20 +1126,25 @@ properties, by a margin of NEWLINES-NUMBER."
                   ((integerp value) (cons value 0))))))))
 
 (defun org-noter--pretty-print-location (location)
-  "Original pretty-print for property drawer."
+  "Original pretty-print for property drawer.
+LOCATION contains the page number and, optionally, the vertical
+and/or horizontal positions."
   (org-noter--with-valid-session
    (run-hook-with-args-until-success
     'org-noter--pretty-print-location-hook location)))
 
 (defun org-noter--pretty-print-location-for-title (location)
-  "Pretty-print for titles.  Compared to the original
-functions/hook, this one may present more human-readable text"
+  "Pretty-print for titles.
+Compared to the original functions/hook, this one may present
+more human-readable text.  LOCATION contains the page number and,
+optionally, the vertical and/or horizontal positions."
   (org-noter--with-valid-session
    (run-hook-with-args-until-success
     'org-noter--pretty-print-location-for-title-hook location)))
 
 ;; TODO: Documentation
 (defun org-noter--get-containing-element (&optional include-root)
+  "TODO."
   (run-hook-with-args-until-success 'org-noter--get-containing-element-hook include-root))
 
 (defun org-noter--get-containing-heading (&optional include-root)
@@ -1167,12 +1198,12 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
     (when (or (> slice-width 1)
               (> slice-left 1))
       (let ((width (car (image-size (image-mode-window-get 'image) t))))
-        (setq slice-width (/ slice-width height)
-              slice-left (/ slice-left height))))
+        (setq slice-width (/ slice-width width)
+              slice-left (/ slice-left width))))
     (list slice-top slice-height slice-left slice-width)))
 
 (defun org-noter--conv-page-scroll-percentage (vscroll &optional hscroll)
-  "Convert CHAR based position to percent-base position"
+  "Convert CHAR based position to percent-base position."
   (let* ((slice (org-noter--doc-get-page-slice))
          (display-size (image-display-size (image-get-display-property))) ;(width height)
          (display-width (car display-size))
@@ -1266,7 +1297,9 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
       location))
 
 (defun org-noter--get-location-left (location)
-  "Get the left coordinate given a LOCATION of form (page top . left) or (page . top). If later form of vector is passed return 0."
+  "Get the left coordinate given a LOCATION.
+... when LOCATION has form (page top . left) or (page . top).  If
+later form of vector is passed return 0."
   (if (listp (cdr location))
       (if (listp (cddr location))
           (caddr location)
@@ -1284,7 +1317,8 @@ When INCLUDE-ROOT is non-nil, the root heading is also eligible to be returned."
 
 (defun org-noter--compare-location-cons (comp l1 l2)
   "Compare L1 and L2, which are location cons.
-See `org-noter--compare-locations'"
+COMP can be any of the usual comparison operators plus \">f\".
+See `org-noter--compare-locations'."
   (cl-assert (and (consp l1) (consp l2)))
   (cond ((eq comp '=)
          (and (= (org-noter--get-location-page l1) (org-noter--get-location-page l2))
@@ -1684,7 +1718,7 @@ relative to."
     doc-prop))
 
 (defun org-noter--other-frames (&optional this-frame)
-  "Returns non-`nil' when there is at least another frame"
+  "Returns non-nil when there is at least another frame."
   (setq this-frame (or this-frame (selected-frame)))
   (catch 'other-frame
     (dolist (frame (visible-frame-list))
@@ -1694,13 +1728,16 @@ relative to."
         (throw 'other-frame frame)))))
 
 (defun org-noter--get-highlight-location ()
-  "Returns a highlight location. This is mode specific.
-In PDF it's a the page number and 4 coordinates for the highlight. This is delegated to each document mode."
+  "Return a highlight location.
+This is mode specific.  In PDF it's a the page number and 4
+coordinates for the highlight.  This is delegated to each document
+mode."
   (with-selected-window (org-noter--get-doc-window)
      (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
 
 (defun org-noter--get-serialized-highlight (highlight-location)
-"Returns a string representation of the HIGHLIGHT-LOCATION. This is delegated to each document mode (eg pdf)"
+  "Return a string representation of the HIGHLIGHT-LOCATION.
+This is delegated to each document mode (eg pdf)."
      (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
 
 ;; --------------------------------------------------------------------------------
@@ -1743,9 +1780,13 @@ With a prefix ARG, delete the current setting and use the default."
         (unless new-setting (org-entry-delete nil org-noter-property-note-location)))))))
 
 (defun org-noter-set-hide-other (arg)
-  "This toggles hiding other headings for the current session.
-- With a prefix \\[universal-argument], set the current setting permanently for this document.
-- With a prefix \\[universal-argument] \\[universal-argument], remove the setting and use the default."
+  "Toggle hiding other headings for the current session.
+
+- With a prefix \\[universal-argument], set the current setting
+  permanently for this document.
+
+- With a prefix \\[universal-argument] \\[universal-argument],
+  remove the setting and use the default."
   (interactive "P")
   (org-noter--with-valid-session
    (let* ((inhibit-read-only t)
@@ -1767,9 +1808,13 @@ With a prefix ARG, delete the current setting and use the default."
             (org-entry-delete nil org-noter--property-hide-other))))))))
 
 (defun org-noter-set-closest-tipping-point (arg)
-  "This sets the closest note tipping point (see `org-noter-closest-tipping-point')
-- With a prefix \\[universal-argument], set it permanently for this document.
-- With a prefix \\[universal-argument] \\[universal-argument], remove the setting and use the default."
+  "Set the closest note tipping point (see `org-noter-closest-tipping-point').
+
+- With a prefix \\[universal-argument], set it permanently for
+  this document.
+
+- With a prefix \\[universal-argument] \\[universal-argument],
+  remove the setting and use the default."
   (interactive "P")
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root))
@@ -1873,8 +1918,13 @@ See `org-noter-notes-window-behavior' for more information."
 
 (defun org-noter-set-doc-split-fraction (arg)
   "Set the fraction of the frame that the document window will occupy when split.
-- With a prefix \\[universal-argument], set it permanently for this document.
-- With a prefix \\[universal-argument] \\[universal-argument], remove the setting and use the default."
+
+- With a prefix ARG \\[universal-argument], set it permanently
+  for this document.
+
+- With a prefix ARG \\[universal-argument]
+  \\[universal-argument], remove the setting and use the
+  default."
   (interactive "P")
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root))
@@ -1985,29 +2035,33 @@ want to kill."
   "Insert note associated with the current location.
 
 This command will prompt for a title of the note and then insert
-it in the notes buffer. When the input is empty, a title based on
-either the selected text (if it is <= `org-noter-max-short-selected-text-length')
-or `org-noter-default-heading-title' will be generated.
+it in the notes buffer.  When the input is empty, a title based on
+either the selected text (if it is <=
+`org-noter-max-short-selected-text-length') or
+`org-noter-default-heading-title' will be generated.
 
 If there are other notes related to the current location, the
-prompt will also suggest them. Depending on the value of the
-variable `org-noter-closest-tipping-point', it may also
-suggest the closest previous note.
+prompt will also suggest them.  Depending on the value of the
+variable `org-noter-closest-tipping-point', it may also suggest
+the closest previous note.
 
-PRECISE-INFO makes the new note associated with a more
-specific location (see `org-noter-insert-precise-note' for more
-info).
+PRECISE-INFO makes the new note associated with a more specific
+location (see `org-noter-insert-precise-note' for more info).
 
 When you insert into an existing note and have text selected on
-the document buffer, the variable `org-noter-insert-selected-text-inside-note'
-defines if the text should be inserted inside the note.
+the document buffer, the variable
+`org-noter-insert-selected-text-inside-note' defines if the text
+should be inserted inside the note.
 
 Guiding principles for note generation
-  1. The preferred title is the one the user enters in the minibuffer.
-  2. Selected text should be used in the note, either as the title or in the body
-  3. Refrain from making notes in the same location with the same title
-  4. Precise notes generally have different locations, so always make new
-     precise notes"
+  1. The preferred title is the one the user enters in the
+     minibuffer.
+  2. Selected text should be used in the note, either as the
+     title or in the body
+  3. Refrain from making notes in the same location with the same
+     title
+  4. Precise notes generally have different locations, so always
+     make new precise notes"
   (interactive "P")
   (org-noter--with-valid-session
    (let* ((ast (org-noter--parse-root)) (contents (org-element-contents ast))

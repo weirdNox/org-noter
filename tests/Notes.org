@@ -3,7 +3,7 @@
 
 * BuzzanitiG_EnricoFermi
   :PROPERTIES:
-  :NOTER_DOCUMENT: BuzzanitiG_EnricoFermi.pdf
+  :NOTER_DOCUMENT: _BuzzanitiG_EnricoFermi.pdf
   :END:
 ** Chapter 1: The last Galilean
    :PROPERTIES:
@@ -217,7 +217,7 @@ direction. An easy calculation shows that the absolute value of the spin must be
     #+end_src
 
     #+RESULTS:
-    : 4.712479
+    : 4.525487
 
     org-babel is slow on subsequent runs after B9, but direct execution with C-x
     C-e does not suffer the same performance degradation.
@@ -405,10 +405,29 @@ i
   :NOTER_DOCUMENT: MobyDick.pdf
   :END:
 ** Skeleton
+    To time this code, you need the measure-time macro.
+    #+begin_src elisp
+            ;; http://lists.gnu.org/archive/html/help-gnu-emacs/2008-06/msg00087.html
+      (defmacro measure-time (&rest body)
+        "Measure the time it takes to evaluate BODY."
+        `(let ((time (current-time)))
+           ,@body
+           (message "%.06f" (float-time (time-since time)))))
+
+      (defmacro measure-time-sexp (&rest body)
+        "Measure the time it takes to evaluate BODY.
+      Returns the value of BODY, so it can be used to time any elisp
+      sexp."
+        `(let* ((time (current-time))
+                (retval ,@body))
+           (message "%.06f" (float-time (time-since time)))
+           retval))
+    #+end_src
 *** Title page
     :PROPERTIES:
     :NOTER_PAGE: 1
     :END:
+
     #+begin_src elisp
       (let (ii jj
                (note-steps 138)
@@ -418,11 +437,11 @@ i
          (dotimes (jj repeats)
            (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
            (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))
-         (other-window 1)))
+         (other-window -1)))
     #+end_src
 
     #+RESULTS:
-    : 12.987792
+    : 10.116560
 
 *** ETYMOLOGY
     :PROPERTIES:

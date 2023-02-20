@@ -23,6 +23,8 @@
 ;;
 
 ;;; Code:
+(require 'org-noter-core)
+
 (defvar nov-documents-index)
 (defvar nov-file-name)
 
