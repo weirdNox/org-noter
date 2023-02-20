@@ -23,8 +23,6 @@
 ;;
 
 ;;; Code:
-(require 'org-noter)
-
 (defun org-noter-djvu--pretty-print-location (location)
   (org-noter--with-valid-session
    (when (eq (org-noter--session-doc-mode session) 'djvu-read-mode)

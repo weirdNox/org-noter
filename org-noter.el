@@ -43,6 +43,15 @@
 (declare-function org-entry-put "org")
 (declare-function org-with-wide-buffer "org-macs")
 
+(add-to-list 'load-path (concat (file-name-directory load-file-name) "modules/"))
+(when (or (memq 'doc-view-mode org-noter-supported-modes)
+          (memq 'pdf-view-mode org-noter-supported-modes))
+  (require 'org-noter-pdf))
+(when (memq 'nov-mode org-noter-supported-modes)
+  (require 'org-noter-nov))
+(when (memq 'djvu-read-mode org-noter-supported-modes)
+  (require 'org-noter-djvu))
+
 ;;;###autoload
 (defun org-noter (&optional arg)
   "Start `org-noter' session.
