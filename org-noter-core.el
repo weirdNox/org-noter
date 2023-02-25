@@ -401,8 +401,8 @@ note at point."
   :type 'hook)
 
 (defcustom org-noter-parse-document-property-hook nil
-  "The list of functions that return a file name for the value of
-the property `org-noter-property-doc-file'
+  "The list of functions that parse NOTER_DOCUMENT for a filename.
+Or whatever the property `org-noter-property-doc-file' is set to.
 
 This is used by `org-noter--get-or-read-document-property' and
 `org-noter--doc-file-property'.
@@ -914,7 +914,11 @@ be `org-noter--session'."
 (defun org-noter--insert-heading (level title &optional newlines-number location)
   "Insert a new heading at LEVEL with TITLE.
 The point will be at the start of the contents, after any
-properties, by a margin of NEWLINES-NUMBER."
+properties, by a margin of NEWLINES-NUMBER.
+
+When LOCATION is provded, it is written into the property drawer
+of the heading under `org-noter-property-note-location' (default:
+NOTER_PAGE)."
   (setq newlines-number (or newlines-number 1))
   (org-insert-heading nil t)
   (let* ((initial-level (org-element-property :level (org-element-at-point)))
@@ -1088,7 +1092,9 @@ properties, by a margin of NEWLINES-NUMBER."
       (ignore-errors (string-to-number property)))))
 
 (defun org-noter--doc-approx-location (&optional precise-info force-new-ref)
-  "TODO."
+  "Return document location as (page . v) or (page v . h).
+If PRECISE-INFO is given, return the location in the same format.
+FORCE-NEW-REF is not used by PDF, NOV, or DJVU format files."
   (let ((window (if (org-noter--valid-session org-noter--session)
                     (org-noter--get-doc-window)
                   (selected-window))))
@@ -1314,7 +1320,8 @@ Scroll units are character-based."
       (setq org-noter--arrow-location nil))))
 
 (defun org-noter--get-location-top (location)
-  "Get the top coordinate given a LOCATION of form (page top . left) or (page . top)."
+  "Get the top coordinate given a LOCATION.
+... when LOCATION has form (page top . left) or (page . top)."
   (if (listp (cdr location))
       (cadr location)
     (cdr location)))
@@ -1405,7 +1412,7 @@ L2 or, when in the same page, if L1 is the _f_irst of the two."
            (org-noter--compare-location-cons comp l1 (cons (car l2) (cadr l2)))))))
 
 (defun org-noter--show-note-entry (session note)
-  "This will show the note entry and its children.
+  "Show the NOTE entry and its children for this SESSION.
 Every direct subheading _until_ the first heading that doesn't
 belong to the same view (ie. until a heading with location or
 document property) will be opened."
@@ -1747,7 +1754,9 @@ relative to."
     doc-prop))
 
 (defun org-noter--other-frames (&optional this-frame)
-  "Returns non-nil when there is at least another frame."
+  "Return non-nil when there is at least another frame.
+This is called in `org-noter-kill-session'.  THIS-FRAME can be
+specified to override `selected-frame'."
   (setq this-frame (or this-frame (selected-frame)))
   (catch 'other-frame
     (dolist (frame (visible-frame-list))
@@ -1789,8 +1798,9 @@ With a prefix ARG, remove start location."
                          (org-noter--pretty-print-location location))))))))
 
 (defun org-noter-set-auto-save-last-location (arg)
-  "This toggles saving the last visited location for this document.
-With a prefix ARG, delete the current setting and use the default."
+  "Toggle saving the last visited location for this document.
+With a prefix ARG \\[universal-argument], delete the current
+setting and use the default."
   (interactive "P")
   (org-noter--with-valid-session
    (let ((inhibit-read-only t)
@@ -1811,10 +1821,10 @@ With a prefix ARG, delete the current setting and use the default."
 (defun org-noter-set-hide-other (arg)
   "Toggle hiding other headings for the current session.
 
-- With a prefix \\[universal-argument], set the current setting
+- With a prefix ARG \\[universal-argument], set the current setting
   permanently for this document.
 
-- With a prefix \\[universal-argument] \\[universal-argument],
+- With a prefix ARG \\[universal-argument] \\[universal-argument],
   remove the setting and use the default."
   (interactive "P")
   (org-noter--with-valid-session
@@ -1839,10 +1849,10 @@ With a prefix ARG, delete the current setting and use the default."
 (defun org-noter-set-closest-tipping-point (arg)
   "Set the closest note tipping point (see `org-noter-closest-tipping-point').
 
-- With a prefix \\[universal-argument], set it permanently for
+- With a prefix ARG \\[universal-argument], set it permanently for
   this document.
 
-- With a prefix \\[universal-argument] \\[universal-argument],
+- With a prefix ARG \\[universal-argument] \\[universal-argument],
   remove the setting and use the default."
   (interactive "P")
   (org-noter--with-valid-session
@@ -2074,6 +2084,10 @@ prompt will also suggest them.  Depending on the value of the
 variable `org-noter-closest-tipping-point', it may also suggest
 the closest previous note.
 
+The prefix \\[universal-argument] sets TOGGLE-HIGHLIGHT, which
+inverts the logic of the custom variable
+`org-noter-highlight-selected-text' for this note.
+
 PRECISE-INFO makes the new note associated with a more specific
 location (see `org-noter-insert-precise-note' for more info).
 
@@ -2285,8 +2299,9 @@ Use prefix [\\universal-argument] to TOGGLE-HIGHLIGHT."
        nil ,match-first org-noter--note-search-no-recurse)))
 
 (defun org-noter-sync-prev-page-or-chapter ()
-  "Show previous page or chapter that has notes, in relation to the current page or chapter.
-This will force the notes window to popup."
+  "Show previous page or chapter that has notes.
+This command navigates in relation to the current page or chapter
+of the document.  This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
    (let ((this-location (org-noter--doc-approx-location 0))
@@ -2317,8 +2332,9 @@ This will force the notes window to popup."
      (org-noter--doc-location-change-handler))))
 
 (defun org-noter-sync-next-page-or-chapter ()
-  "Show next page or chapter that has notes, in relation to the current page or chapter.
-This will force the notes window to popup."
+  "Show next page or chapter that has notes.
+This command navigates in relation to the current page or chapter
+of the document.  This will force the notes window to popup."
   (interactive)
   (org-noter--with-valid-session
    (let ((this-location (org-noter--doc-approx-location most-positive-fixnum))
