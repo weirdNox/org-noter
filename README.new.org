@@ -118,6 +118,10 @@ More generally, there are two modes of operation. You may run
 There is, of course, more information in the docstrings of each command.
 
 ** TODO Customization
+   :PROPERTIES:
+   :CUSTOM_ID: custom
+   :END:
+
 There are two kinds of customizations you may do:
 1. Global settings, affecting every session
 2. Document-specific settings, which override the global settings
@@ -153,7 +157,7 @@ permanent, or revert to the default):
   understand the tipping point.
 
 ** TODO Keybindings and commands
-:PROPERTIES:
+   :PROPERTIES:
 :CUSTOM_ID: keys
 :END:
 | Key     | Description                | Where?                    |
