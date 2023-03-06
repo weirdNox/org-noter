@@ -62,7 +62,12 @@
 - Annotate ~org-attach~'ed files :: If you have any attached files, it will let you choose one as
      the document to annotate.
 
-*** new (for PDFs)
+*** new (all formats)
+    - ~org-noter-start-from-dired~ (Suggested keybinding: ~M-s n~) :: Start
+      sessions directly from ~dired~.  Opens all marked files or the file at
+      point if none are marked.
+
+*** new (PDFs only)
     - 2D precise notes :: ([[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]]) Location tooltip appears at start of
       selected text or point of click.
 
