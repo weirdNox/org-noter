@@ -62,14 +62,21 @@
 - Annotate ~org-attach~'ed files :: If you have any attached files, it will let you choose one as
      the document to annotate.
 
-*** new
+*** new (all formats)
+    - ~org-noter-start-from-dired~ (Suggested keybinding: ~M-s n~) :: Start
+      sessions directly from ~dired~.  Opens all marked files or the file at
+      point if none are marked.
+
+*** new (PDFs only)
     - 2D precise notes :: ([[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]]) Location tooltip appears at start of
       selected text or point of click.
 
-    - Multicolumn ordering of precise notes :: (Rudimentary) With the
-      ~NUM_COLUMNS~ property, you can specify the number of columns in a
-      multicolumn document (or pages thereof).  Precise notes are ordered
-      vertically within columns.
+    - Multicolumn ordering of precise notes :: With the ~COLUMN_EDGES~ property,
+      you can specify the number of columns in a multicolumn document (or pages
+      thereof).  Precise notes are ordered vertically within columns.  Use
+      ~M-x org-noter-pdf-set-columns~ to interactively set ~COLUMN_EDGES~ for
+      the current heading.  The property is inheritable, so it can be set at the
+      page, chapter/section, or document level.
 
     - Highlighting of selected text :: Default behavior (on/off) is
       user-customizable.  Non-default behavior is activated with a =C-u= prefix
@@ -118,6 +125,10 @@ More generally, there are two modes of operation. You may run
 There is, of course, more information in the docstrings of each command.
 
 ** TODO Customization
+   :PROPERTIES:
+   :CUSTOM_ID: custom
+   :END:
+
 There are two kinds of customizations you may do:
 1. Global settings, affecting every session
 2. Document-specific settings, which override the global settings
@@ -153,7 +164,7 @@ permanent, or revert to the default):
   understand the tipping point.
 
 ** TODO Keybindings and commands
-:PROPERTIES:
+   :PROPERTIES:
 :CUSTOM_ID: keys
 :END:
 | Key     | Description                | Where?                    |
