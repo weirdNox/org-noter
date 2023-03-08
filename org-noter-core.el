@@ -2066,6 +2066,8 @@ want to kill."
 
       (with-current-buffer doc-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t))
+      (unless org-noter-kill-frame-at-session-end
+          (set-window-dedicated-p (get-buffer-window doc-buffer) nil))
       (kill-buffer doc-buffer)
 
       (when (frame-live-p frame)
