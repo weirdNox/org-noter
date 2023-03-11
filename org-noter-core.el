@@ -25,6 +25,7 @@
 (require 'cl-lib)
 (require 'pdf-tools)
 
+(declare-function org-noter "org-noter")
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
 (declare-function image-get-display-property "image-mode")
@@ -1975,7 +1976,7 @@ See `org-noter-notes-window-behavior' for more information."
             (org-entry-delete nil org-noter--property-doc-split-fraction))))))))
 
 (defun org-noter-start-from-dired ()
-  "In dired, open sessions for marked files or file at point.
+  "In Dired, open sessions for marked files or file at point.
 
 If there are multiple marked files, focus will be on the last
 marked file."
@@ -1986,7 +1987,7 @@ marked file."
       (find-file filename)
       (save-excursion (org-noter))
       (bury-buffer))
-    (other-frame)))
+    (other-frame 1)))
 
 (defun org-noter-kill-session (&optional session)
   "Kill an `org-noter' session.
