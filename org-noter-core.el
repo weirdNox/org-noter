@@ -1,12 +1,8 @@
 ;;; org-noter-core.el --- Core functions of Org-noter       -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017-2018  Gonçalo Santos
+;; Copyright (C) 2017-2019  Gonçalo Santos
 
 ;; Author: Gonçalo Santos (aka. weirdNox@GitHub)
-;; Homepage: https://github.com/weirdNox/org-noter
-;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
-;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
-;; Version: 1.4.1
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,18 +18,6 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-;;; Commentary:
-
-;; The idea is to let you create notes that are kept in sync when you scroll
-;; through the document, but that are external to it - the notes themselves live
-;; in an Org-mode file.  As such, this leverages the power of Org-mode (the
-;; notes may have outlines, latex fragments, babel, etc...) while acting like
-;; notes that are made /in/ the document.
-
-;; Also, I must thank Sebastian for the original idea and inspiration!
-;; Link to the original Interleave package:
-;; https://github.com/rudolfochrist/interleave
 
 ;;; Code:
 (require 'org)
