@@ -204,26 +204,25 @@ annotations (or both!) as notes, and it may be used, for example, as a starting 
 You may also want to check the docstrings of the functions associated with the
 keybindings, because there is some extra functionality in some.
 
-** Stock vs refactored note insertion
+** Changes to note insertion since version 1.4.1 (MELPA version 20191020.1212)
    - more consistent use of selected text in title or body
    - more consistent primary default title (short-selected-text)
    - more consistent secondary default title ("Notes for page <location>")
    - avoids having different notes with the same heading
 
-     In Stock org-noter, repeated TAB's give multiple notes.  In this refactor,
-     new notes in the same location with the same title are not made, but
-     selected text is added to the note body.  For now, precise notes are
-     excepted from this rule.
+     Previously, repeated TAB's give multiple notes.  Now, new notes in the same
+     location with the same title are not made, but selected text is added to
+     the note body.  Precise notes are excepted from this rule.
 
-   - long text-selections are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
-   - short text-selections are enclosed in ``...'' (LaTeX style) when they are
+   - *long* text-selections are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
+   - *short* text-selections are enclosed in ``...'' (LaTeX style) when they are
      not used as the title of the note.
    - short/long text-selections are differentiated by the custom variable
      =org-noter-max-short-selected-text-length= (default: 80 char)
 
-     In Stock org-noter, long selections are those with more than 3 lines.
+     Previously, long selections were those with more than 3 lines.
 
-*** Stock
+*** Original
    |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
    |-----------------+--------------------------------+---------------------------+-------------------------|
    | title prompt?   | Y                              | Y                         | N                       |
