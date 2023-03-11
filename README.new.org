@@ -32,7 +32,20 @@
   contributors, but we need code contributions from users of other formats to
   maintain/progress usability with those formats.
 
-  
+
+** Installation
+*** vanilla
+   1. clone this repo to a local directory
+   2. add to your init file:
+      #+begin_src elisp
+        (add-to-list 'load-path "<path-to-org-noter>")
+        (require 'org-noter)
+      #+end_src
+
+*** straight.el
+    [TODO: Dmitry]
+
+
 ** Features
 *** original org-noter (up to 2019)
 - Easy to use annotation interface :: Just press =i= in the
@@ -88,15 +101,6 @@
 
 [TODO: make/link to screencast]
 
-** Installation
-
-   1. clone this repo to a local directory
-   2. add to your init file:
-      #+begin_src elisp
-        (add-to-list 'load-path "<path-to-org-noter>")
-        (require 'org-noter)
-      #+end_src
-   
 ** Usage
 
 If you want to give it a try without much trouble:
@@ -163,20 +167,22 @@ permanent, or revert to the default):
   check the docstring of the variable ~org-noter-closest-tipping-point~ in order to better
   understand the tipping point.
 
-** TODO Keybindings and commands
+** Keybindings and commands
    :PROPERTIES:
 :CUSTOM_ID: keys
 :END:
-| Key     | Description                | Where?                    |
-| =i=     | Insert note                | Document buffer           |
-| =M-i=   | Insert precise note        | Document buffer           |
-| =q=     | Kill session               | Document buffer           |
-| =M-p=   | Sync previous page/chapter | Document and notes buffer |
-| =M-.=   | Sync current page/chapter  | Document and notes buffer |
-| =M-n=   | Sync next page/chapter     | Document and notes buffer |
-| =C-M-p= | Sync previous notes        | Document and notes buffer |
-| =C-M-.= | Sync selected notes        | Document and notes buffer |
-| =C-M-n= | Sync next notes            | Document and notes buffer |
+| Key        | Description                              | Where?                    |
+| =i=        | Insert note                              | Document buffer           |
+| =C-i, TAB= | Insert note, toggle no-questions         | Document buffer           |
+| =M-i=      | Insert precise note                      | Document buffer           |
+| =C-M-i=    | Insert precise note, toggle no-questions | Document buffer           |
+| =q=        | Kill session                             | Document buffer           |
+| =M-p=      | Sync previous page/chapter               | Document and notes buffer |
+| =M-.=      | Sync current page/chapter                | Document and notes buffer |
+| =M-n=      | Sync next page/chapter                   | Document and notes buffer |
+| =C-M-p=    | Sync previous notes                      | Document and notes buffer |
+| =C-M-.=    | Sync selected notes                      | Document and notes buffer |
+| =C-M-n=    | Sync next notes                          | Document and notes buffer |
 
 You can use the usual keybindings to navigate the document
 (=n=, =p=, =SPC=, ...).
@@ -198,9 +204,48 @@ annotations (or both!) as notes, and it may be used, for example, as a starting 
 You may also want to check the docstrings of the functions associated with the
 keybindings, because there is some extra functionality in some.
 
+** Stock vs refactored note insertion
+   - more consistent use of selected text in title or body
+   - more consistent primary default title (short-selected-text)
+   - more consistent secondary default title ("Notes for page <location>")
+   - avoids having different notes with the same heading
+
+     In Stock org-noter, repeated TAB's give multiple notes.  In this refactor,
+     new notes in the same location with the same title are not made, but
+     selected text is added to the note body.  For now, precise notes are
+     excepted from this rule.
+
+   - long text-selections are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
+   - short text-selections are enclosed in ``...'' (LaTeX style) when they are
+     not used as the title of the note.
+   - short/long text-selections are differentiated by the custom variable
+     =org-noter-max-short-selected-text-length= (default: 80 char)
+
+     In Stock org-noter, long selections are those with more than 3 lines.
+
+*** Stock
+   |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+   | title prompt?   | Y                              | Y                         | N                       |
+   | default title 1 | prior note by location         | selected-text             | N/A                     |
+   | default title 2 | "Notes for page #"             | "Notes for page # x y"    | "Notes for page #"      |
+   | new note        | with new title                 | always                    | always                  |
+   | body            | selected-text on existing note | selected-text (> 3 lines) | none                    |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+
+*** Refactored
+   |                     | insert-note               | precise note              | insert, no-questions      | precise, no-questions     |
+   |---------------------+---------------------------+---------------------------+---------------------------+---------------------------|
+   | title prompt?       | Y                         | Y                         | N                         | N                         |
+   | default title 1     | short-selected-text       | short-selected-text       | short-selected-text       | short-selected-text       |
+   | default title 2     | "Notes for page #"        | "Notes for page # x y"    | "Notes for page #"        | "Notes for page # x y"    |
+   | new note            | with new title            | always                    | with new title            | always                    |
+   | body                | selected-text (not title) | selected-text (not title) | selected-text (not title) | selected-text (not title) |
+   |---------------------+---------------------------+---------------------------+---------------------------+---------------------------|
+   | highlight selection | user setting/toggle       | user setting/toggle       | user setting/toggle       | user setting/toggle       |
+
 * Acknowledgments
   - [[https://github.com/rudolfochrist][Sebastian Christ]] :: Author of the ~interleave~ package, inspiration for ~org-noter~
   - [[https://github.com/weirdNox][Gonçalo Santos]] :: Author of ~org-noter~
   - [[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]] :: Contributor of 2-D precise notes
   - [[https://github.com/c1-g/org-noter-plus-djvu][Charlie Gordon]] :: Contributor of DJVU support and document-type modularization
-     
