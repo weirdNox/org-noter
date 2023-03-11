@@ -1,12 +1,8 @@
 ;;; org-noter-core.el --- Core functions of Org-noter       -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017-2018  Gonçalo Santos
+;; Copyright (C) 2017-2019  Gonçalo Santos
 
 ;; Author: Gonçalo Santos (aka. weirdNox@GitHub)
-;; Homepage: https://github.com/weirdNox/org-noter
-;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
-;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
-;; Version: 1.4.1
 
 ;; This file is not part of GNU Emacs.
 
@@ -23,24 +19,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;; Commentary:
-
-;; The idea is to let you create notes that are kept in sync when you scroll
-;; through the document, but that are external to it - the notes themselves live
-;; in an Org-mode file.  As such, this leverages the power of Org-mode (the
-;; notes may have outlines, latex fragments, babel, etc...) while acting like
-;; notes that are made /in/ the document.
-
-;; Also, I must thank Sebastian for the original idea and inspiration!
-;; Link to the original Interleave package:
-;; https://github.com/rudolfochrist/interleave
-
 ;;; Code:
 (require 'org)
 (require 'org-element)
 (require 'cl-lib)
 (require 'pdf-tools)
 
+(declare-function org-noter "org-noter")
 (declare-function doc-view-goto-page "doc-view")
 (declare-function image-display-size "image-mode")
 (declare-function image-get-display-property "image-mode")
@@ -1991,7 +1976,7 @@ See `org-noter-notes-window-behavior' for more information."
             (org-entry-delete nil org-noter--property-doc-split-fraction))))))))
 
 (defun org-noter-start-from-dired ()
-  "In dired, open sessions for marked files or file at point.
+  "In Dired, open sessions for marked files or file at point.
 
 If there are multiple marked files, focus will be on the last
 marked file."
@@ -2002,7 +1987,7 @@ marked file."
       (find-file filename)
       (save-excursion (org-noter))
       (bury-buffer))
-    (other-frame)))
+    (other-frame 1)))
 
 (defun org-noter-kill-session (&optional session)
   "Kill an `org-noter' session.
@@ -2066,6 +2051,8 @@ want to kill."
 
       (with-current-buffer doc-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t))
+      (unless org-noter-kill-frame-at-session-end
+          (set-window-dedicated-p (get-buffer-window doc-buffer) nil))
       (kill-buffer doc-buffer)
 
       (when (frame-live-p frame)

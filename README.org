@@ -1,72 +1,228 @@
-#+STARTUP: hidestars
-* ORG-NOTER (fork of a fork)
-** If you are new to *ORG-NOTER*
-   Please first look at [[https://github.com/weirdNox/org-noter/blob/master/README.org][Gonçalo Santos's README]] ([[file:docs/README-orig.org]] in
-   this repo).
+* Org-noter: an interleaving/note-taking package for documents
 
-** This is a refactor of the *c1-g* fork done collaboratively by [[https://github.com/petermao/org-noter][petermao]] and [[https://github.com/dmitrym0/org-noter-plus-djvu][dmitrym0]]
-   - In essence, this is close to the original *weirdNox* (Gonçalo Santos)
-     version that you find on MELPA with the refactoring that *c1-g* implemented.
+  ~Org-noter~, by [[https://github.com/weirdNox][Gonçalo Santos]], was inspired by the now-orphaned ~Interleave~
+  package, by [[https://github.com/rudolfochrist][Sebastian Christ]].  In Sebastian's words (with minor edits):
 
-   - djvu and epub support have also been advanced by *c1-g*, but we have not
-     tested any of that code.  See [[https://github.com/c1-g/org-noter-plus-djvu/blob/master/README.org][Charlie Gordon's README]]
-     ([[file:docs/README-djvu.org]] in this repo).
+  #+begin_quote
+  In the past, textbooks were sometimes published as interleaved editions. That
+  meant, each page was followed by a blank page and ambitious students/scholars
+  had the ability to take their notes directly in their copy of the
+  textbook. Newton and Kant were prominent representatives of this
+  technique. [find reference]
 
-   - Prior to our work, the main new feature for PDF users was 2-D precise notes
-     (introduced by *Ahmed Shariff*, which can be inserted in two ways:
-     1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
-        changed the position format to use the entire list returned by =edges=.
-        This breaks the other way of inserting precise notes.  On *dmitrym0*'s
-        fork, select-precise notes auto-fill the note title with the selected
-        text.  This has deleterious side effects for other note insertion methods.
-     2. "Click-precise": =M-i=, followed by clicking a location on the page.
+  Nowadays, textbooks (or lecture materials) come in PDF format. Although almost
+  every PDF Reader has the ability to add some notes to the PDF itself, it is
+  not as powerful as it could be. This is what this Emacs minor mode tries to
+  accomplish. It presents your PDF side by side with an Org Mode buffer of your
+  notes, narrowed down to just those passages that are relevant to this
+  particular page in the document viewer.
+  #+end_quote
 
-   - Standard notes can also be inserted in two ways:
-     1. "TAB".  Hitting tab creates a note title "Notes for page ##", where the
-        page number is inserted automatically over the octothorpes.
-     2. "i".  The fundamental =org-noter-insert-note=.  User types note title
-        into the minibuffer.
+  Org-noter's purpose is to let you create notes that are kept in sync when you
+  scroll through the document, but that are external to it - the notes
+  themselves live in an Org-mode file.  As such, this leverages the power of
+  [[http://orgmode.org/][Org-mode]] (the notes may have outlines, latex fragments, babel, etc...) while
+  acting like notes that are made /inside/ the document.  Also, taking notes is
+  very simple: just press =i= and annotate away!
 
-** Stock vs refactored note insertion
+  Org-noter is compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]], [[https://github.com/wasamasa/nov.el][Nov.el]], and
+  [[DJVU-read][DJVU-image-mode]]. These modes make it possible to annotate *PDF*, *EPUB*,
+  *Microsoft Office*, DVI, PS, OpenDocument, and DJVU formatted files.  Note
+  that PDF support is our prime goal.  Other format have been supported by other
+  contributors, but we need code contributions from users of other formats to
+  maintain/progress usability with those formats.
+
+
+** Installation
+*** vanilla
+   1. clone this repo to a local directory
+   2. add to your init file:
+      #+begin_src elisp
+        (add-to-list 'load-path "<path-to-org-noter>")
+        (require 'org-noter)
+      #+end_src
+
+*** straight.el
+    [TODO: Dmitry]
+
+
+** Features
+*** original org-noter (up to 2019)
+- Easy to use annotation interface :: Just press =i= in the
+     document buffer and annotate away!
+
+- Keep your notes in sync with the document :: When you take a note by pressing
+     =i=, it saves the location where you took it so it is able to show you
+     the notes while you scroll, automatically!
+
+- Easy navigation :: You may navigate your document as usual, seeing the notes buffer scroll and show you
+     the respective notes; however, you may also navigate by notes, only seeing annotated pages/chapters.
+
+- Isolated interface :: Each session has its own frame and the document and notes buffers are indirect
+     buffers to the original ones. Killing any of these things will terminate your annotation session.
+
+- Simultaneous sessions :: You may open as many annotation sessions as you wish, at the same time! The
+     root heading of each document will be made read-only to prevent you from deleting a heading from an
+     open session.
+
+- Resume annotating from where you left :: When ~org-noter-auto-save-last-location~ is non-nil, it will
+     save the last location you visited and pick it up when you start another session! You may also set
+     this per-document, [[#custom][read more here]].
+
+- Keep your notes organized :: You may arrange your notes however you want! You can create groups and
+     nest notes (and even nest documents inside other documents)!
+
+- Annotate ~org-attach~'ed files :: If you have any attached files, it will let you choose one as
+     the document to annotate.
+
+*** new (all formats)
+    - ~org-noter-start-from-dired~ (Suggested keybinding: ~M-s n~) :: Start
+      sessions directly from ~dired~.  Opens all marked files or the file at
+      point if none are marked.
+
+*** new (PDFs only)
+    - 2D precise notes :: ([[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]]) Location tooltip appears at start of
+      selected text or point of click.
+
+    - Multicolumn ordering of precise notes :: With the ~COLUMN_EDGES~ property,
+      you can specify the number of columns in a multicolumn document (or pages
+      thereof).  Precise notes are ordered vertically within columns.  Use
+      ~M-x org-noter-pdf-set-columns~ to interactively set ~COLUMN_EDGES~ for
+      the current heading.  The property is inheritable, so it can be set at the
+      page, chapter/section, or document level.
+
+    - Highlighting of selected text :: Default behavior (on/off) is
+      user-customizable.  Non-default behavior is activated with a =C-u= prefix
+      to the note insertion command.
+
+    - Customizable tooltip arrow colors :: ~org-noter-arrow-foreground-color~ (default
+      orange-red) and ~org-noter-arrow-foreground-color~ (default white) are
+      both user customizable.
+
+[TODO: make/link to screencast]
+
+** Usage
+
+If you want to give it a try without much trouble:
+- Open an Org file where you want the notes to go.
+- Create a root heading to hold the notes.
+- Run =M-x org-noter= inside the Org file.
+  On the first run, it will ask you for the path of the document and save it in a
+  property. By default, it will also let you annotate an attached file [[https://orgmode.org/manual/Attachments.html][(org-attach documentation)]].
+
+This will open a new dedicated frame where you can use [[#keys][the keybindings described here]].
+
+More generally, there are two modes of operation. You may run
+=M-x org-noter=:
+- Inside a heading in an Org notes file :: This will associate that heading with a
+     document and open a session with it. This mode is the one described in the example
+     above.
+
+- In a document :: Run =M-x org-noter= when viewing a
+                   document (eg. PDF, epub...).
+
+                   This will try to find the respective notes file automatically. It will
+                   search in all parent folders and some specific folders set by you. See
+                   ~org-noter-default-notes-file-names~ and ~org-noter-notes-search-path~
+                   for more information.
+
+There is, of course, more information in the docstrings of each command.
+
+** TODO Customization
+   :PROPERTIES:
+   :CUSTOM_ID: custom
+   :END:
+
+There are two kinds of customizations you may do:
+1. Global settings, affecting every session
+2. Document-specific settings, which override the global settings
+
+The *global settings* are changed with either the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html#Easy-Customization][customization interface from Emacs]] or directly in your
+init file. To find which settings are available, you may use the customization interface or you may just
+read =org-noter.el=.
+
+The best way to set *document-specific settings* is by using the utility commands provided (list below).
+In order to use them, you need an open session. The commands may change the settings for that session
+only (not surviving restarts), or for every session with that document.
+
+*List of utility commands* (check the docstrings to learn how to make the changes
+permanent, or revert to the default):
+- You may set a start location for this document, by using ~org-noter-set-start-location~.
+
+- To automatically resume from where you left, use ~org-noter-set-auto-save-last-location~.
+
+- With ~org-noter-set-notes-window-behavior~, you may change /when/ the notes window pops
+  up.
+
+- With ~org-noter-set-notes-window-location~, you may change /where/ the notes window pops
+  up.
+
+- ~org-noter-set-doc-split-fraction~ will ask you for the fraction of the frame that the document window
+  occupies when split.
+
+- ~org-noter-set-hide-other~ will toggle whether or not it should hide headings not
+  related to the executed action.
+
+- ~org-noter-set-closest-tipping-point~ will set the closest note tipping point. Also
+  check the docstring of the variable ~org-noter-closest-tipping-point~ in order to better
+  understand the tipping point.
+
+** Keybindings and commands
+   :PROPERTIES:
+:CUSTOM_ID: keys
+:END:
+| Key        | Description                              | Where?                    |
+| =i=        | Insert note                              | Document buffer           |
+| =C-i, TAB= | Insert note, toggle no-questions         | Document buffer           |
+| =M-i=      | Insert precise note                      | Document buffer           |
+| =C-M-i=    | Insert precise note, toggle no-questions | Document buffer           |
+| =q=        | Kill session                             | Document buffer           |
+| =M-p=      | Sync previous page/chapter               | Document and notes buffer |
+| =M-.=      | Sync current page/chapter                | Document and notes buffer |
+| =M-n=      | Sync next page/chapter                   | Document and notes buffer |
+| =C-M-p=    | Sync previous notes                      | Document and notes buffer |
+| =C-M-.=    | Sync selected notes                      | Document and notes buffer |
+| =C-M-n=    | Sync next notes                          | Document and notes buffer |
+
+You can use the usual keybindings to navigate the document
+(=n=, =p=, =SPC=, ...).
+
+There are two types of sync commands:
+- To sync a page/chapter, means it will find the [previous|current|next] page/chapter and
+  show the corresponding notes for that page/chapter; as such, it will always pop up the
+  notes buffer, if it does not exist. This type of command is in relation to the current
+  page/chapter in the document.
+
+- To sync the notes, means it will find the [previous|current|next] notes and go to the
+  corresponding location on the document. So, you need to have the notes window open,
+  because this type of commands is in relation to the selected notes (ie, where the cursor
+  is).
+
+When using PDF Tools, the command ~org-noter-create-skeleton~ imports the PDF outline or
+annotations (or both!) as notes, and it may be used, for example, as a starting point.
+
+You may also want to check the docstrings of the functions associated with the
+keybindings, because there is some extra functionality in some.
+
+** Changes to note insertion since version 1.4.1 (MELPA version 20191020.1212)
    - more consistent use of selected text in title or body
    - more consistent primary default title (short-selected-text)
    - more consistent secondary default title ("Notes for page <location>")
    - avoids having different notes with the same heading
 
-     In Stock org-noter, repeated TAB's give multiple notes.  In this refactor,
-     new notes in the same location with the same title are not made, but
-     selected text is added to the note body.  For now, precise notes are
-     excepted from this rule.
+     Previously, repeated TAB's give multiple notes.  Now, new notes in the same
+     location with the same title are not made, but selected text is added to
+     the note body.  Precise notes are excepted from this rule.
 
-   - long text-selections are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
-   - short text-selections are enclosed in ``...'' (LaTeX style) when they are
+   - *long* text-selections are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
+   - *short* text-selections are enclosed in ``...'' (LaTeX style) when they are
      not used as the title of the note.
    - short/long text-selections are differentiated by the custom variable
      =org-noter-max-short-selected-text-length= (default: 80 char)
 
-     In Stock org-noter, long selections are those with more than 3 lines.
+     Previously, long selections were those with more than 3 lines.
 
-   - *NEW:* Highlighting of selected text
-
-     Default setting is customizable, see =org-noter-highlight-selected-text=.
-     Calling insertions with a non-nil prefix (eg, =C-u=) toggles this setting for
-     individual note insertions.
-
-   - *NEW:* multicolumn precise-notes defined by property NUM_COLUMNS
-
-     Implements issue #153 in weirdNox/org-noter by adding
-     =org-noter-pdf-convert-to-location-cons= to
-     =org-noter--convert-to-location-cons-hook=, where a "virtual" vertical
-     location is calculated by dividing the page into equal width columns.  This
-     is not a perfect solution, and is probably best for low-integer numbers of
-     columns, since the page is just divided evenly into =NUM_COLUMNS= vertical
-     strips.
-
-     This can be set using =org-set-property-and-value=, but eventually we will
-     write a user function to prevent users from mistyping the name of the
-     property (=NUM_COLUMNS=).
-
-*** Stock
+*** Original
    |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
    |-----------------+--------------------------------+---------------------------+-------------------------|
    | title prompt?   | Y                              | Y                         | N                       |
@@ -77,168 +233,18 @@
    |-----------------+--------------------------------+---------------------------+-------------------------|
 
 *** Refactored
-   |                     | insert-note               | precise note              | no-questions              |
-   |---------------------+---------------------------+---------------------------+---------------------------|
-   | title prompt?       | Y                         | Y                         | N                         |
-   | default title 1     | short-selected-text       | short-selected-text       | short-selected-text       |
-   | default title 2     | "Notes for page #"        | "Notes for page # x y"    | "Notes for page #"        |
-   | new note            | with new title            | always                    | with new title            |
-   | body                | selected-text (not title) | selected-text (not title) | selected-text (not title) |
-   |---------------------+---------------------------+---------------------------+---------------------------|
-   | highlight selection | user setting/toggle       | user setting/toggle       | user setting/toggle       |
-** Customizations
-   Out of respect for the existing user base of =org-noter=, almost all of the
-   user-interface features of this fork remain the same those of as the original
-   =org-noter=.  However, users may be interested in our variations on the theme
-   of Gonçalos Santos.
-*** Peter's mods
-    In order of frequency, I use precise notes the most, standard notes next and
-    no-questions notes the least, so I have bound keys to reflect those
-    preferences with =i= for precise notes, =TAB= for standard notes; for
-    no-questions (no-prompt) notes, =I= is for precise notes and =M-i= for
-    standard notes.:
-    #+begin_src elisp
-      (with-eval-after-load 'org-noter
-        (define-key org-noter-doc-mode-map (kbd "i")   'org-noter-insert-precise-note)
-        (define-key org-noter-doc-mode-map (kbd "C-i") 'org-noter-insert-note)
-        (define-key org-noter-doc-mode-map (kbd "I")   'org-noter-insert-precise-note-toggle-no-questions)
-        (define-key org-noter-doc-mode-map (kbd "M-i") 'org-noter-insert-note-toggle-no-questions))
-    #+end_src
+   |                     | insert-note               | precise note              | insert, no-questions      | precise, no-questions     |
+   |---------------------+---------------------------+---------------------------+---------------------------+---------------------------|
+   | title prompt?       | Y                         | Y                         | N                         | N                         |
+   | default title 1     | short-selected-text       | short-selected-text       | short-selected-text       | short-selected-text       |
+   | default title 2     | "Notes for page #"        | "Notes for page # x y"    | "Notes for page #"        | "Notes for page # x y"    |
+   | new note            | with new title            | always                    | with new title            | always                    |
+   | body                | selected-text (not title) | selected-text (not title) | selected-text (not title) | selected-text (not title) |
+   |---------------------+---------------------------+---------------------------+---------------------------+---------------------------|
+   | highlight selection | user setting/toggle       | user setting/toggle       | user setting/toggle       | user setting/toggle       |
 
-    For navigation, I use =..-sync-..-note= more than =..-sync-..-page-..=, so I
-    bound the =note= commands to the easier-to-type =M-[p.n]= bindings and the
-    less-used =page-..= commands to the harder-to-type =C-M-[p.n]= bindings.
-    #+begin_src elisp
-      (with-eval-after-load 'org-noter
-        (define-key org-noter-doc-mode-map (kbd "M-p") 'org-noter-sync-prev-note)
-        (define-key org-noter-doc-mode-map (kbd "M-.") 'org-noter-sync-current-note)
-        (define-key org-noter-doc-mode-map (kbd "M-n") 'org-noter-sync-next-note)
-        (define-key org-noter-doc-mode-map (kbd "C-M-p") 'org-noter-sync-prev-page-or-chapter)
-        (define-key org-noter-doc-mode-map (kbd "C-M-.") 'org-noter-sync-current-page-or-chapter)
-        (define-key org-noter-doc-mode-map (kbd "C-M-n") 'org-noter-sync-next-page-or-chapter)
-
-        (define-key org-noter-notes-mode-map (kbd "M-p") 'org-noter-sync-prev-note)
-        (define-key org-noter-notes-mode-map (kbd "M-.") 'org-noter-sync-current-note)
-        (define-key org-noter-notes-mode-map (kbd "M-n") 'org-noter-sync-next-note)
-        (define-key org-noter-notes-mode-map (kbd "C-M-p") 'org-noter-sync-prev-page-or-chapter)
-        (define-key org-noter-notes-mode-map (kbd "C-M-.") 'org-noter-sync-current-page-or-chapter)
-        (define-key org-noter-notes-mode-map (kbd "C-M-n") 'org-noter-sync-next-page-or-chapter))
-    #+end_src
-
-    In the original code, the tooltip arrow on PDFs is *Orange-Red on White*,
-    which works fine when the arrow is always on the left side of the page.  I
-    found that with the 2D precise notes introduced by Ahmed Shariff, I sometime
-    had trouble locating the arrow as I navigated through my notes.  The *Black
-    on Cyan* color-scheme that I use is more jarring, hence easier to locate.
-    #+begin_src elisp
-      (with-eval-after-load 'org-noter
-        (setq org-noter-arrow-background-color "cyan"
-        org-noter-arrow-foreground-color "black"))
-    #+end_src
-
-*** Dmitry's mods
-** Features
-*** New
-   1. Use pdf-view-current-pagelabel to use the page label instead of page in
-      default titles
-
-      new function/hook =...-pretty-print-location-for-title=
-
-   2. Customizable tooltip arrow colors
-      - =...-arrow-foreground-color=
-      - =...-arrow-background-color=
-
-   3. Text-selection higlighting: customizable default behavior, toggle
-      =...-highlight-selected-text= with =C-u= prefix on note-insertion
-      commands.
-
-   4. Rudimentary support for multicolumn PDFs with inheritable =NUM_COLUMNS=
-      property.  See =...-pdf-convert-to-location-cons=
-
-*** Wishlist
-   1. Bind M-<mouse-1> to precise-note, no-questions.
-
-   2. Make background of arrow transparent (see org-noter--show-arrow)
-      maybe https://emacs.stackexchange.com/questions/45588/how-to-make-tooltip-background-transparent
-
-   3. Dedicated insert-selected-text-into-page-note
-
-   4. Internationalize precise notes to handle right-to-left languages.
-** Bugs
-*** to fix
-    1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
-       away (or at all), requiring user to manually type in the (existing) title
-
-    2. With NUM_COLUMNS > 1, point in notes document doesn't land in the correct
-       place
-
-    3. With NUM_COLUMNS > 1, columns don't necessarily start at horizontal
-       positions k/NUM_COLUMNS for k \in {1,..,NUM_COLUMNS}.  We need to write a
-       user interface that builds a list of horizontal fractions to delimit the
-       columns.
-
-*** fixed
-    1. vertically stacked doc/notes layout fixed
-
-    2. =org-noter-sync-next-page-or-chapter= navigation fixed
-
-    3. Navigating up from a nested precise note lands in the prior note at the
-       next level up (eg level 3 -> level 2).  page notes behave properly.
-
-       [file:org-noter-core.el:2179]
-       =(org-element-property :begin (org-noter--get-containing-element))= returns
-       the begin of the element one level up when the current note location is of
-       the form (<page#> <vpos> . <hpos>).  It works properly for locations of
-       the form (<page#> . <vpos>).
-
-       It will be one of these two:
-       - =org-noter--get-containing-heading=
-         - =org-noter--check-location-property=
-           found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
-       - =org-noter--get-containing-property-drawer=
-** Custom variables
-   Presently, the custom variables listed under =customize-group org-noter= is a
-   flat list.  I would like to group them into logical categories.
-
-*** start-stop
-   - org-noter-supported-modes '(doc-view-mode pdf-view-mode nov-mode djvu-read-mode)
-   - org-noter-auto-save-last-location nil
-   - org-noter-default-notes-file-names '("Notes.org")
-   - org-noter-notes-search-path '("~/Documents")
-   - org-noter-notes-window-behavior '(start scroll)
-   - org-noter-suggest-from-attachments t
-   - org-noter-find-additional-notes-functions nil
-   - org-noter-always-create-frame t
-   - org-noter-kill-frame-at-session-end t
-   - org-noter-use-indirect-buffer t
-
-*** layout
-   - org-noter-notes-window-location 'horizontal-split
-   - org-noter-doc-split-fraction '(0.5 . 0.5)
-   - org-noter-disable-narrowing nil
-   - org-noter-swap-window nil
-   - org-noter-hide-other t
-
-*** note-insertion
-   - org-noter-default-heading-title "Notes for page $p$"
-   - org-noter-separate-notes-from-heading nil
-   - org-noter-insert-selected-text-inside-note t
-   - org-noter-highlight-selected-text nil
-   - org-noter-max-short-selected-text-length 80
-   - org-noter-insert-heading-hook nil
-   - org-noter-insert-note-no-questions nil
-
-*** navigation-display
-   - org-noter-arrow-delay 0.2
-   - org-noter-arrow-horizontal-offset -0.02
-   - org-noter-arrow-foreground-color "orange red"
-   - org-noter-arrow-background-color "white"
-   - org-noter-closest-tipping-point 0.3
-   - org-noter-no-notes-exist-face
-   - org-noter-notes-exist-face
-
-*** other
-   - org-noter-property-doc-file "NOTER_DOCUMENT"
-   - org-noter-property-note-location "NOTER_PAGE"
-   - org-noter-prefer-root-as-file-level nil # used in org-noter--parse-root
-   - org-noter-doc-property-in-notes nil
+* Acknowledgments
+  - [[https://github.com/rudolfochrist][Sebastian Christ]] :: Author of the ~interleave~ package, inspiration for ~org-noter~
+  - [[https://github.com/weirdNox][Gonçalo Santos]] :: Author of ~org-noter~
+  - [[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]] :: Contributor of 2-D precise notes
+  - [[https://github.com/c1-g/org-noter-plus-djvu][Charlie Gordon]] :: Contributor of DJVU support and document-type modularization

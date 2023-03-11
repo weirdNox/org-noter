@@ -1,12 +1,12 @@
 ;;; org-noter.el --- A synchronized, Org-mode, document annotator       -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017-2018  Gonçalo Santos
+;; Copyright (C) 2017-2019  Gonçalo Santos
 
 ;; Author: Gonçalo Santos (aka. weirdNox@GitHub)
 ;; Homepage: https://github.com/weirdNox/org-noter
 ;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
-;; Version: 1.4.1
+;; Version: 1.5.0
 
 ;; This file is not part of GNU Emacs.
 
