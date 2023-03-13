@@ -4,7 +4,7 @@
 
 ;; Author: Gonçalo Santos (aka. weirdNox@GitHub)
 ;; Maintainer: Peter Mao <peter.mao@gmail.com>
-;; Maintainer: Dmitry M <dmitrym@gmail.com>
+;;	Dmitry M <dmitrym@gmail.com>
 ;; Homepage: https://github.com/org-noter/org-noter
 ;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
