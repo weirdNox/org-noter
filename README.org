@@ -1,6 +1,6 @@
 * Org-noter: an interleaving/note-taking package for documents
   [[https://melpa.org/#/org-noter][file:https://melpa.org/packages/org-noter-badge.svg]]
-  
+
   ~Org-noter~, by [[https://github.com/weirdNox][Gonçalo Santos]], was inspired by the now-orphaned ~Interleave~
   package, by [[https://github.com/rudolfochrist][Sebastian Christ]].  In Sebastian's words (with minor edits):
 
@@ -44,30 +44,29 @@
       #+end_src
 
 *** straight.el
-In plain ~straight.el~ syntax
-#+begin_src elisp
-(straight-use-package 'org-noter)
-(setq org-noter-notes-search-path        '("~/your/path/to/notes"))
-(setq org-noter-default-notes-file-names '("notes.org"))
-#+end_src
+    In plain ~straight.el~ syntax
+    #+begin_src elisp
+      (straight-use-package 'org-noter)
+    #+end_src
 
-For all those that use ~straight.el~ along with ~use-package~
-#+begin_src elisp
-(straight-use-package 'use-package)
-(setq straight-use-package-by-default t)
+*** straight.el + use-package
+    #+begin_src elisp
+      (straight-use-package 'use-package)
+      (setq straight-use-package-by-default t)
+      (use-package org-noter)
+    #+end_src
 
-(use-package org-noter
-    :config
-        (setq org-noter-notes-search-path        '("~/your/path/to/notes"))
-        (setq org-noter-default-notes-file-names '("notes.org"))
-;; Include this only next block only if you use ~evil~ with ~general~
-    :general
-        (general-nmap
-          :keymaps '(org-noter-mode-map pdf-view-mode-map)
-            "I" 'org-noter-insert-note-toggle-no-questions
-            "i" 'org-noter-insert-note)
-)
-#+end_src
+    Alternate form cribbed from
+    https://github.com/dmitrym0/org-noter-plus/issues/3. *@dmitrym0 -- can you
+    decide which way to go on this?*
+    #+begin_src elisp
+      (use-package org-noter
+                   :straight
+                   (:repo "org-noter/org-noter"
+                          :host github
+                          :type git
+                          :files ("*.el" "modules/*.el")))
+    #+end_src
 
 ** Features
 *** original org-noter (up to 2019)
@@ -155,6 +154,9 @@ There is, of course, more information in the docstrings of each command.
    :PROPERTIES:
    :CUSTOM_ID: custom
    :END:
+
+See [[file:./CUSTOMIZATIONS.org]] for examples of user & maintainer customizations
+to this package.
 
 There are two kinds of customizations you may do:
 1. Global settings, affecting every session
