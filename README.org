@@ -44,8 +44,30 @@
       #+end_src
 
 *** straight.el
-    [TODO: Dmitry]
+In plain ~straight.el~ syntax
+#+begin_src elisp
+(straight-use-package 'org-noter)
+(setq org-noter-notes-search-path        '("~/your/path/to/notes"))
+(setq org-noter-default-notes-file-names '("notes.org"))
+#+end_src
 
+For all those that use ~straight.el~ along with ~use-package~
+#+begin_src elisp
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
+
+(use-package org-noter
+    :config
+        (setq org-noter-notes-search-path        '("~/your/path/to/notes"))
+        (setq org-noter-default-notes-file-names '("notes.org"))
+;; Include this only next block only if you use ~evil~ with ~general~
+    :general
+        (general-nmap
+          :keymaps '(org-noter-mode-map pdf-view-mode-map)
+            "I" 'org-noter-insert-note-toggle-no-questions
+            "i" 'org-noter-insert-note)
+)
+#+end_src
 
 ** Features
 *** original org-noter (up to 2019)
