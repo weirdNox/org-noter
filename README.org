@@ -111,7 +111,8 @@
       thereof).  Precise notes are ordered vertically within columns.  Use
       ~M-x org-noter-pdf-set-columns~ to interactively set ~COLUMN_EDGES~ for
       the current heading.  The property is inheritable, so it can be set at the
-      page, chapter/section, or document level.
+      page, chapter/section, or document level.  See [[file:docs/HOWTO.org]] for
+      more details.
 
     - Highlighting of selected text :: Default behavior (on/off) is
       user-customizable.  Non-default behavior is activated with a =C-u= prefix
@@ -155,7 +156,7 @@ There is, of course, more information in the docstrings of each command.
    :CUSTOM_ID: custom
    :END:
 
-See [[file:./CUSTOMIZATIONS.org]] for examples of user & maintainer customizations
+See [[file:docs/CUSTOMIZATIONS.org]] for examples of user & maintainer customizations
 to this package.
 
 There are two kinds of customizations you may do:

@@ -1,0 +1,88 @@
+* HOW TO...
+
+
+** Set up notes for a multicolumn document (~pdf-view-mode~ mode only)
+
+   Most scientific papers are published in two-column format, while other
+   documents, like IRS instructions, have a mixture of one to four columns on
+   any given page.
+
+   Multicolumn support requires knowledge of the column edges, specifically, the
+   right edge of each column. ~org-noter-pdf-set-columns~ helps you
+   interactively set the column edges for the *current heading* in the *notes
+   file*.
+
+   For a scientific paper, it usually suffices to set up multicolumn support at
+   the document level, i.e., at the top header line in the notes file.  For a
+   new paper, run ~org-noter-pdf-set-columns~ before taking any notes.  If you
+   already have notes on the document, then move your point in the notes file to
+   the top heading, and then run ~org-noter-pdf-set-columns~.  If you inspect
+   the property drawer, then you will see an entry called =:COLUMN_EDGES:= with
+   a list of the horizontal position of the right edges of the columns.  I find
+   it best to locate the column edges at the *right edge of the text* in the
+   document, rather than in the whitespace between columns.
+
+   Here is an example of an [[https://www.researchgate.net/publication/222714864_An_introduction_to_PoundDreverHall_laser_frequency_stabilization][/Am. J. Phys./ paper]] with a precise note low in the
+   first column ("D. Reflection...") and a precise note in the second column
+   that is vertically higher than the first-column note ("E. Measuring...").
+   Without the document-level =:COLUMN_EDGES:= property, the "E" note would be
+   sorted /before the "D" note.
+
+#+begin_example org
+* BlackED_Intro to PDH laser freq stabilization_AJP_2001
+  :PROPERTIES:
+  :NOTER_DOCUMENT: QR/BlackED_Intro to PDH laser freq stabilization_AJP_2001.pdf
+  :COLUMN_EDGES: (0.48125585754451733 1)
+  :END:
+** D. Reflection of a modulated beam: The error signal
+   :PROPERTIES:
+   :NOTER_PAGE: (5 0.8740043446777697 . 0.08434864104967198)
+   :END:
+** E. Measuring the error signal
+   :PROPERTIES:
+   :NOTER_PAGE: (5 0.6307023895727734 . 0.5173383317713215)
+   :END:
+#+end_example
+
+   For a document with varying formats, such as the [[https://www.irs.gov/pub/irs-pdf/i1040gi.pdf][IRS instructions for Form
+   1040]], it may make more sense to set up multicolumn support at the section
+   level, rather than the document level.  In this case, there are more steps
+   involved:
+
+   1. Create a note on the first page with multiple columns
+   2. run ~org-noter-pdf-set-columns~
+   3. After inserting the first *precise* note in this section, *indent the
+      note* so that it is a sub-heading of the note created in step 1.
+
+   The example below is from the 2022 IRS 1040 General Instructions.  The first
+   3-column page in the document is at the 6th page ("What's New").
+
+#+begin_example org
+* i1040gi
+  :PROPERTIES:
+  :NOTER_DOCUMENT: i1040gi.pdf
+  :NOTER_PAGE: 17
+  :END:
+** What's New
+   :PROPERTIES:
+   :NOTER_PAGE: 6
+   :COLUMN_EDGES: (0.331302717900656 0.6312089971883786 1)
+   :END:
+*** Due date of return.
+    :PROPERTIES:
+    :NOTER_PAGE: (6 0.1448225923244026 . 0.07216494845360825)
+    :END:
+*** Child tax credit
+    :PROPERTIES:
+    :NOTER_PAGE: (6 0.667632150615496 . 0.3692596063730084)
+    :END:
+*** Reporting requirements
+    :PROPERTIES:
+    :NOTER_PAGE: (6 0.4532947139753801 . 0.6672914714151827)
+    :END:
+** Notes for page 17
+   :PROPERTIES:
+   :NOTER_PAGE: 17
+   :COLUMN_EDGES: (0.4887535145267104 1)
+   :END:
+#+end_example
