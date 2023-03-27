@@ -210,6 +210,10 @@ original pretty-print function."
             right1
             (- bottom1 (/ (- bottom1 top1) 3))))))
 
+(defalias 'org-noter--pdf-tools-edges-to-region 'org-noter-pdf--tools-edges-to-region
+  "For ORG-NOTER-PDFTOOLS backward compatiblity.  The name of the
+underlying function is currently under discussion")
+
 (defun org-noter-create-skeleton-pdf (mode)
   "Create notes skeleton with the PDF outline or annotations."
   (when (eq mode 'pdf-view-mode)
