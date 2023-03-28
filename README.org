@@ -26,7 +26,7 @@
   acting like notes that are made /inside/ the document.  Also, taking notes is
   very simple: just press =i= and annotate away!
 
-  Org-noter is compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]], [[https://github.com/wasamasa/nov.el][Nov.el]], and
+  Org-noter is compatible with [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]], [[https://depp.brause.cc/nov.el/][Nov.el]], and
   [[DJVU-read][DJVU-image-mode]]. These modes make it possible to annotate *PDF*, *EPUB*,
   *Microsoft Office*, DVI, PS, OpenDocument, and DJVU formatted files.  Note
   that PDF support is our prime goal.  Other format have been supported by other
