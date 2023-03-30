@@ -1975,20 +1975,6 @@ See `org-noter-notes-window-behavior' for more information."
               (org-entry-put nil org-noter--property-doc-split-fraction (format "%s" new-setting))
             (org-entry-delete nil org-noter--property-doc-split-fraction))))))))
 
-(defun org-noter-start-from-dired ()
-  "In Dired, open sessions for marked files or file at point.
-
-If there are multiple marked files, focus will be on the last
-marked file."
-  (interactive)
-  (let ((files (or (dired-get-marked-files)
-                   (dired-get-filename))))
-    (dolist (filename files)
-      (find-file filename)
-      (save-excursion (org-noter))
-      (bury-buffer))
-    (other-frame 1)))
-
 (defun org-noter-kill-session (&optional session)
   "Kill an `org-noter' session.
 

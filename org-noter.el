@@ -276,6 +276,21 @@ notes file, even if it finds one."
                     (org-noter arg))
                   (throw 'break t)))))))))))
 
+;;;###autoload
+(defun org-noter-start-from-dired ()
+  "In Dired, open sessions for marked files or file at point.
+
+If there are multiple marked files, focus will be on the last
+marked file."
+  (interactive)
+  (let ((files (or (dired-get-marked-files)
+                   (dired-get-filename))))
+    (dolist (filename files)
+      (find-file filename)
+      (save-excursion (org-noter))
+      (bury-buffer))
+    (other-frame 1)))
+
 (provide 'org-noter)
 
 ;;; org-noter.el ends here
