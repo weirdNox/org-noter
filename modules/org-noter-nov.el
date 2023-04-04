@@ -27,7 +27,7 @@
 
 (condition-case nil
     (require 'nov)
-  (error (message "ATTENTION: org-noter-nov needs the package `nov'.")))
+  (error (message "ATTENTION: org-noter-nov needs the package `nov'")))
 
 (defvar nov-documents-index)
 (defvar nov-file-name)

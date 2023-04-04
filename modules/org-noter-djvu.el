@@ -28,7 +28,7 @@
 
 (condition-case nil
     (require 'djvu)
-  (error (message "ATTENTION: org-noter-djvu needs the package `djvu'.")))
+  (error (message "ATTENTION: org-noter-djvu needs the package `djvu'")))
 
 (defun org-noter-djvu--pretty-print-location (location)
   (org-noter--with-valid-session

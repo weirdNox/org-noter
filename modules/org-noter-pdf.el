@@ -29,7 +29,7 @@
 (condition-case nil
     (require 'pdf-tools)
     (require 'pdf-annot)
-    (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'.")))
+    (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
 (cl-defstruct pdf-highlight page coords)
 
