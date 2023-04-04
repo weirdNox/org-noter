@@ -26,13 +26,12 @@
 (eval-when-compile (require 'subr-x))
 (require 'cl-lib)
 (require 'org-noter-core)
-(if (not (assq 'pdf-tools package-alist))
-    (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'.")
-  (require 'pdf-tools)
-  (require 'pdf-annot))
+(condition-case nil
+    (require 'pdf-tools)
+    (require 'pdf-annot)
+    (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
 (cl-defstruct pdf-highlight page coords)
-
 
 (defun org-noter-pdf--get-highlight ()
   "If there's an active pdf selection, returns a  that contains all
