@@ -268,10 +268,12 @@ notes file, even if it finds one."
         (with-current-buffer (find-file-noselect (car notes-files-annotating))
           (org-with-point-at (point-min)
             (catch 'break
-              (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
+              (while (re-search-forward (org-re-property org-noter-property-doc-file) nil)
                 (when (file-equal-p (expand-file-name (match-string 3)
                                                       (file-name-directory (car notes-files-annotating)))
                                     document-path)
+                  (if-let ((saved-location (org-entry-get nil org-noter-property-note-location)))
+                      (setq document-location (cons (string-to-number saved-location) 0)))
                   (let ((org-noter--start-location-override document-location))
                     (org-noter arg))
                   (throw 'break t)))))))))))
