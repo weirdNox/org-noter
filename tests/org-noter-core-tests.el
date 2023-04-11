@@ -200,6 +200,55 @@
                                       (expect (string-match "HARDCODED_HIGHLIGHT_LOCATION" (buffer-string))  :not :to-be nil)))))
                     )
 
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          (describe "core functionality"
+                    (describe "top level heading insertion"
+                              (it "can insert a top level heading at the end of the file"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (org-noter--create-notes-heading "ADOCUMENT" "/tmp/file")
+                                      (expect (string-match "ADOCUMENT" (buffer-string))  :not :to-be nil)
+                                      (expect (string-match "/tmp/file" (buffer-string))  :not :to-be nil)
+                                      ;; ADOCUMENT should come after solove-nothing-to-hide
+                                      (expect (string-match "solove-nothing-to-hide" (buffer-string)) :to-be-less-than
+                                              (string-match "ADOCUMENT" (buffer-string)))
+                                      (message (buffer-string)))))
+                              )
+
+                    (describe "identifying top level headlines"
+                              (before-each
+                               ;; org-noter uses file-equal-p that looks at the filesystem. We need real files to verify this functionality.
+                               (shell-command "mkdir -p /tmp/pubs/ && touch /tmp/pubs/solove-nothing-to-hide.pdf")
+                               )
+
+                              (it "can find the top level headline for a specified document and return true"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (expect
+                                       (org-noter--find-top-level-heading-for-publication-path "/tmp/pubs/solove-nothing-to-hide.pdf")
+                                       :to-be 164)
+                                      (message (buffer-string)))))
+
+
+                              (it "return nil for a non existent top level heading"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (expect
+                                       (org-noter--find-top-level-heading-for-publication-path "/FAKE/PATH/DOESNT/EXIST")
+                                       :to-be nil)
+                                      (message (buffer-string)))))
+                              )
+
+
+
+
+                    )
+
+
 
 
 

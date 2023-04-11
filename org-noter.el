@@ -205,13 +205,32 @@ notes file, even if it finds one."
            (org-noter)))))))
 
 
+(defun org-noter--find-top-level-heading-for-publication-path (pub-path)
+  "Given publication path, PUB-PATH tries to see if the current buffer has a
+top level (\"NOTER_DOCUMENT\") heading for it. It returns the point for the heading (if found)
+`nil' otherwise."
+  (let ((found-heading nil))
+    (org-with-point-at (point-min)
+      (condition-case nil
+          ;; look for NOTER_DOCUMENT property that matches the file-path for the org-roam node selected
+          (while (and (not found-heading)
+                      (re-search-forward (org-re-property org-noter-property-doc-file)))
+             (when (file-equal-p (expand-file-name (match-string 3))
+                                (expand-file-name pub-path))
+              (setq found-heading (point))))
+        (search-failed
+         (message "This buffer doesn't seem to have a matching NOTER_DOCUMENT heading.")
+         nil))) found-heading))
+
+;; TODO How is this different from org-noter--insert-heading?
+;; org-noter--insert-heading doesn't deal with top level headings.
 (defun org-noter--create-notes-heading (notes-heading publication-path)
   "Create a top level notes heading for a publication along with the path to the backing publication"
   (goto-char (point-max))
   (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
           "* " notes-heading )
   (org-entry-put nil org-noter-property-doc-file
-                 (file-relative-name publication-path)))
+                 (expand-file-name publication-path)))
 
 
 
