@@ -274,7 +274,7 @@ notes file, even if it finds one."
                                     document-path)
                   (let ((org-noter--start-location-override document-location))
                     (org-noter arg))
-                  (throw 'break t)))))))))))
+                  (throw 'break t))))))))
 
 ;;;###autoload
 (defun org-noter-start-from-dired ()
