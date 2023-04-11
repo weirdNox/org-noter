@@ -146,12 +146,77 @@ notes file, even if it finds one."
         ;; It's not an existing session, create a new session.
         (org-noter--create-session ast document-property notes-file-path))))
 
+   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; NOTE(nox): Creating the session from the annotated document
+   ;;
+   ;; eg: M-x org-noter from a pdf document
    ((memq major-mode org-noter-supported-modes)
+    ;; if an org-noter sesseion already exists
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
+      (run-hook-with-args-until-success 'org-noter-create-session-from-publication-hook)))))
 
+
+
+(defun org-noter--get-filename-for-org-roam-node ()
+  "Use the standard org-roam interface to select an existing node or create a new one and return a path to it"
+  (let* ((templates (list (append (car org-roam-capture-templates) '(:immediate-finish t))))
+         (node (org-roam-node-read))
+         (_ (org-roam-capture-
+             :node node
+             :info nil
+             :templates templates
+             :props nil))
+         (node-id (org-roam-node-id node))
+         (file-path-for-new-entry (org-roam-node-file (org-roam-node-from-id node-id))))
+    (message "%s" file-path-for-new-entry)
+    file-path-for-new-entry))
+
+
+
+
+;; TODO DUH NEEDS TO BE THE PDF FILE!!!
+
+(defun org-noter--create-session-from-publication-file-supporting-org-roam ()
+  ;; support for
+  ;; 1. empty file - create a heading for DOCUMENT_PATH
+  ;; 2. notes file - with other notes already existing
+  ;;    - find a tree that belongs to the current pub
+  ;;    - if no such tree exist, create it
+  ;; ...or just open a file and let org-noter figure it out?
+  (let* ((file-path-for-org-roam-node (org-noter--get-filename-for-org-roam-node))
+         (_ (message "[d] opening up %s" file-path-for-org-roam-node)))
+    (with-current-buffer (find-file-noselect file-path-for-org-roam-node)
+      (message "1. doing stuff")
+      (org-with-point-at (point-min)
+        (condition-case nil
+            ;; look for NOTER_DOCUMENT property that matches the file-path for the org-roam node selected
+            (while (re-search-forward (org-re-property org-noter-property-doc-file))
+
+              (message "2. doing stuff")
+              (when (file-equal-p (expand-file-name (match-string 3)) file-path-for-org-roam-node)
+                (message "Found NOTER_DOCUMENT property!")
+                (org-noter)))
+          ;; NOTER_DOCUMENT property for our file-path  doesn't exist, lets create it.
+          (search-failed
+           (message "This buffer doesn't seem to have a matching NOTER_DOCUMENT heading. Going to create one")
+           (org-noter--create-notes-heading "NEW DOC" "/tmp/evil-manual.pdf")
+           (org-noter)))))))
+
+
+(defun org-noter--create-notes-heading (notes-heading publication-path)
+  "Create a top level notes heading for a publication along with the path to the backing publication"
+  (goto-char (point-max))
+  (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
+          "* " notes-heading )
+  (org-entry-put nil org-noter-property-doc-file
+                 (file-relative-name publication-path)))
+
+
+
+(defun org-noter--create-session-from-publication-file-default ()
+  ;; create a new org-noter session from an open "pdf" file
       ;; NOTE(nox): `buffer-file-truename' is a workaround for modes that delete
       ;; `buffer-file-name', and may not have the same results
       (let* ((buffer-file-name (or (run-hook-with-args-until-success 'org-noter-get-buffer-file-name-hook major-mode)
