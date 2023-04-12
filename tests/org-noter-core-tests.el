@@ -216,13 +216,15 @@
                                   (with-mock-contents
                                    mock-contents-simple-notes-file
                                    '(lambda ()
-                                      (expect
-                                       ;; org-noter-test-file is defined in test-utils.
-                                       (org-noter--find-create-top-level-heading-for-pub "/tmp/pubs/solove-nothing-to-hide.pdf" "THIS PARAM IS UNUSED")
-                                       :to-be 164)
+                                      (let* ((found-heading-pos (org-noter--find-create-top-level-heading-for-pub "/tmp/pubs/solove-nothing-to-hide.pdf" "THIS PARAM IS UNUSED")))
+                                      (message "\n00 ----")
+                                      (message (buffer-string))
+                                      (message "\n00 ----")
+
+                                      (expect found-heading-pos :to-be 164)
                                       (message "----")
                                       (message (buffer-string))
-                                      (message "---- %s" (length (buffer-string))))))
+                                      (message "---- %s" (length (buffer-string)))))))
 
 
                               (it "can create a new heading"
