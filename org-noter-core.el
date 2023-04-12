@@ -1688,6 +1688,7 @@ relative to."
            (t (propertize (format " %d notes " number-of-notes) 'face 'org-noter-notes-exist-face))))))
 
 (defun org-noter--check-if-document-is-annotated-on-file (document-path notes-path)
+  "Check if NOTES-PATH annotation file contains any notes that annotate DOCUMENT-PATH publication"
   ;; NOTE(nox): In order to insert the correct file contents
   (let ((buffer (find-buffer-visiting notes-path)))
     (when buffer (with-current-buffer buffer (save-buffer)))
