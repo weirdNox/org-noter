@@ -152,17 +152,21 @@ notes file, even if it finds one."
    ;; eg: M-x org-noter from a pdf document
    ((memq major-mode org-noter-supported-modes)
     ;; if an org-noter sesseion already exists
+    (message "Session %s" org-noter--session)
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
-      (run-hook-with-args-until-success 'org-noter-create-session-from-publication-hook)))))
+      (run-hook-with-args-until-success 'org-noter-create-session-from-publication-hook buffer-file-name)))))
 
 
 
 (defun org-noter--get-filename-for-org-roam-node ()
   "Use the standard org-roam interface to select an existing node or create a new one and return a path to it"
   (let* ((templates (list (append (car org-roam-capture-templates) '(:immediate-finish t))))
-         (node (org-roam-node-read))
+         (all-files-containing-notes (org-noter--get-files-containing-notes))
+         (node (org-roam-node-read nil (lambda (node)
+                                          (member (org-roam-node-file node)
+                                                all-files-containing-notes))))
          (_ (org-roam-capture-
              :node node
              :info nil
