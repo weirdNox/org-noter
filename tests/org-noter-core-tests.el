@@ -220,7 +220,9 @@
                                        ;; org-noter-test-file is defined in test-utils.
                                        (org-noter--find-create-top-level-heading-for-pub "/tmp/pubs/solove-nothing-to-hide.pdf" "SOME HEADING")
                                        :to-be 164)
-                                      (message (buffer-string)))))
+                                      (message "----")
+                                      (message (buffer-string))
+                                      (message "---- %s" (length (buffer-string))))))
 
 
                               (it "can create a new heading"
@@ -230,7 +232,11 @@
                                       (expect
                                        ;; org-noter-test-file is defined in test-utils.
                                        (org-noter--find-create-top-level-heading-for-pub "/tmp/some-other-pdf-file.pdf" "SOME HEADING")
-                                       :to-be 73)
+                                       :to-be 185)
+                                      (message "----")
+                                      (message (buffer-string))
+                                      (message "---- %s" (length (buffer-string)))
+
                                       )))
                               )
 

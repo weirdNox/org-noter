@@ -224,12 +224,12 @@ top level (\"NOTER_DOCUMENT\") heading for it. It returns the point for the head
 (defun org-noter--create-notes-heading (notes-heading publication-path)
   "Create a top level notes heading for a publication along with the path to the backing publication.
 Return the point where the heading was inserted"
+  (cl-assert notes-heading t "notes-heading cannot be nil. we can't insert a nil heading.")
   (goto-char (point-max))
   (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
           "* " notes-heading )
   (org-entry-put nil org-noter-property-doc-file
                  (expand-file-name publication-path))
-  (org-previous-visible-heading 1)
   (point))
 
 
