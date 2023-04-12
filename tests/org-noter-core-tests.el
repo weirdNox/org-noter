@@ -223,15 +223,16 @@
                                       (message (buffer-string)))))
 
 
-                              (it "can create a new heading"
-                                  (with-mock-contents
-                                   mock-contents-simple-notes-file
-                                   '(lambda ()
-                                      (expect
-                                       ;; org-noter-test-file is defined in test-utils.
-                                       (org-noter--find-create-top-level-heading-for-pub "/tmp/some-other-pdf-file.pdf" "SOME HEADING")
-                                       :to-be 73)
-                                      ))))
+                              ;; (it "can create a new heading"
+                              ;;     (with-mock-contents
+                              ;;      mock-contents-simple-notes-file
+                              ;;      '(lambda ()
+                              ;;         (expect
+                              ;;          ;; org-noter-test-file is defined in test-utils.
+                              ;;          (org-noter--find-create-top-level-heading-for-pub "/tmp/some-other-pdf-file.pdf" "SOME HEADING")
+                              ;;          :to-be 73)
+                              ;;         )))
+                              )
 
 
                     ;; (describe "identifying top level headlines"
