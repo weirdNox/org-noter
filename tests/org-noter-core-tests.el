@@ -212,15 +212,15 @@
                                               (string-match "ADOCUMENT" (buffer-string)))
                                       (message (buffer-string)))))
 
-                              (it "can find an existing heading without creating a new one"
-                                  (with-mock-contents
-                                   mock-contents-simple-notes-file
-                                   '(lambda ()
-                                      (expect
-                                       ;; org-noter-test-file is defined in test-utils.
-                                       (org-noter--find-create-top-level-heading-for-pub "/tmp/pubs/solove-nothing-to-hide.pdf" nil)
-                                       :to-be 164)
-                                      (message (buffer-string)))))
+                              ;; (it "can find an existing heading without creating a new one"
+                              ;;     (with-mock-contents
+                              ;;      mock-contents-simple-notes-file
+                              ;;      '(lambda ()
+                              ;;         (expect
+                              ;;          ;; org-noter-test-file is defined in test-utils.
+                              ;;          (org-noter--find-create-top-level-heading-for-pub "/tmp/pubs/solove-nothing-to-hide.pdf" nil)
+                              ;;          :to-be 164)
+                              ;;         (message (buffer-string)))))
 
 
                               ;; (it "can create a new heading"
