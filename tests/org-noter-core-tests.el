@@ -223,43 +223,43 @@
                               ;;         (message (buffer-string)))))
 
 
-                              ;; (it "can create a new heading"
-                              ;;     (with-mock-contents
-                              ;;      mock-contents-simple-notes-file
-                              ;;      '(lambda ()
-                              ;;         (expect
-                              ;;          ;; org-noter-test-file is defined in test-utils.
-                              ;;          (org-noter--find-create-top-level-heading-for-pub "/tmp/some-other-pdf-file.pdf" "SOME HEADING")
-                              ;;          :to-be 73)
-                              ;;         )))
+                              (it "can create a new heading"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (expect
+                                       ;; org-noter-test-file is defined in test-utils.
+                                       (org-noter--find-create-top-level-heading-for-pub "/tmp/some-other-pdf-file.pdf" "SOME HEADING")
+                                       :to-be 73)
+                                      )))
                               )
 
 
-                    ;; (describe "identifying top level headlines"
-                    ;;           (before-each
-                    ;;            ;; org-noter uses file-equal-p that looks at the filesystem. We need real files to verify this functionality.
-                    ;;            (shell-command "mkdir -p /tmp/pubs/ && touch /tmp/pubs/solove-nothing-to-hide.pdf")
-                    ;;            )
+                    (describe "identifying top level headlines"
+                              (before-each
+                               ;; org-noter uses file-equal-p that looks at the filesystem. We need real files to verify this functionality.
+                               (shell-command "mkdir -p /tmp/pubs/ && touch /tmp/pubs/solove-nothing-to-hide.pdf")
+                               )
 
-                    ;;           (it "can find the top level headline for a specified document and return the position"
-                    ;;               (with-mock-contents
-                    ;;                mock-contents-simple-notes-file
-                    ;;                '(lambda ()
-                    ;;                   (expect
-                    ;;                    (org-noter--find-top-level-heading-for-publication-path "/tmp/pubs/solove-nothing-to-hide.pdf")
-                    ;;                    :to-be 164)
-                    ;;                   (message (buffer-string)))))
+                              (it "can find the top level headline for a specified document and return the position"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (expect
+                                       (org-noter--find-top-level-heading-for-publication-path "/tmp/pubs/solove-nothing-to-hide.pdf")
+                                       :to-be 164)
+                                      (message (buffer-string)))))
 
 
-                    ;;           (it "return nil for a non existent top level heading"
-                    ;;               (with-mock-contents
-                    ;;                mock-contents-simple-notes-file
-                    ;;                '(lambda ()
-                    ;;                   (expect
-                    ;;                    (org-noter--find-top-level-heading-for-publication-path "/FAKE/PATH/DOESNT/EXIST")
-                    ;;                    :to-be nil)
-                    ;;                   (message (buffer-string)))))
-                    ;;           )
+                              (it "return nil for a non existent top level heading"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (expect
+                                       (org-noter--find-top-level-heading-for-publication-path "/FAKE/PATH/DOESNT/EXIST")
+                                       :to-be nil)
+                                      (message (buffer-string)))))
+                              )
 
 
 
