@@ -199,6 +199,10 @@
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           (describe "core functionality"
+                    (before-each
+                     ;; org-noter uses file-equal-p that looks at the filesystem. We need real files to verify this functionality.
+                     (shell-command "mkdir -p /tmp/pubs/ && touch /tmp/pubs/solove-nothing-to-hide.pdf"))
+
                     (describe "top level heading insertion"
                               (it "can insert a top level heading at the end of the file"
                                   (with-mock-contents
