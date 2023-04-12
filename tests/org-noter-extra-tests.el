@@ -1,9 +1,5 @@
 
-(add-to-list 'load-path "modules")
-(require 'org-noter-pdf)
-(require 'with-simulated-input)
 (require 'org-noter-test-utils)
-
 
 (describe "org-noter very custom behavior"
           (before-each

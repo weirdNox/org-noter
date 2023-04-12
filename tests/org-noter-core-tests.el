@@ -1,8 +1,4 @@
-(add-to-list 'load-path "modules")
-(require 'org-noter)
-(require 'with-simulated-input)
 (require 'org-noter-test-utils)
-
 
 (describe "org-noter-core"
           (before-each
@@ -215,7 +211,28 @@
                                       (expect (string-match "solove-nothing-to-hide" (buffer-string)) :to-be-less-than
                                               (string-match "ADOCUMENT" (buffer-string)))
                                       (message (buffer-string)))))
-                              )
+
+                              (it "can find an existing heading without creating a new one"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (expect
+                                       ;; org-noter-test-file is defined in test-utils.
+                                       (org-noter--find-create-top-level-heading-for-pub "/tmp/pubs/solove-nothing-to-hide.pdf" nil)
+                                       :to-be 164)
+                                      (message (buffer-string)))))
+
+
+                              (it "can create a new heading"
+                                  (with-mock-contents
+                                   mock-contents-simple-notes-file
+                                   '(lambda ()
+                                      (expect
+                                       ;; org-noter-test-file is defined in test-utils.
+                                       (org-noter--find-create-top-level-heading-for-pub "/tmp/some-other-pdf-file.pdf" "SOME HEADING")
+                                       :to-be 73)
+                                      ))))
+
 
                     (describe "identifying top level headlines"
                               (before-each
@@ -223,7 +240,7 @@
                                (shell-command "mkdir -p /tmp/pubs/ && touch /tmp/pubs/solove-nothing-to-hide.pdf")
                                )
 
-                              (it "can find the top level headline for a specified document and return true"
+                              (it "can find the top level headline for a specified document and return the position"
                                   (with-mock-contents
                                    mock-contents-simple-notes-file
                                    '(lambda ()

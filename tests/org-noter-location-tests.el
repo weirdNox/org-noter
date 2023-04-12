@@ -1,4 +1,3 @@
-(add-to-list 'load-path "modules")
 (require 'org-noter-test-utils)
 
 (defvar mock-contents-simple-notes-file-with-locations
