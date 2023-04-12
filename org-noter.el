@@ -174,63 +174,59 @@ notes file, even if it finds one."
     file-path-for-new-entry))
 
 
+(defun org-noter--get-files-containing-notes ()
+  (let* ((shell-output (shell-command-to-string (format "ag -l -r '%s' %s |grep -v 'archive' | grep -v '.stversion' | grep '\\.org$'" org-noter-property-doc-file org-roam-directory))))
+    (split-string (substring shell-output 0 (- (length shell-output) 1)) "\n")))
 
 
-;; TODO DUH NEEDS TO BE THE PDF FILE!!!
-
-(defun org-noter--create-session-from-publication-file-supporting-org-roam ()
-  ;; support for
-  ;; 1. empty file - create a heading for DOCUMENT_PATH
-  ;; 2. notes file - with other notes already existing
-  ;;    - find a tree that belongs to the current pub
-  ;;    - if no such tree exist, create it
-  ;; ...or just open a file and let org-noter figure it out?
+(defun org-noter--create-session-from-publication-file-supporting-org-roam (pub-path)
   (let* ((file-path-for-org-roam-node (org-noter--get-filename-for-org-roam-node))
-         (_ (message "[d] opening up %s" file-path-for-org-roam-node)))
+         (_ (message "[d] opening up notes: %s pub: %s" file-path-for-org-roam-node pub-path))
+         (top-level-heading-for-pub-position (with-current-buffer (find-file-noselect file-path-for-org-roam-node)
+                                               (org-noter--find-create-top-level-heading-for-pub pub-path (file-name-base pub-path)))))
+    (message "going to pos: %s" top-level-heading-for-pub-position)
     (with-current-buffer (find-file-noselect file-path-for-org-roam-node)
-      (message "1. doing stuff")
-      (org-with-point-at (point-min)
-        (condition-case nil
-            ;; look for NOTER_DOCUMENT property that matches the file-path for the org-roam node selected
-            (while (re-search-forward (org-re-property org-noter-property-doc-file))
+    (goto-char top-level-heading-for-pub-position)
+    (org-noter))))
 
-              (message "2. doing stuff")
-              (when (file-equal-p (expand-file-name (match-string 3)) file-path-for-org-roam-node)
-                (message "Found NOTER_DOCUMENT property!")
-                (org-noter)))
-          ;; NOTER_DOCUMENT property for our file-path  doesn't exist, lets create it.
-          (search-failed
-           (message "This buffer doesn't seem to have a matching NOTER_DOCUMENT heading. Going to create one")
-           (org-noter--create-notes-heading "NEW DOC" "/tmp/evil-manual.pdf")
-           (org-noter)))))))
-
+(defun org-noter--find-create-top-level-heading-for-pub (pub-path desired-heading)
+  "In current buffer, looks for a top level heading for publication at PUB-PATH.
+If one is not found, creates one and returns it's position"
+    (let* ((top-level-heading-for-pub-position (org-noter--find-top-level-heading-for-publication-path pub-path)))
+      ;; does this buffer have a top level notes heading for this publication?
+      (if (eq top-level-heading-for-pub-position nil)
+        (org-noter--create-notes-heading desired-heading pub-path)
+      top-level-heading-for-pub-position)))
 
 (defun org-noter--find-top-level-heading-for-publication-path (pub-path)
   "Given publication path, PUB-PATH tries to see if the current buffer has a
 top level (\"NOTER_DOCUMENT\") heading for it. It returns the point for the heading (if found)
 `nil' otherwise."
-  (let ((found-heading nil))
+  (let ((found-heading-position nil))
     (org-with-point-at (point-min)
       (condition-case nil
-          ;; look for NOTER_DOCUMENT property that matches the file-path for the org-roam node selected
-          (while (and (not found-heading)
+          ;; look for NOTER_DOCUMENT property that matches the pub-path
+          (while (and (not found-heading-position)
                       (re-search-forward (org-re-property org-noter-property-doc-file)))
              (when (file-equal-p (expand-file-name (match-string 3))
                                 (expand-file-name pub-path))
-              (setq found-heading (point))))
-        (search-failed
-         (message "This buffer doesn't seem to have a matching NOTER_DOCUMENT heading.")
-         nil))) found-heading))
+              (setq found-heading-position (point))))
+        (search-failed   ;; when re=search-forward hits the end it throws an error which we should catch
+         (message "This buffer doesn't seem to have a matching NOTER_DOCUMENT heading.") nil)))
+    found-heading-position))
 
 ;; TODO How is this different from org-noter--insert-heading?
 ;; org-noter--insert-heading doesn't deal with top level headings.
 (defun org-noter--create-notes-heading (notes-heading publication-path)
-  "Create a top level notes heading for a publication along with the path to the backing publication"
+  "Create a top level notes heading for a publication along with the path to the backing publication.
+Return the point where the heading was inserted"
   (goto-char (point-max))
   (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
           "* " notes-heading )
   (org-entry-put nil org-noter-property-doc-file
-                 (expand-file-name publication-path)))
+                 (expand-file-name publication-path))
+  (org-previous-visible-heading 1)
+  (point))
 
 
 
