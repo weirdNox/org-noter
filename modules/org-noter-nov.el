@@ -38,7 +38,7 @@
 (defvar-local org-noter--nov-timer nil
   "Timer for synchronizing notes after scrolling.")
 
-(defun org-noter-nov--get-buffer-file-name (&optional mode)
+(defun org-noter-nov--get-buffer-file-name (&optional _mode)
   (bound-and-true-p nov-file-name))
 
 (add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-nov--get-buffer-file-name)
@@ -96,7 +96,7 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-nov--get-precise-info)
 
-(defun org-noter-nov--goto-location (mode location &optional window)
+(defun org-noter-nov--goto-location (mode location &optional _window)
   (when (eq mode 'nov-mode)
     (setq nov-documents-index (org-noter--get-location-page location))
     (nov-render-document)
