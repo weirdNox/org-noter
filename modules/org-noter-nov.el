@@ -25,7 +25,11 @@
 ;;; Code:
 (require 'org-noter-core)
 
-(condition-case nil
+(eval-when-compile ; ensure that the compiled code knows about NOV, if installed
+  (condition-case nil
+      (require 'nov)
+    (error (message "`nov' package not found"))))
+(condition-case nil ; run time warning
     (require 'nov)
   (error (message "ATTENTION: org-noter-nov needs the package `nov'")))
 

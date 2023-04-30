@@ -25,8 +25,11 @@
 ;;; Code:
 (require 'org-noter-core)
 
-
-(condition-case nil
+(eval-when-compile ; ensure that the compiled code knows about DJVU, if installed
+  (condition-case nil
+      (require 'djvu)
+    (error (message "`djvu' package not found"))))
+(condition-case nil ; run time warning
     (require 'djvu)
   (error (message "ATTENTION: org-noter-djvu needs the package `djvu'")))
 

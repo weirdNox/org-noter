@@ -26,7 +26,11 @@
 (eval-when-compile (require 'subr-x))
 (require 'cl-lib)
 (require 'org-noter-core)
-(condition-case nil
+(eval-when-compile ; ensure that the compiled code knows about PDF-TOOLS, if installed
+  (condition-case nil
+      (require 'pdf-tools)
+    (error (message "`pdf-tools' package not found"))))
+(condition-case nil ; inform user at run time if pdf-tools is missing
     (require 'pdf-tools)
   (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
