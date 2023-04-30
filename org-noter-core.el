@@ -23,7 +23,6 @@
 (require 'org)
 (require 'org-element)
 (require 'cl-lib)
-(require 'pdf-tools)
 
 (declare-function org-noter "org-noter")
 (declare-function doc-view-goto-page "doc-view")
@@ -34,16 +33,6 @@
 (declare-function nov-render-document "ext:nov")
 (declare-function org-attach-dir "org-attach")
 (declare-function org-attach-file-list "org-attach")
-(declare-function pdf-info-getannots "ext:pdf-info")
-(declare-function pdf-info-gettext "ext:pdf-info")
-(declare-function pdf-info-outline "ext:pdf-info")
-(declare-function pdf-info-pagelinks "ext:pdf-info")
-;; (declare-function pdf-util-tooltip-arrow "ext:pdf-util")
-(declare-function pdf-view-active-region "ext:pdf-view")
-(declare-function pdf-view-active-region-p "ext:pdf-view")
-(declare-function pdf-view-active-region-text "ext:pdf-view")
-(declare-function pdf-view-goto-page "ext:pdf-view")
-(declare-function pdf-view-mode "ext:pdf-view")
 
 ;; --------------------------------------------------------------------------------
 ;;; User variables

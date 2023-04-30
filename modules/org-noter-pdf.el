@@ -31,6 +31,16 @@
     (require 'pdf-annot)
     (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
+(declare-function pdf-info-getannots "ext:pdf-info")
+(declare-function pdf-info-gettext "ext:pdf-info")
+(declare-function pdf-info-outline "ext:pdf-info")
+(declare-function pdf-info-pagelinks "ext:pdf-info")
+(declare-function pdf-view-active-region "ext:pdf-view")
+(declare-function pdf-view-active-region-p "ext:pdf-view")
+(declare-function pdf-view-active-region-text "ext:pdf-view")
+(declare-function pdf-view-goto-page "ext:pdf-view")
+(declare-function pdf-view-mode "ext:pdf-view")
+
 (cl-defstruct pdf-highlight page coords)
 
 (defun org-noter-pdf--get-highlight ()
