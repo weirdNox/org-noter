@@ -516,6 +516,12 @@ Used by `org-noter--create-session' when creating a new session."
   :group 'org-noter-module-hooks
   :type 'hook)
 
+(defcustom org-noter--show-arrow-hook nil
+  "List of functions that show precise note location in document.
+For example, see `org-noter-pdf--show-arrow'."
+  :group 'org-noter-module-hooks
+  :type 'hook)
+
 ;; --------------------------------------------------------------------------------
 ;;; Private variables or constants
 (cl-defstruct org-noter--session
@@ -1257,51 +1263,7 @@ Scroll units are character-based."
   (when (and org-noter--arrow-location
              (window-live-p (aref org-noter--arrow-location 1)))
     (with-selected-window (aref org-noter--arrow-location 1)
-      ;; From `pdf-util-tooltip-arrow'.
-      (pdf-util-assert-pdf-window)
-      (let* (x-gtk-use-system-tooltips
-             (arrow-top  (aref org-noter--arrow-location 2)) ; % of page
-             (arrow-left (aref org-noter--arrow-location 3))
-             (image-top  (if (floatp arrow-top)
-                             (round (* arrow-top  (cdr (pdf-view-image-size)))))) ; pixel location on page (magnification-dependent)
-             (image-left (if (floatp arrow-left)
-                             (floor (* arrow-left (car (pdf-view-image-size))))))
-             (dx (or image-left
-                     (+ (or (car (window-margins)) 0)
-                        (car (window-fringes)))))
-             (dy (or image-top 0))
-             (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
-             (vscroll (pdf-util-required-vscroll pos))
-             (tooltip-frame-parameters
-              `((border-width . 0)
-                (internal-border-width . 0)
-                ,@tooltip-frame-parameters))
-             (tooltip-hide-delay 3))
-
-        (when vscroll
-          (image-set-window-vscroll vscroll))
-        (setq dy (max 0 (- dy
-                           (cdr (pdf-view-image-offset))
-                           (window-vscroll nil t)
-                           (frame-char-height))))
-        (when (overlay-get (pdf-view-current-overlay) 'before-string)
-          (let* ((e (window-inside-pixel-edges))
-                 (xw (pdf-util-with-edges (e) e-width))
-                 (display-left-margin (/ (- xw (car (pdf-view-image-size t))) 2)))
-            (cl-incf dx display-left-margin)))
-        (setq dx (max 0 (+ dx org-noter-arrow-horizontal-offset)))
-        (pdf-util-tooltip-in-window
-         (propertize
-          " " 'display (propertize
-                        "\u2192" ;; right arrow
-                        'display '(height 2)
-                        'face `(:foreground
-                                ,org-noter-arrow-foreground-color
-                                :background
-                                ,(if (bound-and-true-p pdf-view-midnight-minor-mode)
-                                     (cdr pdf-view-midnight-colors)
-                                   org-noter-arrow-background-color))))
-         dx dy))
+      (run-hook-with-args-until-success 'org-noter--show-arrow-hook)
       (setq org-noter--arrow-location nil))))
 
 (defun org-noter--get-location-top (location)

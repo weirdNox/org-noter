@@ -416,9 +416,57 @@ v') for precise notes."
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf--convert-to-location-cons)
 
+(defun org-noter-pdf--show-arrow ()
+  ;; From `pdf-util-tooltip-arrow'.
+  (pdf-util-assert-pdf-window)
+  (let* (x-gtk-use-system-tooltips
+         (arrow-top  (aref org-noter--arrow-location 2)) ; % of page
+         (arrow-left (aref org-noter--arrow-location 3))
+         (image-top  (if (floatp arrow-top)
+                         (round (* arrow-top  (cdr (pdf-view-image-size)))))) ; pixel location on page (magnification-dependent)
+         (image-left (if (floatp arrow-left)
+                         (floor (* arrow-left (car (pdf-view-image-size))))))
+         (dx (or image-left
+                 (+ (or (car (window-margins)) 0)
+                    (car (window-fringes)))))
+         (dy (or image-top 0))
+         (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
+         (vscroll (pdf-util-required-vscroll pos))
+         (tooltip-frame-parameters
+          `((border-width . 0)
+            (internal-border-width . 0)
+            ,@tooltip-frame-parameters))
+         (tooltip-hide-delay 3))
+
+    (when vscroll
+      (image-set-window-vscroll vscroll))
+    (setq dy (max 0 (- dy
+                       (cdr (pdf-view-image-offset))
+                       (window-vscroll nil t)
+                       (frame-char-height))))
+    (when (overlay-get (pdf-view-current-overlay) 'before-string)
+      (let* ((e (window-inside-pixel-edges))
+             (xw (pdf-util-with-edges (e) e-width))
+             (display-left-margin (/ (- xw (car (pdf-view-image-size t))) 2)))
+        (cl-incf dx display-left-margin)))
+    (setq dx (max 0 (+ dx org-noter-arrow-horizontal-offset)))
+    (pdf-util-tooltip-in-window
+     (propertize
+      " " 'display (propertize
+                    "\u2192" ;; right arrow
+                    'display '(height 2)
+                    'face `(:foreground
+                            ,org-noter-arrow-foreground-color
+                            :background
+                            ,(if (bound-and-true-p pdf-view-midnight-minor-mode)
+                                 (cdr pdf-view-midnight-colors)
+                               org-noter-arrow-background-color))))
+     dx dy)))
+
+(add-to-list 'org-noter--show-arrow-hook #'org-noter-pdf--show-arrow)
+
 (defun org-noter-pdf-set-columns (num-columns)
   "Interactively set the COLUMN_EDGES property for the current heading.
-
 NUM-COLUMNS can be given as an integer prefix or in the
 minibuffer.  The user is then prompted to click on the right edge
 of each column, except for the last one.  Subheadings of the
