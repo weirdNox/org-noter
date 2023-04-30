@@ -31,6 +31,8 @@
     (require 'pdf-annot)
     (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
+(require 'pdf-tools)
+
 (declare-function pdf-info-getannots "ext:pdf-info")
 (declare-function pdf-info-gettext "ext:pdf-info")
 (declare-function pdf-info-outline "ext:pdf-info")
