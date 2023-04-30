@@ -65,7 +65,7 @@ PRECISE-INFO, return (page v-pos) or (page v-pos . h-pos)."
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf--approx-location-cons)
 
-(defun org-noter-pdf--get-buffer-file-name (&optional mode)
+(defun org-noter-pdf--get-buffer-file-name (&optional _mode)
   "Return the file naming backing the document buffer.
 
 MODE (unused) is required for this type of hook."
