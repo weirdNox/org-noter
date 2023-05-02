@@ -44,14 +44,13 @@
 (add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-nov--get-buffer-file-name)
 
 (defun org-noter-nov--approx-location-cons (mode &optional precise-info _force-new-ref)
-  (org-noter--with-valid-session
-   (when (eq mode 'nov-mode)
-     (cons nov-documents-index (if (or (numberp precise-info)
-                                       (and (consp precise-info)
-                                            (numberp (car precise-info))
-                                            (numberp (cdr precise-info))))
-                                   precise-info
-                                 (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
+  (when (eq mode 'nov-mode)
+    (cons nov-documents-index (if (or (numberp precise-info)
+                                      (and (consp precise-info)
+                                           (numberp (car precise-info))
+                                           (numberp (cdr precise-info))))
+                                  precise-info
+                                (max 1 (/ (+ (window-start) (window-end nil t)) 2))))))
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-nov--approx-location-cons)
 
