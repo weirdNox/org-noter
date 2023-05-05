@@ -25,8 +25,11 @@
 ;;; Code:
 (require 'org-noter-core)
 
-
-(condition-case nil
+(eval-when-compile ; ensure that the compiled code knows about DJVU, if installed
+  (condition-case nil
+      (require 'djvu)
+    (error (message "`djvu' package not found"))))
+(condition-case nil ; run time warning
     (require 'djvu)
   (error (message "ATTENTION: org-noter-djvu needs the package `djvu'")))
 
@@ -40,7 +43,7 @@
 (add-to-list 'org-noter--pretty-print-location-hook #'org-noter-djvu--pretty-print-location)
 (add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-djvu--pretty-print-location)
 
-(defun org-noter-djvu-approx-location-cons (mode &optional precise-info _force-new-ref)
+(defun org-noter-djvu--approx-location-cons (mode &optional precise-info _force-new-ref)
   (when (eq mode 'djvu-read-mode)
     (cons djvu-doc-page (if (or (numberp precise-info)
                                 (and (consp precise-info)
@@ -49,7 +52,7 @@
                             precise-info
                           (max 1 (/ (+ (window-start) (window-end nil t)) 2))))))
 
-(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-djvu-approx-location-cons)
+(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-djvu--approx-location-cons)
 
 (defun org-noter-djvu--get-precise-info (mode window)
   (when (eq mode 'djvu-read-mode)
@@ -63,14 +66,14 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-djvu--get-precise-info)
 
-(defun org-noter-djvu-setup-handler (mode)
+(defun org-noter-djvu--setup-handler (mode)
   (when (eq mode 'djvu-read-mode)
     (advice-add 'djvu-init-page :after 'org-noter--location-change-advice)
     t))
 
-(add-to-list 'org-noter-set-up-document-hook #'org-noter-djvu-setup-handler)
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-djvu--setup-handler)
 
-(defun org-noter-djvu-goto-location (mode location &optional window)
+(defun org-noter-djvu--goto-location (mode location &optional window)
   "DJVU mode function for `org-noter--doc-goto-location-hook'.
 MODE is the document mode and LOCATION is the note location.
 WINDOW is required by the hook, but not used in this function."
@@ -78,11 +81,11 @@ WINDOW is required by the hook, but not used in this function."
     (djvu-goto-page (car location))
     (goto-char (org-noter--get-location-top location))))
 
-(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-djvu-goto-location)
+(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-djvu--goto-location)
 
 (defun org-noter-djvu--get-current-view (mode)
   (when (eq mode 'djvu-read-mode)
-    (vector 'paged (car (org-noter-djvu-approx-location-cons mode)))))
+    (vector 'paged (car (org-noter-djvu--approx-location-cons mode)))))
 
 (add-to-list 'org-noter--get-current-view-hook #'org-noter-djvu--get-current-view)
 
@@ -93,7 +96,7 @@ WINDOW is required by the hook, but not used in this function."
 
 (add-to-list 'org-noter-get-selected-text-hook #'org-noter-djvu--get-selected-text)
 
-(defun org-noter-create-skeleton-djvu (mode)
+(defun org-noter-djvu--create-skeleton (mode)
   (when (eq mode 'djvu-read-mode)
     (org-noter--with-valid-session
      (let* ((ast (org-noter--parse-root))
@@ -146,7 +149,7 @@ WINDOW is required by the hook, but not used in this function."
            (org-show-children 2)))
        output-data))))
 
-(add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-djvu)
+(add-to-list 'org-noter-create-skeleton-functions #'org-noter-djvu--create-skeleton)
 
 (provide 'org-noter-djvu)
 ;;; org-noter-djvu.el ends here

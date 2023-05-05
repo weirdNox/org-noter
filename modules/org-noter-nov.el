@@ -25,19 +25,23 @@
 ;;; Code:
 (require 'org-noter-core)
 
-(condition-case nil
+(eval-when-compile ; ensure that the compiled code knows about NOV, if installed
+  (condition-case nil
+      (require 'nov)
+    (error (message "`nov' package not found"))))
+(condition-case nil ; run time warning
     (require 'nov)
   (error (message "ATTENTION: org-noter-nov needs the package `nov'")))
 
 (defvar nov-documents-index)
 (defvar nov-file-name)
 
-(defun org-noter-get-buffer-file-name-nov (&optional mode)
+(defun org-noter-nov--get-buffer-file-name (&optional mode)
   (bound-and-true-p nov-file-name))
 
-(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-nov)
+(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-nov--get-buffer-file-name)
 
-(defun org-noter-nov-approx-location-cons (mode &optional precise-info _force-new-ref)
+(defun org-noter-nov--approx-location-cons (mode &optional precise-info _force-new-ref)
   (org-noter--with-valid-session
    (when (eq mode 'nov-mode)
      (cons nov-documents-index (if (or (numberp precise-info)
@@ -47,15 +51,15 @@
                                    precise-info
                                  (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
 
-(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-nov-approx-location-cons)
+(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-nov--approx-location-cons)
 
-(defun org-noter-nov-setup-handler (mode)
+(defun org-noter-nov--setup-handler (mode)
   (when (eq mode 'nov-mode)
     (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
     (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)
     t))
 
-(add-to-list 'org-noter-set-up-document-hook #'org-noter-nov-setup-handler)
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-nov--setup-handler)
 
 (defun org-noter-nov--pretty-print-location (location)
   (org-noter--with-valid-session
@@ -79,7 +83,7 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-nov--get-precise-info)
 
-(defun org-noter-nov-goto-location (mode location &optional window)
+(defun org-noter-nov--goto-location (mode location &optional window)
   (when (eq mode 'nov-mode)
     (setq nov-documents-index (org-noter--get-location-page location))
     (nov-render-document)
@@ -88,13 +92,13 @@
     ;; everything and would run org-noter--nov-scroll-handler.
     (recenter)))
 
-(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-nov-goto-location)
+(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-nov--goto-location)
 
 (defun org-noter-nov--get-current-view (mode)
   (when (eq mode 'nov-mode)
     (vector 'nov
-            (org-noter-nov-approx-location-cons mode (window-start))
-            (org-noter-nov-approx-location-cons mode (window-end nil t)))))
+            (org-noter-nov--approx-location-cons mode (window-start))
+            (org-noter-nov--approx-location-cons mode (window-end nil t)))))
 
 (add-to-list 'org-noter--get-current-view-hook #'org-noter-nov--get-current-view)
 
@@ -109,7 +113,7 @@
 ;; This code is originally from org-noter-plus package.
 ;; At https://github.com/yuchen-lea/org-noter-plus
 
-(defun org-noter--handle-nov-toc-item (ol depth)
+(defun org-noter-nov--handle-toc-item (ol depth)
   (mapcar (lambda (li)
             (mapcar (lambda (a-or-ol)
                       (pcase-exhaustive (dom-tag a-or-ol)
@@ -118,12 +122,12 @@
                                  :title (dom-text a-or-ol)
                                  :href (esxml-node-attribute 'href a-or-ol)))
                         ('ol
-                         (org-noter--handle-nov-toc-item a-or-ol
+                         (org-noter-nov--handle-toc-item a-or-ol
                                                          (1+ depth)))))
                     (dom-children li)))
           (dom-children ol)))
 
-(defun org-noter-create-skeleton-epub (mode)
+(defun org-noter-nov--create-skeleton-epub (mode)
   "Epub outline with nov link."
   (when (eq mode 'nov-mode)
     (require 'esxml)
@@ -145,7 +149,7 @@
                 (origin-index nov-documents-index)
                 (origin-point (point)))
            (dolist (item
-                    (nreverse (flatten-tree (org-noter--handle-nov-toc-item toc-tree 1))))
+                    (nreverse (flatten-tree (org-noter-nov--handle-toc-item toc-tree 1))))
              (let ((relative-level  (aref item 1))
                    (title  (aref item 3))
                    (url (aref item 5)))
@@ -183,7 +187,7 @@
            (org-show-children 2)))
        output-data))))
 
-(add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-epub)
+(add-to-list 'org-noter-create-skeleton-functions #'org-noter-nov--create-skeleton-epub)
 
 (provide 'org-noter-nov)
 ;;; org-noter-nov.el ends here

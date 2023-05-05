@@ -26,10 +26,13 @@
 (eval-when-compile (require 'subr-x))
 (require 'cl-lib)
 (require 'org-noter-core)
-(condition-case nil
+(eval-when-compile ; ensure that the compiled code knows about PDF-TOOLS, if installed
+  (condition-case nil
+      (require 'pdf-tools)
+    (error (message "`pdf-tools' package not found"))))
+(condition-case nil ; inform user at run time if pdf-tools is missing
     (require 'pdf-tools)
-    (require 'pdf-annot)
-    (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
+  (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
 (cl-defstruct pdf-highlight page coords)
 
@@ -51,7 +54,7 @@ Otherwise returns nil"
 
 (add-to-list 'org-noter--pretty-print-highlight-location-hook #'org-noter-pdf--pretty-print-highlight)
 
-(defun org-noter-pdf-approx-location-cons (mode &optional precise-info _force-new-ref)
+(defun org-noter-pdf--approx-location-cons (mode &optional precise-info _force-new-ref)
   "Return location as a cons cell.
 Runs when MODE is `doc-view-mode' or `pdf-view-mode'
 
@@ -64,33 +67,33 @@ PRECISE-INFO, return (page v-pos) or (page v-pos . h-pos)."
                                                      (numberp (cdr precise-info))))
                                             precise-info 0))))
 
-(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf-approx-location-cons)
+(add-to-list 'org-noter--doc-approx-location-hook #'org-noter-pdf--approx-location-cons)
 
-(defun org-noter-get-buffer-file-name-pdf (&optional mode)
+(defun org-noter-pdf--get-buffer-file-name (&optional _mode)
   "Return the file naming backing the document buffer.
 
 MODE (unused) is required for this type of hook."
   (bound-and-true-p pdf-file-name))
 
-(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-pdf)
+(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-pdf--get-buffer-file-name)
 
-(defun org-noter-pdf-view-setup-handler (mode)
+(defun org-noter-pdf--pdf-view-setup-handler (mode)
   (when (eq mode 'pdf-view-mode)
     ;; (setq buffer-file-name document-path)
     (pdf-view-mode)
     (add-hook 'pdf-view-after-change-page-hook 'org-noter--doc-location-change-handler nil t)
     t))
 
-(add-to-list 'org-noter-set-up-document-hook #'org-noter-pdf-view-setup-handler)
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-pdf--pdf-view-setup-handler)
 
-(defun org-noter-doc-view-setup-handler (mode)
+(defun org-noter-pdf--doc-view-setup-handler (mode)
   (when (eq mode 'doc-view-mode)
     ;; (setq buffer-file-name document-path)
     (doc-view-mode)
     (advice-add 'doc-view-goto-page :after 'org-noter--location-change-advice)
     t))
 
-(add-to-list 'org-noter-set-up-document-hook #'org-noter-doc-view-setup-handler)
+(add-to-list 'org-noter-set-up-document-hook #'org-noter-pdf--doc-view-setup-handler)
 
 (defun org-noter-pdf--pretty-print-location (location)
   "Formats LOCATION with full precision for property drawers."
@@ -127,7 +130,7 @@ original pretty-print function."
 
 (add-to-list 'org-noter--pretty-print-location-for-title-hook #'org-noter-pdf--pretty-print-location-for-title)
 
-(defun org-noter-pdf--get-precise-info (mode window)
+(defun org-noter-pdf--pdf-view-get-precise-info (mode window)
   (when (eq mode 'pdf-view-mode)
     (let (v-position h-position)
       (if (pdf-view-active-region-p)
@@ -146,9 +149,9 @@ original pretty-print function."
                   h-position (cdr click-position)))))
       (cons v-position h-position))))
 
-(add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--get-precise-info)
+(add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--pdf-view-get-precise-info)
 
-(defun org-noter-doc--get-precise-info (mode window)
+(defun org-noter-pdf--doc-view-get-precise-info (mode window)
   (when (eq mode 'doc-view-mode)
     (let ((event nil))
       (while (not (and (eq 'mouse-1 (car event))
@@ -157,9 +160,9 @@ original pretty-print function."
       (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
                                                  (cdr (posn-col-row (event-start event))))))))
 
-(add-to-list 'org-noter--get-precise-info-hook #'org-noter-doc--get-precise-info)
+(add-to-list 'org-noter--get-precise-info-hook #'org-noter-pdf--doc-view-get-precise-info)
 
-(defun org-noter-pdf-goto-location (mode location window)
+(defun org-noter-pdf--goto-location (mode location window)
   (when (memq mode '(doc-view-mode pdf-view-mode))
     (let ((top (org-noter--get-location-top location))
           (left (org-noter--get-location-left location)))
@@ -179,11 +182,11 @@ original pretty-print function."
       (image-scroll-up (- (org-noter--conv-page-percentage-scroll top)
                           (floor (+ (window-vscroll) org-noter-vscroll-buffer)))))))
 
-(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-pdf-goto-location)
+(add-to-list 'org-noter--doc-goto-location-hook #'org-noter-pdf--goto-location)
 
 (defun org-noter-pdf--get-current-view (mode)
   (when (memq mode '(doc-view-mode pdf-view-mode))
-    (vector 'paged (car (org-noter-pdf-approx-location-cons mode)))))
+    (vector 'paged (car (org-noter-pdf--approx-location-cons mode)))))
 
 (add-to-list 'org-noter--get-current-view-hook #'org-noter-pdf--get-current-view)
 
@@ -195,7 +198,7 @@ original pretty-print function."
 (add-to-list 'org-noter-get-selected-text-hook #'org-noter-pdf--get-selected-text)
 
 ;; NOTE(nox): From machc/pdf-tools-org
-(defun org-noter-pdf--tools-edges-to-region (edges)
+(defun org-noter-pdf--edges-to-region (edges)
   "Get 4-entry region (LEFT TOP RIGHT BOTTOM) from several EDGES."
   (when edges
     (let ((left0 (nth 0 (car edges)))
@@ -209,11 +212,11 @@ original pretty-print function."
             right1
             (- bottom1 (/ (- bottom1 top1) 3))))))
 
-(defalias 'org-noter--pdf-tools-edges-to-region 'org-noter-pdf--tools-edges-to-region
+(defalias 'org-noter--pdf-tools-edges-to-region 'org-noter-pdf--edges-to-region
   "For ORG-NOTER-PDFTOOLS backward compatiblity.  The name of the
 underlying function is currently under discussion")
 
-(defun org-noter-create-skeleton-pdf (mode)
+(defun org-noter-pdf--create-skeleton (mode)
   "Create notes skeleton with the PDF outline or annotations."
   (when (eq mode 'pdf-view-mode)
     (org-noter--with-valid-session
@@ -266,7 +269,7 @@ underlying function is currently under discussion")
              (dolist (item (pdf-info-getannots))
                (let* ((type (alist-get 'type item))
                       (page (alist-get 'page item))
-                      (edges (or (org-noter-pdf--tools-edges-to-region (alist-get 'markup-edges item))
+                      (edges (or (org-noter-pdf--edges-to-region (alist-get 'markup-edges item))
                                  (alist-get 'edges item)))
                       (top (nth 1 edges))
                       (item-subject (alist-get 'subject item))
@@ -378,25 +381,25 @@ underlying function is currently under discussion")
            (org-show-children 2)))
        output-data))))
 
-(add-to-list 'org-noter-create-skeleton-functions #'org-noter-create-skeleton-pdf)
+(add-to-list 'org-noter-create-skeleton-functions #'org-noter-pdf--create-skeleton)
 
 (defun org-noter-pdf--create-missing-annotation ()
   "Add a highlight from a selected note."
   (let ((location (org-noter--parse-location-property (org-noter--get-containing-element)))
         (window (org-noter--get-doc-window)))
-    (org-noter-pdf-goto-location 'pdf-view-mode location window)
+    (org-noter-pdf--goto-location 'pdf-view-mode location window)
     (pdf-annot-add-highlight-markup-annotation (cdr location))))
 
-(defun org-noter-pdf-highlight-location (mode precise-location)
+(defun org-noter-pdf--highlight-location (mode precise-location)
   "Highlight a precise location in PDF."
   (message "---> %s %s" mode precise-location)
   (when (and (memq mode '(doc-view-mode pdf-view-mode))
              (pdf-view-active-region-p))
     (pdf-annot-add-highlight-markup-annotation (pdf-view-active-region))))
 
-(add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf-highlight-location)
+(add-to-list 'org-noter--add-highlight-hook #'org-noter-pdf--highlight-location)
 
-(defun org-noter-pdf-convert-to-location-cons (location)
+(defun org-noter-pdf--convert-to-location-cons (location)
   "Encode precise LOCATION as a cons cell for note insertion ordering.
 Converts (page v . h) precise locations to (page v') such that
 v' represents the fractional distance through the page along
@@ -414,11 +417,59 @@ v') for precise notes."
             (column-index (seq-position right-edge-list h-pos #'>=)))
       (cons page (+ v-pos column-index))))
 
-(add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf-convert-to-location-cons)
+(add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf--convert-to-location-cons)
+
+(defun org-noter-pdf--show-arrow ()
+  ;; From `pdf-util-tooltip-arrow'.
+  (pdf-util-assert-pdf-window)
+  (let* (x-gtk-use-system-tooltips
+         (arrow-top  (aref org-noter--arrow-location 2)) ; % of page
+         (arrow-left (aref org-noter--arrow-location 3))
+         (image-top  (if (floatp arrow-top)
+                         (round (* arrow-top  (cdr (pdf-view-image-size)))))) ; pixel location on page (magnification-dependent)
+         (image-left (if (floatp arrow-left)
+                         (floor (* arrow-left (car (pdf-view-image-size))))))
+         (dx (or image-left
+                 (+ (or (car (window-margins)) 0)
+                    (car (window-fringes)))))
+         (dy (or image-top 0))
+         (pos (list dx dy dx (+ dy (* 2 (frame-char-height)))))
+         (vscroll (pdf-util-required-vscroll pos))
+         (tooltip-frame-parameters
+          `((border-width . 0)
+            (internal-border-width . 0)
+            ,@tooltip-frame-parameters))
+         (tooltip-hide-delay 3))
+
+    (when vscroll
+      (image-set-window-vscroll vscroll))
+    (setq dy (max 0 (- dy
+                       (cdr (pdf-view-image-offset))
+                       (window-vscroll nil t)
+                       (frame-char-height))))
+    (when (overlay-get (pdf-view-current-overlay) 'before-string)
+      (let* ((e (window-inside-pixel-edges))
+             (xw (pdf-util-with-edges (e) e-width))
+             (display-left-margin (/ (- xw (car (pdf-view-image-size t))) 2)))
+        (cl-incf dx display-left-margin)))
+    (setq dx (max 0 (+ dx org-noter-arrow-horizontal-offset)))
+    (pdf-util-tooltip-in-window
+     (propertize
+      " " 'display (propertize
+                    "\u2192" ;; right arrow
+                    'display '(height 2)
+                    'face `(:foreground
+                            ,org-noter-arrow-foreground-color
+                            :background
+                            ,(if (bound-and-true-p pdf-view-midnight-minor-mode)
+                                 (cdr pdf-view-midnight-colors)
+                               org-noter-arrow-background-color))))
+     dx dy)))
+
+(add-to-list 'org-noter--show-arrow-hook #'org-noter-pdf--show-arrow)
 
 (defun org-noter-pdf-set-columns (num-columns)
   "Interactively set the COLUMN_EDGES property for the current heading.
-
 NUM-COLUMNS can be given as an integer prefix or in the
 minibuffer.  The user is then prompted to click on the right edge
 of each column, except for the last one.  Subheadings of the
