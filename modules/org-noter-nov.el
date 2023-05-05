@@ -69,7 +69,7 @@
 
 (defun org-noter-nov--no-sessions-remove-advice ()
   "Remove nov-specific advice when all sessions are closed."
-  (advice-remove 'nov-render-document 'org-noter--nov-scroll-handler))
+  (advice-remove 'nov-render-document 'org-noter-nov--scroll-handler))
 
 (add-to-list 'org-noter--no-sessions-remove-advice-hooks #'org-noter-nov--no-sessions-remove-advice)
 
