@@ -1845,6 +1845,26 @@ See `org-noter-notes-window-behavior' for more information."
               (org-entry-put nil org-noter--property-behavior (format "%s" chosen-behaviors))
             (org-entry-delete nil org-noter--property-behavior))))))))
 
+(defun org-noter-toggle-notes-window-location ()
+  "Toggle between side- and bottom-notes window location.
+Only acts on the current session."
+  (interactive)
+  (org-noter--with-valid-session
+   (let ((current-notes-location (org-noter--session-window-location session))
+         (notes-buffer (org-noter--session-notes-buffer session)))
+     (cond ((eq current-notes-location 'horizontal-split)
+            (setf (org-noter--session-window-location session) 'vertical-split))
+           ((eq current-notes-location 'vertical-split)
+            (setf (org-noter--session-window-location session) 'horizontal-split)))
+     (let (exists)
+       (dolist (window (get-buffer-window-list notes-buffer nil t))
+         (setq exists t)
+         (with-selected-frame (window-frame window)
+           (if (= (count-windows) 1)
+               (delete-frame)
+             (delete-window window))))
+       (when exists (org-noter--get-notes-window 'force))))))
+
 (defun org-noter-set-notes-window-location (arg)
   "Set the notes window default location for the current session.
 With a prefix ARG, it becomes persistent for that document.
@@ -2364,7 +2384,8 @@ Keymap:
             (,(kbd "M-n")   . org-noter-sync-next-page-or-chapter)
             (,(kbd "C-M-p") . org-noter-sync-prev-note)
             (,(kbd "C-M-.") . org-noter-sync-current-note)
-            (,(kbd "C-M-n") . org-noter-sync-next-note))
+            (,(kbd "C-M-n") . org-noter-sync-next-note)
+            (,(kbd "M-T")   . org-noter-toggle-notes-window-location))
 
   (let ((mode-line-segment '(:eval (org-noter--mode-line-text))))
     (if org-noter-doc-mode
@@ -2382,7 +2403,8 @@ Keymap:
             (,(kbd "M-n")   . org-noter-sync-next-page-or-chapter)
             (,(kbd "C-M-p") . org-noter-sync-prev-note)
             (,(kbd "C-M-.") . org-noter-sync-current-note)
-            (,(kbd "C-M-n") . org-noter-sync-next-note))
+            (,(kbd "C-M-n") . org-noter-sync-next-note)
+            (,(kbd "M-T")   . org-noter-toggle-notes-window-location))
   (if org-noter-doc-mode
       (org-noter-doc-mode -1)))
 
