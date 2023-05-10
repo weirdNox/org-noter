@@ -35,31 +35,43 @@
 
 (defvar nov-documents-index)
 (defvar nov-file-name)
+(defvar-local org-noter--nov-timer nil
+  "Timer for synchronizing notes after scrolling.")
 
-(defun org-noter-nov--get-buffer-file-name (&optional mode)
+(defun org-noter-nov--get-buffer-file-name (&optional _mode)
   (bound-and-true-p nov-file-name))
 
 (add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-nov--get-buffer-file-name)
 
 (defun org-noter-nov--approx-location-cons (mode &optional precise-info _force-new-ref)
-  (org-noter--with-valid-session
-   (when (eq mode 'nov-mode)
-     (cons nov-documents-index (if (or (numberp precise-info)
-                                       (and (consp precise-info)
-                                            (numberp (car precise-info))
-                                            (numberp (cdr precise-info))))
-                                   precise-info
-                                 (max 1 (/ (+ (window-start) (window-end nil t)) 2)))))))
+  (when (eq mode 'nov-mode)
+    (cons nov-documents-index (if (or (numberp precise-info)
+                                      (and (consp precise-info)
+                                           (numberp (car precise-info))
+                                           (numberp (cdr precise-info))))
+                                  precise-info
+                                (max 1 (/ (+ (window-start) (window-end nil t)) 2))))))
 
 (add-to-list 'org-noter--doc-approx-location-hook #'org-noter-nov--approx-location-cons)
 
+(defun org-noter-nov--scroll-handler (&rest _)
+  (when org-noter--nov-timer (cancel-timer org-noter--nov-timer))
+  (unless org-noter--inhibit-location-change-handler
+    (setq org-noter--nov-timer (run-with-timer 0.25 nil 'org-noter--doc-location-change-handler))))
+
 (defun org-noter-nov--setup-handler (mode)
   (when (eq mode 'nov-mode)
-    (advice-add 'nov-render-document :after 'org-noter--nov-scroll-handler)
-    (add-hook 'window-scroll-functions 'org-noter--nov-scroll-handler nil t)
+    (advice-add 'nov-render-document :after 'org-noter-nov--scroll-handler)
+    (add-hook 'window-scroll-functions 'org-noter-nov--scroll-handler nil t)
     t))
 
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-nov--setup-handler)
+
+(defun org-noter-nov--no-sessions-remove-advice ()
+  "Remove nov-specific advice when all sessions are closed."
+  (advice-remove 'nov-render-document 'org-noter-nov--scroll-handler))
+
+(add-to-list 'org-noter--no-sessions-remove-advice-hooks #'org-noter-nov--no-sessions-remove-advice)
 
 (defun org-noter-nov--pretty-print-location (location)
   (org-noter--with-valid-session
@@ -83,7 +95,7 @@
 
 (add-to-list 'org-noter--get-precise-info-hook #'org-noter-nov--get-precise-info)
 
-(defun org-noter-nov--goto-location (mode location &optional window)
+(defun org-noter-nov--goto-location (mode location &optional _window)
   (when (eq mode 'nov-mode)
     (setq nov-documents-index (org-noter--get-location-page location))
     (nov-render-document)

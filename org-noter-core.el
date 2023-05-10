@@ -30,7 +30,6 @@
 (declare-function image-get-display-property "image-mode")
 (declare-function image-mode-window-get "image-mode")
 (declare-function image-scroll-up "image-mode")
-(declare-function nov-render-document "ext:nov")
 (declare-function org-attach-dir "org-attach")
 (declare-function org-attach-file-list "org-attach")
 
@@ -530,9 +529,6 @@ For example, see `org-noter-pdf--show-arrow'."
 (defvar org-noter--start-location-override nil
   "Used to open the session from the document in the right page.")
 
-(defvar-local org-noter--nov-timer nil
-  "Timer for synchronizing notes after scrolling.")
-
 (defvar org-noter--arrow-location nil
   "A vector that shows where the arrow should appear, when idling.
 Format: [TIMER WINDOW TOP LEFT]")
@@ -588,6 +584,9 @@ Format: [TIMER WINDOW TOP LEFT]")
       "\\)"))
    "\\)")
   "Regular expression that matches URLs.")
+
+(defvar org-noter--no-sessions-remove-advice-hooks nil
+  "List of functions to remove advice when all sessions are closed.")
 
 ;; --------------------------------------------------------------------------------
 ;;; Utility functions
@@ -1086,11 +1085,6 @@ FORCE-NEW-REF is not used by PDF, NOV, or DJVU format files."
 
 (defun org-noter--location-change-advice (&rest _)
   (org-noter--with-valid-session (org-noter--doc-location-change-handler)))
-
-(defun org-noter--nov-scroll-handler (&rest _)
-  (when org-noter--nov-timer (cancel-timer org-noter--nov-timer))
-  (unless org-noter--inhibit-location-change-handler
-    (setq org-noter--nov-timer (run-with-timer 0.25 nil 'org-noter--doc-location-change-handler))))
 
 (defsubst org-noter--doc-file-property (headline)
   (let ((doc-prop (or (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline)
@@ -1959,8 +1953,7 @@ want to kill."
 
     (when (eq (length org-noter--sessions) 0)
       (remove-hook 'delete-frame-functions 'org-noter--handle-delete-frame)
-      (advice-remove 'doc-view-goto-page 'org-noter--location-change-advice)
-      (advice-remove 'nov-render-document 'org-noter--nov-scroll-handler))
+      (run-hooks 'org-noter--no-sessions-remove-advice-hooks))
 
     (let* ((ast   (org-noter--parse-root session))
            (frame (org-noter--session-frame session))

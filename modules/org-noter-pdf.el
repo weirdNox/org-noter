@@ -95,6 +95,12 @@ MODE (unused) is required for this type of hook."
 
 (add-to-list 'org-noter-set-up-document-hook #'org-noter-pdf--doc-view-setup-handler)
 
+(defun org-noter-pdf--no-sessions-remove-advice ()
+  "Remove doc-view-specific advice when all sessions are closed."
+  (advice-remove 'doc-view-goto-page 'org-noter--location-change-advice))
+
+(add-to-list 'org-noter--no-sessions-remove-advice-hooks #'org-noter-pdf--no-sessions-remove-advice)
+
 (defun org-noter-pdf--pretty-print-location (location)
   "Formats LOCATION with full precision for property drawers."
   (org-noter--with-valid-session
