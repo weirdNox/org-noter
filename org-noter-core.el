@@ -937,6 +937,7 @@ NOTER_PAGE)."
                           (org-noter--session-frame session)))))
 
 (defun org-noter--get-notes-window (&optional type)
+  "Conjure the notes-window from the void."
   (org-noter--with-valid-session
    (let ((notes-buffer (org-noter--session-notes-buffer session))
          (window-location (org-noter--session-window-location session))
@@ -969,6 +970,18 @@ NOTER_PAGE)."
 
              (set-window-buffer notes-window notes-buffer))
            notes-window)))))
+
+(defun org-noter--relocate-notes-window (notes-buffer)
+  "Clear the notes-window and (re)locate it.
+Used by interactive note-window location functions."
+  (let (exists)
+    (dolist (window (get-buffer-window-list notes-buffer nil t))
+      (setq exists t)
+      (with-selected-frame (window-frame window)
+        (if (= (count-windows) 1)
+            (delete-frame)
+          (delete-window window))))
+    (when exists (org-noter--get-notes-window 'force))))
 
 (defun org-noter--setup-windows (session)
   "Setup windows when starting SESSION, respecting user configuration."
@@ -1856,14 +1869,7 @@ Only acts on the current session."
             (setf (org-noter--session-window-location session) 'vertical-split))
            ((eq current-notes-location 'vertical-split)
             (setf (org-noter--session-window-location session) 'horizontal-split)))
-     (let (exists)
-       (dolist (window (get-buffer-window-list notes-buffer nil t))
-         (setq exists t)
-         (with-selected-frame (window-frame window)
-           (if (= (count-windows) 1)
-               (delete-frame)
-             (delete-window window))))
-       (when exists (org-noter--get-notes-window 'force))))))
+     (org-noter--relocate-notes-window notes-buffer))))
 
 (defun org-noter-set-notes-window-location (arg)
   "Set the notes window default location for the current session.
@@ -1886,15 +1892,7 @@ See `org-noter-notes-window-behavior' for more information."
 
      (setf (org-noter--session-window-location session)
            (or location org-noter-notes-window-location))
-
-     (let (exists)
-       (dolist (window (get-buffer-window-list notes-buffer nil t))
-         (setq exists t)
-         (with-selected-frame (window-frame window)
-           (if (= (count-windows) 1)
-               (delete-frame)
-             (delete-window window))))
-       (when exists (org-noter--get-notes-window 'force)))
+     (org-noter--relocate-notes-window notes-buffer)
 
      (when arg
        (with-current-buffer notes-buffer
