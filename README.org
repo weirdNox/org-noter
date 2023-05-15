@@ -57,8 +57,7 @@
     #+end_src
 
     Alternate form cribbed from
-    https://github.com/dmitrym0/org-noter-plus/issues/3. *@dmitrym0 -- can you
-    decide which way to go on this?*
+    https://github.com/dmitrym0/org-noter-plus/issues/3
     #+begin_src elisp
       (use-package org-noter
                    :straight
@@ -66,6 +65,13 @@
                           :host github
                           :type git
                           :files ("*.el" "modules/*.el")))
+    #+end_src
+
+*** MELPA
+    #+begin_src elisp
+      (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+      (package-refresh-contents)
+      (package-install 'org-noter)
     #+end_src
 
 ** Features
@@ -102,7 +108,7 @@
       sessions directly from ~dired~.  Opens all marked files or the file at
       point if none are marked.
 
-*** new (PDFs only)
+*** new (PDFs only with the [[https://github.com/vedang/pdf-tools][pdftools]] package)
     - 2D precise notes :: ([[https://github.com/ahmed-shariff/org-noter][Ahmed Shariff]]) Location tooltip appears at start of
       selected text or point of click.
 
@@ -115,8 +121,8 @@
       more details.
 
     - Highlighting of selected text :: Default behavior (on/off) is
-      user-customizable.  Non-default behavior is activated with a =C-u= prefix
-      to the note insertion command.
+      user-customizable via ~org-noter-highlight-selected-text~.  Non-default
+      behavior is activated with a =C-u= prefix to the note insertion command.
 
     - Customizable tooltip arrow colors :: ~org-noter-arrow-foreground-color~ (default
       orange-red) and ~org-noter-arrow-foreground-color~ (default white) are
