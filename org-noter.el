@@ -152,7 +152,6 @@ notes file, even if it finds one."
    ;; eg: M-x org-noter from a pdf document
    ((memq major-mode org-noter-supported-modes)
     ;; if an org-noter sesseion already exists
-    (message "Session %s" org-noter--session)
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
