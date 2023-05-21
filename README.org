@@ -104,6 +104,9 @@
      the document to annotate.
 
 *** new (all formats)
+    - ~org-noter-toggle-notes-window-location~ (~M-T~) :: Toggle between
+      horizontal and vertical document/notes layout.
+
     - ~org-noter-start-from-dired~ (Suggested keybinding: ~M-s n~) :: Start
       sessions directly from ~dired~.  Opens all marked files or the file at
       point if none are marked.
