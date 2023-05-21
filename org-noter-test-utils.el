@@ -1,24 +1,5 @@
+
 (require 'log4e)
-
-(message "Emacs version: %s" (version))
-
-;; we need to load undecover before all the other org-noter modules so that undercover can instrument code to generate test coverage.
-(when (require 'undercover nil t)
-  (setq undercover-force-coverage t)
-
-  (message "Enable test coverage.")
-  (undercover "*.el" "modules/*.el"
-              (:exclude "org-noter-test-utils.el")
-              (:report-format 'text)
-              (:send-report nil)))
-
-
-(add-to-list 'load-path "modules")
-(require 'org-noter)
-(require 'with-simulated-input)
-
-
-
 
 ;; org-noter-test logger = ont
 (log4e:deflogger "ont" "ont %t [%l] %m" "%H:%M:%S")
@@ -37,7 +18,7 @@
 #+TITLE: Test book notes (simple)
 * solove-nothing-to-hide
 :PROPERTIES:
-:NOTER_DOCUMENT: /tmp/pubs/solove-nothing-to-hide.pdf
+:NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
 :END:
 ")
 
@@ -49,7 +30,7 @@
 
 * solove-nothing-to-hide
 :PROPERTIES:
-:NOTER_DOCUMENT: /tmp/pubs/solove-nothing-to-hide.pdf
+:NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
 :END:
 ** Note from page 1
 :PROPERTIES:
