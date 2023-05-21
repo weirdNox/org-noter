@@ -1,5 +1,4 @@
 (add-to-list 'load-path "modules")
-(require 'org-noter)
 (require 'with-simulated-input)
 (require 'org-noter-test-utils)
 

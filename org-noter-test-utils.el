@@ -1,7 +1,3 @@
-(require 'log4e)
-
-(message "Emacs version: %s" (version))
-
 ;; we need to load undecover before all the other org-noter modules so that undercover can instrument code to generate test coverage.
 (when (require 'undercover nil t)
   (setq undercover-force-coverage t)
@@ -13,9 +9,14 @@
               (:send-report nil)))
 
 
+(require 'log4e)
 (add-to-list 'load-path "modules")
 (require 'org-noter)
 (require 'with-simulated-input)
+
+
+(message "Emacs version: %s" (version))
+
 
 
 
