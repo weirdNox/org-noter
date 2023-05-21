@@ -156,86 +156,13 @@ notes file, even if it finds one."
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
-      (run-hook-with-args-until-success 'org-noter-create-session-from-publication-hook buffer-file-name)))))
+      (run-hook-with-args-until-success 'org-noter-create-session-from-publication-hook arg buffer-file-name)))))
 
 
-
-(defun org-noter--get-filename-for-org-roam-node ()
-  "Use the standard org-roam interface to select an existing node or create a new one and return a path to it"
-  (let* ((templates (list (append (car org-roam-capture-templates) '(:immediate-finish t))))
-         (all-files-containing-notes (org-noter--get-files-containing-notes))
-         (node (org-roam-node-read nil (lambda (node)
-                                          (member (org-roam-node-file node)
-                                                all-files-containing-notes))))
-         (_ (org-roam-capture-
-             :node node
-             :info nil
-             :templates templates
-             :props nil))
-         (node-id (org-roam-node-id node))
-         (file-path-for-new-entry (org-roam-node-file (org-roam-node-from-id node-id))))
-    (message "%s" file-path-for-new-entry)
-    file-path-for-new-entry))
-
-
-(defun org-noter--get-files-containing-notes ()
-  (let* ((shell-output (shell-command-to-string (format "ag -l -r '%s' %s |grep -v 'archive' | grep -v '.stversion' | grep '\\.org$'" org-noter-property-doc-file org-roam-directory))))
-    (split-string (substring shell-output 0 (- (length shell-output) 1)) "\n")))
-
-
-(defun org-noter--create-session-from-publication-file-supporting-org-roam (pub-path)
-  (let* ((file-path-for-org-roam-node (org-noter--get-filename-for-org-roam-node))
-         (_ (message "[d] opening up notes: %s pub: %s" file-path-for-org-roam-node pub-path))
-         (top-level-heading-for-pub-position (with-current-buffer (find-file-noselect file-path-for-org-roam-node)
-                                               (org-noter--find-create-top-level-heading-for-pub pub-path (file-name-base pub-path)))))
-    (message "going to pos: %s" top-level-heading-for-pub-position)
-    (with-current-buffer (find-file-noselect file-path-for-org-roam-node)
-    (goto-char top-level-heading-for-pub-position)
-    (org-noter))))
-
-(defun org-noter--find-create-top-level-heading-for-pub (pub-path desired-heading)
-  "In current buffer, looks for a top level heading for publication at PUB-PATH.
-If one is not found, creates one and returns it's position"
-    (let* ((top-level-heading-for-pub-position (org-noter--find-top-level-heading-for-publication-path pub-path)))
-      ;; does this buffer have a top level notes heading for this publication?
-      (if (eq top-level-heading-for-pub-position nil)
-        (org-noter--create-notes-heading desired-heading pub-path)
-      top-level-heading-for-pub-position)))
-
-(defun org-noter--find-top-level-heading-for-publication-path (pub-path)
-  "Given publication path, PUB-PATH tries to see if the current buffer has a
-top level (\"NOTER_DOCUMENT\") heading for it. It returns the point for the heading (if found)
-`nil' otherwise."
-  (let ((found-heading-position nil))
-    (org-with-point-at (point-min)
-      (condition-case nil
-          ;; look for NOTER_DOCUMENT property that matches the pub-path
-          (while (and (not found-heading-position)
-                      (re-search-forward (org-re-property org-noter-property-doc-file)))
-             (when (file-equal-p (expand-file-name (match-string 3))
-                                (expand-file-name pub-path))
-              (setq found-heading-position (point))))
-        (search-failed   ;; when re=search-forward hits the end it throws an error which we should catch
-         (message "This buffer doesn't seem to have a matching NOTER_DOCUMENT heading.") nil)))
-    found-heading-position))
-
-;; TODO How is this different from org-noter--insert-heading?
-;; org-noter--insert-heading doesn't deal with top level headings.
-(defun org-noter--create-notes-heading (notes-heading publication-path)
-  "Create a top level notes heading for a publication along with the path to the backing publication.
-Return the point where the heading was inserted"
-  (cl-assert notes-heading t "notes-heading cannot be nil. we can't insert a nil heading.")
-  (goto-char (point-max))
-  (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
-          "* " notes-heading )
-  (org-entry-put nil org-noter-property-doc-file
-                 (expand-file-name publication-path))
-  (point))
-
-
-
-(defun org-noter--create-session-from-publication-file-default ()
-  ;; create a new org-noter session from an open "pdf" file
+(defun org-noter--create-session-from-publication-file-default (&optional arg file)
+  "Create a new org-noter session from an open publication file
+This is the default implementation that is called by `org-noter-create-session-from-publication-hook`
+"
       ;; NOTE(nox): `buffer-file-truename' is a workaround for modes that delete
       ;; `buffer-file-name', and may not have the same results
       (let* ((buffer-file-name (or (run-hook-with-args-until-success 'org-noter-get-buffer-file-name-hook major-mode)

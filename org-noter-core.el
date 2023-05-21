@@ -308,7 +308,7 @@ others exist on the current display.'"
   :group 'org-noter-insertion
   :type 'hook)
 
-(defcustom org-noter-create-session-from-publication-hook '(org-noter--create-session-from-publication-file-supporting-org-roam)
+(defcustom org-noter-create-session-from-publication-hook '(org-noter--create-session-from-publication-file-default)
   "Hook that is invoked when M-x org-noter is invoked from a publication"
   :group 'org-noter
   :type 'hook)
