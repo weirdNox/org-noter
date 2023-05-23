@@ -1,5 +1,6 @@
 * Org-noter: an interleaving/note-taking package for documents
-  [[https://melpa.org/#/org-noter][file:https://melpa.org/packages/org-noter-badge.svg]]
+  [[https://melpa.org/#/org-noter][file:https://melpa.org/packages/org-noter-badge.svg]] 
+  [[https://coveralls.io/github/org-noter/org-noter?branch=master][file:https://coveralls.io/repos/github/org-noter/org-noter/badge.svg?branch=master]]
 
   ~Org-noter~, by [[https://github.com/weirdNox][Gonçalo Santos]], was inspired by the now-orphaned ~Interleave~
   package, by [[https://github.com/rudolfochrist][Sebastian Christ]].  In Sebastian's words (with minor edits):

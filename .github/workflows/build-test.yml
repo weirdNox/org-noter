@@ -22,3 +22,6 @@ jobs:
 
       - name: Run tests
         run: cask exec buttercup -L .
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2

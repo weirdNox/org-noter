@@ -1,5 +1,4 @@
 (add-to-list 'load-path "modules")
-(require 'org-noter-pdf)
 (require 'org-noter-test-utils)
 
 

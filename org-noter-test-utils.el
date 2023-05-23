@@ -1,5 +1,25 @@
+;; we need to load undecover before all the other org-noter modules so that undercover can instrument code to generate test coverage.
+(when (require 'undercover nil t)
+  (setq undercover-force-coverage t)
+
+  (message "Enable test coverage.")
+  (undercover "*.el" "modules/*.el"
+              (:exclude "org-noter-test-utils.el")
+              (:report-format 'lcov)
+              (:send-report nil)))
+
 
 (require 'log4e)
+(add-to-list 'load-path "modules")
+(require 'org-noter)
+(require 'with-simulated-input)
+
+
+(message "Emacs version: %s" (version))
+
+
+
+
 
 ;; org-noter-test logger = ont
 (log4e:deflogger "ont" "ont %t [%l] %m" "%H:%M:%S")
