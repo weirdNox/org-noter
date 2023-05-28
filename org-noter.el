@@ -155,12 +155,12 @@ notes file, even if it finds one."
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
-      (run-hook-with-args-until-success 'org-noter-create-session-from-publication-hook arg buffer-file-name)))))
+      (run-hook-with-args-until-success 'org-noter-create-session-from-document-hook arg buffer-file-name)))))
 
 
-(defun org-noter--create-session-from-publication-file-default (&optional arg file)
-  "Create a new org-noter session from an open publication file
-This is the default implementation that is called by `org-noter-create-session-from-publication-hook`
+(defun org-noter--create-session-from-document-file-default (&optional arg file)
+  "Create a new org-noter session from an open document file
+This is the default implementation that is called by `org-noter-create-session-from-document-hook`
 "
       ;; NOTE(nox): `buffer-file-truename' is a workaround for modes that delete
       ;; `buffer-file-name', and may not have the same results
