@@ -309,7 +309,7 @@ others exist on the current display.'"
   :type 'hook)
 
 (defcustom org-noter-create-session-from-documentation-hook '(org-noter--create-session-from-document-file-default)
-  "Hook that is invoked when M-x org-noter is invoked from a document"
+  "Hook that is invoked when M-x org-noter is invoked from a document."
   :group 'org-noter
   :type 'hook)
 
@@ -1688,7 +1688,7 @@ relative to."
            (t (propertize (format " %d notes " number-of-notes) 'face 'org-noter-notes-exist-face))))))
 
 (defun org-noter--check-if-document-is-annotated-on-file (document-path notes-path)
-  "Check if NOTES-PATH annotation file contains any notes that annotate DOCUMENT-PATH document"
+  "Check if NOTES-PATH annotation file contains any notes that annotate DOCUMENT-PATH document."
   ;; NOTE(nox): In order to insert the correct file contents
   (let ((buffer (find-buffer-visiting notes-path)))
     (when buffer (with-current-buffer buffer (save-buffer)))
