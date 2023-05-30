@@ -308,7 +308,7 @@ others exist on the current display.'"
   :group 'org-noter-insertion
   :type 'hook)
 
-(defcustom org-noter-create-session-from-documentation-hook '(org-noter--create-session-from-document-file-default)
+(defcustom org-noter-create-session-from-document-hook '(org-noter--create-session-from-document-file-default)
   "Hook that is invoked when M-x org-noter is invoked from a document."
   :group 'org-noter
   :type 'hook)
