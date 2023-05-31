@@ -18,7 +18,7 @@
 #+TITLE: Test book notes (simple)
 * solove-nothing-to-hide
 :PROPERTIES:
-:NOTER_DOCUMENT: pubs/solove-nothing-to-hide.pdf
+:NOTER_DOCUMENT: /tmp/test.pdf
 :END:
 ")
 
