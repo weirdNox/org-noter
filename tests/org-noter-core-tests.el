@@ -212,12 +212,7 @@
                             (search-forward "nothing-to-hide")
                             (org-noter))))
 
-                    (it "has org-noter--create-session-from-document hook defined"
-                        (expect org-noter--create-session-from-document :not :to-be nil))
+                    (it "has org-noter-create-session-from-document hook defined"
+                        (expect org-noter-create-session-from-document-hook :not :to-be nil))
                     )
-
-
-
-
-
 )
