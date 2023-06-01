@@ -13,7 +13,7 @@ assignees: ""
 <!--
 Example:
 
-1. Load Emacs
+1. Start Emacs with `emacs -Q`
 2. Open a pdf document
 3. Run M-x org-noter
 ...
