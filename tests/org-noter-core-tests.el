@@ -202,5 +202,16 @@
 
 
 
+          (describe "org-noter basics"
+                    (it "can start org-noter with `org-noter` call"
+                        (with-mock-contents
+                         mock-contents-simple-notes-file
+                         '(lambda ()
+                            ;; move to the heading where we're going to invoke org-noter
+                            (search-forward "nothing-to-hide")
+                            (org-noter))))
 
+                    (it "has org-noter-create-session-from-document hook defined"
+                        (expect org-noter-create-session-from-document-hook :not :to-be nil))
+                    )
 )

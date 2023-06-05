@@ -146,27 +146,39 @@ notes file, even if it finds one."
         ;; It's not an existing session, create a new session.
         (org-noter--create-session ast document-property notes-file-path))))
 
+   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; NOTE(nox): Creating the session from the annotated document
+   ;;
+   ;; eg: M-x org-noter from a pdf document
    ((memq major-mode org-noter-supported-modes)
+    ;; if an org-noter sesseion already exists
     (if (org-noter--valid-session org-noter--session)
         (progn (org-noter--setup-windows org-noter--session)
                (select-frame-set-input-focus (org-noter--session-frame org-noter--session)))
+      (run-hook-with-args-until-success 'org-noter-create-session-from-document-hook arg buffer-file-name)))))
 
+
+(defun org-noter--create-session-from-document-file-default (&optional arg document-file-name)
+  "Create a new org-noter session from an open document file.
+This is the default implementation that is called by
+`org-noter-create-session-from-document-hook`.
+ARG is the prefix argument passed to `org-noter`
+DOCUMENT-FILE-NAME is the document filename."
       ;; NOTE(nox): `buffer-file-truename' is a workaround for modes that delete
-      ;; `buffer-file-name', and may not have the same results
-      (let* ((buffer-file-name (or (run-hook-with-args-until-success 'org-noter-get-buffer-file-name-hook major-mode)
-                                   buffer-file-name))
-             (document-path (or buffer-file-name buffer-file-truename
+      ;; `document-file-name', and may not have the same results
+      (let* ((document-file-name (or (run-hook-with-args-until-success 'org-noter-get-buffer-file-name-hook major-mode)
+                                   document-file-name))
+             (document-path (or document-file-name buffer-file-truename
                                 (error "This buffer does not seem to be visiting any file")))
              (document-name (file-name-nondirectory document-path))
              (document-base (file-name-base document-name))
-             (document-directory (if buffer-file-name
-                                     (file-name-directory buffer-file-name)
+             (document-directory (if document-file-name
+                                     (file-name-directory document-file-name)
                                    (if (file-equal-p document-name buffer-file-truename)
                                        default-directory
                                      (file-name-directory buffer-file-truename))))
              ;; NOTE(nox): This is the path that is actually going to be used, and should
-             ;; be the same as `buffer-file-name', but is needed for the truename workaround
+             ;; be the same as `document-file-name', but is needed for the truename workaround
              (document-used-path (expand-file-name document-name document-directory))
 
              (search-names (remove nil (append org-noter-default-notes-file-names
@@ -276,7 +288,7 @@ notes file, even if it finds one."
                       (setq document-location (cons (string-to-number saved-location) 0)))
                   (let ((org-noter--start-location-override document-location))
                     (org-noter arg))
-                  (throw 'break t)))))))))))
+                  (throw 'break t))))))))
 
 ;;;###autoload
 (defun org-noter-start-from-dired ()

@@ -296,6 +296,11 @@ others exist on the current display.'"
   :group 'org-noter-insertion
   :type 'hook)
 
+(defcustom org-noter-create-session-from-document-hook '(org-noter--create-session-from-document-file-default)
+  "Hook that is invoked when `org-noter' is invoked from a document."
+  :group 'org-noter
+  :type 'hook)
+
 (defcustom org-noter-highlight-selected-text nil
   "Highlight selected text when creating notes.
 If non-nil, highlight selected-text when creating notes.  This
@@ -1641,6 +1646,9 @@ relative to."
            (t (propertize (format " %d notes " number-of-notes) 'face 'org-noter-notes-exist-face))))))
 
 (defun org-noter--check-if-document-is-annotated-on-file (document-path notes-path)
+  "Check if NOTES-PATH contains any notes that annotate DOCUMENT-PATH.
+NOTES-PATH is a path to a notes files.
+DOCUMENT-PATH is a path to a document file."
   ;; NOTE(nox): In order to insert the correct file contents
   (let ((buffer (find-buffer-visiting notes-path)))
     (when buffer (with-current-buffer buffer (save-buffer)))
