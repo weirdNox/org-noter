@@ -41,7 +41,7 @@
     file-path-for-new-entry))
 
 
-(defun org-noter--create-session-from-document-file-supporting-org-roam (doc-path)
+(defun org-noter--create-session-from-document-file-supporting-org-roam (&optional arg doc-path)
   "TBD."
   (let* ((file-path-for-org-roam-node (org-noter--get-filename-for-org-roam-node))
          (_ (message "[d] opening up notes: %s doc: %s" file-path-for-org-roam-node doc-path))
