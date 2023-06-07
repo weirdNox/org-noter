@@ -26,10 +26,7 @@
 (defun org-noter--get-filename-for-org-roam-node ()
   "Use the standard org-roam interface to select an existing node or create a new one and return a path to it"
   (let* ((templates (list (append (car org-roam-capture-templates) '(:immediate-finish t))))
-         (all-files-containing-notes (org-noter--get-files-containing-notes))
-         (node (org-roam-node-read nil (lambda (node)
-                                          (member (org-roam-node-file node)
-                                                all-files-containing-notes))))
+         (node (org-roam-node-read))
          (_ (org-roam-capture-
              :node node
              :info nil
