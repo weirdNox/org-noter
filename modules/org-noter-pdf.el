@@ -503,14 +503,14 @@ current heading inherit the COLUMN_EDGES property."
 (define-key org-noter-doc-mode-map (kbd "C-c C-c")
   (lambda ()
     (interactive)
-    (other-window 1)
+    (select-window (org-noter--get-notes-window))
     (org-ctrl-c-ctrl-c)))
 
 (defun org-noter-pdf--execute-CxCc-in-notes ()
   "Execute C-c C-x prefixed command in notes buffer."
   (interactive)
   (let ((this-CxCc-cmd (vector (read-event))))
-    (other-window 1)
+    (select-window (org-noter--get-notes-window))
     (execute-kbd-macro
      (vconcat (kbd "C-c C-x") this-CxCc-cmd))))
 (define-key org-noter-doc-mode-map (kbd "C-c C-x") 'org-noter-pdf--execute-CxCc-in-notes)
