@@ -499,5 +499,20 @@ current heading inherit the COLUMN_EDGES property."
     (select-window (org-noter--get-notes-window))
     (org-entry-put nil "COLUMN_EDGES" (format "%s" (princ edge-list)))))
 
+;;; override some deleterious keybindings in pdf-view-mode.
+(define-key org-noter-doc-mode-map (kbd "C-c C-c")
+  (lambda ()
+    (interactive)
+    (other-window 1)
+    (org-ctrl-c-ctrl-c)))
+
+(define-prefix-command 'org-noter-pdf-view-prefix)
+(define-key org-noter-doc-mode-map (kbd "C-c C-x") 'org-noter-pdf-view-prefix)
+(define-key org-noter-pdf-view-prefix (kbd "C-v")
+  (lambda ()
+    (interactive)
+    (other-window 1)
+    (org-toggle-inline-images)))
+
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here
