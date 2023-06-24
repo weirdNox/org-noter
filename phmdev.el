@@ -38,60 +38,53 @@ file.
            (search-names (remove nil (append org-noter-default-notes-file-names
                                              (list (concat document-base ".org"))
                                              (list (run-hook-with-args-until-success 'org-noter-find-additional-notes-functions document-path)))))
-           notes-files-annotating ; List of files annotating document
-           notes-files) ; List of found notes files (annotating or not)
+           notes-files ; list of notes files with promising names (Notes.org or <docname>.org)
+           notes-path) ; junk variable when iterating over notes-files
 
-      ;; seems like the next two blocks can be combined into a single block if
-      ;; the `locate-dominating-file' paths can be combined with
-      ;; `org-noter-notes-search-path' check `org-noter-notes-search-path' for
-
-      ;; annotating notes files
-      (dolist (path org-noter-notes-search-path)
-        (dolist (name search-names)
-          (let ((notes-path (expand-file-name name path)))
-            (when (file-exists-p notes-path)
-              (push notes-path notes-files)
-              (when (org-noter--check-if-document-is-annotated-on-file document-path notes-path)
-                (push notes-path notes-files-annotating))))))
-
-      ;; check filenames in `search-names' from the doc path up for annotating notes files
+      ;; find promising notes files by name in a few places...
       (dolist (name search-names)
-        (let ((directory (locate-dominating-file document-directory name))
-              notes-path)
+        ;; check the notes-search-paths
+        (dolist (path org-noter-notes-search-path)
+          (setq notes-path (expand-file-name name path))
+          (when (file-exists-p notes-path)
+            (push notes-path notes-files)))
+        ;; check paths at or above document-directory
+        (let ((directory (locate-dominating-file document-directory name)))
           (when directory
             (setq notes-path (expand-file-name name directory))
-            (unless (member notes-path notes-files) (push notes-path notes-files))
-            (when (org-noter--check-if-document-is-annotated-on-file document-path notes-path)
-              (push notes-path notes-files-annotating)))))
+            (push notes-path notes-files))))
 
-      (setq notes-files-annotating (delete-dups notes-files-annotating))
+      (setq notes-files (delete-dups notes-files))
 
       ;; in each annotating notes file, find the entry for this file and update
       ;; the document's relative path
-      (dolist (notes-path notes-files-annotating)
-        (with-temp-buffer
-          (insert-file-contents notes-path)
-          (org-with-point-at (point-min)
-            (catch 'break ;stop when we find a match
-              (while (re-search-forward (org-re-property org-noter-property-doc-file) nil)
-                (let ((property-value (match-string 3))
-                      (notes-directory (file-name-directory notes-path)))
-                  (when (string-equal (expand-file-name property-value notes-directory)
-                                      document-path)
-                    (let ((doc-relative-name (file-relative-name new-document-path notes-directory))
-                          msg)
-                      (org-set-property org-noter-property-doc-file doc-relative-name)
-                      (when (string-prefix-p "../" doc-relative-name) ;warn against docs that reside above notes in path
-                        (setq msg
-                              (format-message "Document file has moved above notes file (%s). `org-noter' will not be able to find the notes file from the new document path (%s)." notes-path doc-relative-name))
-                        (display-warning 'org-noter msg :warning)))
-                    (write-file notes-path nil)
-                    ;; change the notes filename if it was based on the document filename
-                    (if (string-equal (file-name-base notes-path) document-base)
-                        (let ((new-notes-path (concat (file-name-directory notes-path)
-                                                      (file-name-base new-document-path) ".org")))
-                          (rename-file notes-path new-notes-path)))
-                    (throw 'break t)))))))))))
+      (dolist (notes-path notes-files)
+        (when (org-noter--check-if-document-is-annotated-on-file document-path notes-path)
+          (with-temp-buffer
+            (insert-file-contents notes-path)
+            (org-with-point-at (point-min)
+              (catch 'break ;stop when we find a match
+                (while (re-search-forward (org-re-property org-noter-property-doc-file) nil)
+                  (let ((property-value (match-string 3))
+                        (notes-directory (file-name-directory notes-path)))
+                    (when (string-equal (expand-file-name property-value notes-directory)
+                                        document-path)
+                      (let ((doc-relative-name (file-relative-name new-document-path notes-directory))
+                            msg)
+                        ;; sync the new document path in this notes file
+                        (org-set-property org-noter-property-doc-file doc-relative-name)
+                        ;; warn against docs that reside above notes in path
+                        (when (string-prefix-p "../" doc-relative-name)
+                          (setq msg
+                                (format-message "Document file has moved above notes file (%s). `org-noter' will not be able to find the notes file from the new document path (%s)." notes-path doc-relative-name))
+                          (display-warning 'org-noter msg :warning)))
+                      (write-file notes-path nil)
+                      ;; change the notes filename if it was based on the document filename
+                      (if (string-equal (file-name-base notes-path) document-base)
+                          (let ((new-notes-path (concat (file-name-directory notes-path)
+                                                        (file-name-base new-document-path) ".org")))
+                            (rename-file notes-path new-notes-path)))
+                      (throw 'break t))))))))))))
 
 (advice-add 'dired-rename-file :after #'phm/org-noter--sync-doc-rename-in-notes)
 
