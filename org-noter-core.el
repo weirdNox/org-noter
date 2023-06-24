@@ -1657,7 +1657,7 @@ DOCUMENT-PATH is a path to a document file."
       (insert-file-contents notes-path)
       (catch 'break
         (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
-          (when (file-equal-p (expand-file-name (match-string 3) (file-name-directory notes-path))
+          (when (string-equal (expand-file-name (match-string 3) (file-name-directory notes-path))
                               document-path)
             ;; NOTE(nox): This notes file has the document we want!
             (throw 'break t)))))))
