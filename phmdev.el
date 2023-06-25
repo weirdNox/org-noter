@@ -1,7 +1,7 @@
 ;; add this to org-noter-core.el
 (defvar org-noter--doc-extensions nil
   "List of extensions handled by org-noter when documents are moved.
-Used by `phm/org-noter--sync-doc-rename-in-notes'.")
+Used by `org-noter--sync-doc-rename-in-notes'.")
 ;; add to modules/..pdf
 (push "pdf" org-noter--doc-extensions)
 ;; add to modules/..nov
@@ -9,8 +9,8 @@ Used by `phm/org-noter--sync-doc-rename-in-notes'.")
 ;; add to modules/..dvju
 (push "djvu" org-noter--doc-extensions)
 
-(defun phm/org-noter--sync-doc-rename-in-notes (document-path new-document-path &optional _ok-if-already-exists)
-  "Rename org-noter references to document file whose name has changed.
+(defun org-noter--sync-doc-rename-in-notes (document-path new-document-path &optional _ok-if-already-exists)
+  "Update org-noter references to document-file whose name has changed.
 
 DOCUMENT-PATH is the original filename.
 NEW-DOCUMENT-PATH is the new filename.
@@ -30,7 +30,12 @@ can still be initiated from the notes file, but not vice-versa,
 nor will future renames of the document be synced in the notes
 file.
 "
-  (when (member-ignore-case (file-name-extension document-path) org-noter--doc-extensions)
+  (when (and (member-ignore-case (file-name-extension document-path)
+                                 org-noter--doc-extensions)
+             (not (file-exists-p document-path))
+             (file-exists-p new-document-path))
+    ;; continue if the file extension is that of a document
+    ;; and the rename was successful
     (let* ((document-name (file-name-nondirectory document-path))
            (document-base (file-name-base document-name))
            (document-directory (file-name-directory document-path))
@@ -86,18 +91,6 @@ file.
                             (rename-file notes-path new-notes-path)))
                       (throw 'break t))))))))))))
 
-(advice-add 'dired-rename-file :after-until 'phm/org-noter--sync-doc-rename-in-notes)
-(advice-remove 'dired-rename-file 'phm/org-noter--sync-doc-rename-in-notes)
+(advice-add 'dired-rename-file :after 'org-noter--sync-doc-rename-in-notes)
 
-;;(dired-rename-file FILE NEWNAME OK-IF-ALREADY-EXISTS)
-
-;; ‘:after-while’
-;;      Call FUNCTION after the old function and only if the old function
-;;      returned non-‘nil’.  Both functions receive the same arguments, and
-;;      the return value of the composition is the return value of
-;;      FUNCTION.  More specifically, the composition of the two functions
-;;      behaves like:
-;;           (lambda (&rest r) (and (apply OLDFUN r) (apply FUNCTION r)))
-;;      ‘(add-function :after-while FUNVAR FUNCTION)’ is comparable for
-;;      single-function hooks to ‘(add-hook 'HOOKVAR FUNCTION 'append)’
-;;      when HOOKVAR is run via ‘run-hook-with-args-until-failure’.
+;;(advice-remove 'dired-rename-file 'org-noter--sync-doc-rename-in-notes)
