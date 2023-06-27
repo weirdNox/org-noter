@@ -2530,7 +2530,9 @@ Enables `org-noter--sync-doc-rename-in-notes' and
 `dired-rename-file'.
 
 In dired, this affects the renaming of supported document files
-and .org files."
+and .org files.
+
+This feature can be turn off with `org-noter-disable-sync-renames'."
   (interactive)
   (advice-add 'dired-rename-file :after 'org-noter--sync-doc-rename-in-notes)
   (advice-add 'dired-rename-file :after 'org-noter--sync-notes-rename-in-notes))
