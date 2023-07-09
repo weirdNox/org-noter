@@ -1757,7 +1757,8 @@ can still be initiated from the notes file, but not vice-versa,
 nor will future renames of the document be synced in the notes
 file."
 
-  (when (and (member-ignore-case (file-name-extension document-path)
+  (when (and (file-name-extension document-path)
+             (member-ignore-case (file-name-extension document-path)
                                  org-noter--doc-extensions)
              (not (file-exists-p document-path))
              (file-exists-p new-document-path))
