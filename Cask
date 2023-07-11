@@ -1,5 +1,5 @@
 (source gnu)
-(source melpa-stable)
+(source melpa)
 
 (depends-on "buttercup")
 (depends-on "pdf-tools")
