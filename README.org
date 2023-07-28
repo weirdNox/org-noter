@@ -105,7 +105,7 @@
      the document to annotate.
 
 *** new (all formats)
-    - ~org-noter-enable-sync-renames~ :: Optional feature to update document
+    - ~org-noter-enable-update-renames~ :: Optional feature to update document
       paths when renaming or moving document files or notes files.  This allows
       you to change your mind later about the names and locations of your
       document files and notes files without having to manually update all the

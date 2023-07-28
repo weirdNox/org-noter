@@ -62,7 +62,7 @@
 
 (defvar org-noter--doc-extensions nil
   "List of extensions handled by org-noter when documents are moved.
-Used by `org-noter--sync-doc-rename-in-notes'.  This variable gets filled in by supported modes, so it is not a `defcustom' variable.")
+Used by `org-noter--update-doc-rename-in-notes'.  This variable gets filled in by supported modes, so it is not a `defcustom' variable.")
 
 (defcustom org-noter-property-doc-file "NOTER_DOCUMENT"
   "Name of the property that specifies the document."
@@ -1733,7 +1733,7 @@ mode."
 This is delegated to each document mode (eg pdf)."
      (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
 
-(defun org-noter--sync-doc-rename-in-notes (document-path new-document-path &optional _ok-if-already-exists)
+(defun org-noter--update-doc-rename-in-notes (document-path new-document-path &optional _ok-if-already-exists)
   "Update org-noter references to document-file whose name has changed.
 
 DOCUMENT-PATH is the original filename.
@@ -1819,7 +1819,7 @@ file."
                             (rename-file notes-path new-notes-path)))
                       (throw 'break t))))))))))))
 
-(defun org-noter--sync-notes-rename-in-notes (notes-path new-notes-path &optional _ok-if-already-exists)
+(defun org-noter--update-notes-rename-in-notes (notes-path new-notes-path &optional _ok-if-already-exists)
   "Update org-noter references to docs when notes file is moved.
 
 NOTES-PATH is the original filename.
@@ -2524,10 +2524,10 @@ As such, it will only work when the notes window exists."
        (user-error "There is no next note"))))
   (select-window (org-noter--get-doc-window)))
 
-(defun org-noter-enable-sync-renames ()
+(defun org-noter-enable-update-renames ()
   "Enable `dired-rename-file' advice for moving docs and notes.
-Enables `org-noter--sync-doc-rename-in-notes' and
-`org-noter--sync-notes-rename-in-notes' as advice :after
+Enables `org-noter--update-doc-rename-in-notes' and
+`org-noter--update-notes-rename-in-notes' as advice :after
 `dired-rename-file'.
 
 In dired, this affects the renaming of supported document files
@@ -2535,16 +2535,16 @@ and .org files.
 
 This feature can be turn off with `org-noter-disable-sync-renames'."
   (interactive)
-  (advice-add 'dired-rename-file :after 'org-noter--sync-doc-rename-in-notes)
-  (advice-add 'dired-rename-file :after 'org-noter--sync-notes-rename-in-notes))
+  (advice-add 'dired-rename-file :after 'org-noter--update-doc-rename-in-notes)
+  (advice-add 'dired-rename-file :after 'org-noter--update-notes-rename-in-notes))
 
-(defun org-noter-disable-sync-renames ()
+(defun org-noter-disable-update-renames ()
   "Disable `dired-rename-file' advice for moving docs and notes.
 Run this if you change your mind about using the rename
 synchronization features."
   (interactive)
-  (advice-remove 'dired-rename-file 'org-noter--sync-doc-rename-in-notes)
-  (advice-remove 'dired-rename-file 'org-noter--sync-notes-rename-in-notes))
+  (advice-remove 'dired-rename-file 'org-noter--update-doc-rename-in-notes)
+  (advice-remove 'dired-rename-file 'org-noter--update-notes-rename-in-notes))
 
 (define-minor-mode org-noter-doc-mode
   "Minor mode for the document buffer.
