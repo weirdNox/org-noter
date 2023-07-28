@@ -267,7 +267,10 @@ DOCUMENT-FILE-NAME is the document filename."
             (with-current-buffer (find-file-noselect (car notes-files))
               (goto-char (point-max))
               (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
-                      "* " document-base)
+                      "* "
+                      org-noter-headline-title-decoration
+                      document-base
+                      org-noter-headline-title-decoration)
               (org-entry-put nil org-noter-property-doc-file
                              (file-relative-name document-used-path
                                                  (file-name-directory (car notes-files)))))
