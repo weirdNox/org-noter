@@ -60,6 +60,10 @@
   :group 'org-noter
   :type '(repeat symbol))
 
+(defvar org-noter--doc-extensions nil
+  "List of extensions handled by org-noter when documents are moved.
+Used by `org-noter--update-doc-rename-in-notes'.  This variable gets filled in by supported modes, so it is not a `defcustom' variable.")
+
 (defcustom org-noter-property-doc-file "NOTER_DOCUMENT"
   "Name of the property that specifies the document."
   :group 'org-noter
@@ -1673,7 +1677,7 @@ DOCUMENT-PATH is a path to a document file."
       (insert-file-contents notes-path)
       (catch 'break
         (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
-          (when (file-equal-p (expand-file-name (match-string 3) (file-name-directory notes-path))
+          (when (string-equal (expand-file-name (match-string 3) (file-name-directory notes-path))
                               document-path)
             ;; NOTE(nox): This notes file has the document we want!
             (throw 'break t)))))))
@@ -1744,6 +1748,150 @@ mode."
   "Return a string representation of the HIGHLIGHT-LOCATION.
 This is delegated to each document mode (eg pdf)."
      (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
+
+(defun org-noter--update-doc-rename-in-notes (document-path new-document-path &optional _ok-if-already-exists)
+  "Update org-noter references to document-file whose name has changed.
+
+DOCUMENT-PATH is the original filename.
+NEW-DOCUMENT-PATH is the new filename.
+
+Call `org-noter-enable-sync-renames' to enable this feature and
+`org-noter-disable-sync-renames' to disable it.
+
+This advice runs after `dired-rename-file' completes successfully
+on files with `file-name-extension' in `org-noter--doc-extensions'.
+
+For notes files that have the same `file-name-base' as the
+document, the notes filename will be changed, but not its
+`file-name-directory'.
+
+If the document is moved to a path above the notes file, a
+warning will be issued, but the sync will proceed.  The directory
+of the notes file will not be changed, as there may be other
+documents referenced in the notes file.  An `org-noter' session
+can still be initiated from the notes file, but not vice-versa,
+nor will future renames of the document be synced in the notes
+file."
+
+  (when (and (file-name-extension document-path)
+             (member-ignore-case (file-name-extension document-path)
+                                 org-noter--doc-extensions)
+             (not (file-exists-p document-path))
+             (file-exists-p new-document-path))
+    ;; continue if the file extension is that of a document
+    ;; and the rename was successful
+    (let* ((document-name (file-name-nondirectory document-path))
+           (document-base (file-name-base document-name))
+           (document-directory (file-name-directory document-path))
+
+           (search-names (remove nil (append org-noter-default-notes-file-names
+                                             (list (concat document-base ".org"))
+                                             (list (run-hook-with-args-until-success 'org-noter-find-additional-notes-functions document-path)))))
+           notes-files ; list of notes files with promising names (Notes.org or <docname>.org)
+           notes-path) ; junk variable when iterating over notes-files
+
+      ;; find promising notes files by name in a few places...
+      (dolist (name search-names)
+        ;; check the notes-search-paths
+        (dolist (path org-noter-notes-search-path)
+          (setq notes-path (expand-file-name name path))
+          (when (file-exists-p notes-path)
+            (push notes-path notes-files)))
+        ;; check paths at or above document-directory
+        (let ((directory (locate-dominating-file document-directory name)))
+          (when directory
+            (setq notes-path (expand-file-name name directory))
+            (push notes-path notes-files))))
+
+      (setq notes-files (delete-dups notes-files))
+
+      ;; in each annotating notes file, find the entry for this file and update
+      ;; the document's relative path
+      (dolist (notes-path notes-files)
+        (when (org-noter--check-if-document-is-annotated-on-file document-path notes-path)
+          (with-temp-buffer
+            (insert-file-contents notes-path)
+            (org-with-point-at (point-min)
+              (catch 'break ;stop when we find a match
+                (while (re-search-forward (org-re-property org-noter-property-doc-file) nil)
+                  (let ((property-value (match-string 3))
+                        (notes-directory (file-name-directory notes-path)))
+                    (when (string-equal (expand-file-name property-value notes-directory)
+                                        document-path)
+                      (let ((doc-relative-name (file-relative-name new-document-path notes-directory))
+                            msg)
+                        ;; sync the new document path in this notes file
+                        (org-set-property org-noter-property-doc-file doc-relative-name)
+                        ;; warn against docs that reside above notes in path
+                        (when (string-prefix-p "../" doc-relative-name)
+                          (setq msg
+                                (format-message "Document file has moved above notes file (%s). `org-noter' will not be able to find the notes file from the new document path (%s)." notes-path doc-relative-name))
+                          (display-warning 'org-noter msg :warning)))
+                      (write-file notes-path nil)
+                      ;; change the notes filename if it was based on the document filename
+                      (if (string-equal (file-name-base notes-path) document-base)
+                          (let ((new-notes-path (concat (file-name-directory notes-path)
+                                                        (file-name-base new-document-path) ".org")))
+                            (rename-file notes-path new-notes-path)))
+                      (throw 'break t))))))))))))
+
+(defun org-noter--update-notes-rename-in-notes (notes-path new-notes-path &optional _ok-if-already-exists)
+  "Update org-noter references to docs when notes file is moved.
+
+NOTES-PATH is the original filename.
+NEW-NOTES-PATH is the new filename.
+
+Call `org-noter-enable-sync-renames' to enable this feature and
+`org-noter-disable-sync-renames' to disable it.
+
+This advice runs after `dired-rename-file' moves an '.org' file to
+a different directory.
+
+If the notes file is moved to a path below any of its linked
+documents, a warning will be issued, but the sync will proceed.
+An `org-noter' session can still be initiated from the notes
+file, but not vice-versa, but future renames of the notes file
+will continue to sync the document references."
+
+  (when (and (string-equal (file-name-extension notes-path) "org")
+             (not (file-exists-p notes-path))
+             (file-exists-p new-notes-path)
+             (not (string-equal (file-name-directory notes-path)
+                                (file-name-directory new-notes-path))))
+    ;; continue if it is an org file
+    ;; and the rename was successful
+    ;; and the directory changes
+    (let* (;;(document-name (file-name-nondirectory document-path))
+           ;;(document-base (file-name-base document-name))
+           (    notes-directory (file-name-directory notes-path))
+           (new-notes-directory (file-name-directory new-notes-path))
+           (problem-path-list   nil)
+           (this-org-file-uses-noter nil))
+
+      ;; update each document's relative path
+      (with-temp-buffer
+        (insert-file-contents new-notes-path)
+        (org-with-point-at (point-min)
+          (while (re-search-forward (org-re-property org-noter-property-doc-file) nil t)
+            (let* ((    doc-file-rel-path (match-string 3))
+                   (    doc-file-abs-path (expand-file-name   doc-file-rel-path notes-directory))
+                   (new-doc-file-rel-path (file-relative-name doc-file-abs-path new-notes-directory)))
+              (setq this-org-file-uses-noter t)
+              ;; sync the document path to the new notes file
+              (org-set-property org-noter-property-doc-file new-doc-file-rel-path)
+              (next-line)
+              ;; add problematic paths to the list
+              (when (string-prefix-p "../" new-doc-file-rel-path)
+                (push new-doc-file-rel-path problem-path-list)))))
+        ;; warn against docs that reside above notes in path
+        (when problem-path-list
+          (let ((msg (format-message
+                      "Notes file has moved below some documents. `org-noter' will not be able to find the notes file from the document path for these files:")))
+            (dolist (doc-path problem-path-list)
+              (setq msg (concat msg (format-message "\n%s" doc-path))))
+            (display-warning 'org-noter msg :warning)))
+        (when this-org-file-uses-noter
+          (write-file new-notes-path nil))))))
 
 ;; --------------------------------------------------------------------------------
 ;;; User commands
@@ -2391,6 +2539,28 @@ As such, it will only work when the notes window exists."
            (org-noter--focus-notes-region (org-noter--make-view-info-for-single-note session next)))
        (user-error "There is no next note"))))
   (select-window (org-noter--get-doc-window)))
+
+(defun org-noter-enable-update-renames ()
+  "Enable `dired-rename-file' advice for moving docs and notes.
+Enables `org-noter--update-doc-rename-in-notes' and
+`org-noter--update-notes-rename-in-notes' as advice :after
+`dired-rename-file'.
+
+In dired, this affects the renaming of supported document files
+and .org files.
+
+This feature can be turn off with `org-noter-disable-sync-renames'."
+  (interactive)
+  (advice-add 'dired-rename-file :after 'org-noter--update-doc-rename-in-notes)
+  (advice-add 'dired-rename-file :after 'org-noter--update-notes-rename-in-notes))
+
+(defun org-noter-disable-update-renames ()
+  "Disable `dired-rename-file' advice for moving docs and notes.
+Run this if you change your mind about using the rename
+synchronization features."
+  (interactive)
+  (advice-remove 'dired-rename-file 'org-noter--update-doc-rename-in-notes)
+  (advice-remove 'dired-rename-file 'org-noter--update-notes-rename-in-notes))
 
 (define-minor-mode org-noter-doc-mode
   "Minor mode for the document buffer.

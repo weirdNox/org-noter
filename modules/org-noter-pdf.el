@@ -34,6 +34,7 @@
     (require 'pdf-tools)
   (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
+(push "pdf" org-noter--doc-extensions)
 (cl-defstruct pdf-highlight page coords)
 
 (defun org-noter-pdf--get-highlight ()
