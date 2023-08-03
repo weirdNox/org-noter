@@ -378,22 +378,13 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
               (pdf-annot-get-id a))))
      (select-window
       (org-noter--get-notes-window))
-     (condition-case-unless-debug
-         nil
-         (progn
-           (require 'org-id)
-           (goto-char
-            (cdr (org-id-find-id-in-file
-                  (if org-noter-pdftools-use-unique-org-id
-                      (concat
-                       (org-noter--session-property-text
-                        session)
-                       "-"
-                       id)
-                    id)
-                  buffer-file-name))))
-       (error nil))
-     t)))
+     (let ((exist-id (org-id-find-id-in-file
+                      (if org-noter-pdftools-use-unique-org-id
+                          (concat (org-noter--session-property-text session) "-" id)
+                        id)
+                      buffer-file-name)))
+       (if exist-id (goto-char (cdr exist-id))
+         nil)))))
 
 ;; TODO(nox): Implement interface for skeleton creation
 (defun org-noter-pdftools-create-skeleton ()
@@ -618,3 +609,70 @@ Only available with PDF Tools."
            (org-show-children 2)))))
 
     (t (error "This command is only supported on PDF Tools")))))
+
+(defun org-noter-pdftools-embed-org-note-to-pdf ()
+  "Embed a org subtree to its corresponding PDF annotation."
+  (interactive)
+  (org-noter--with-valid-session
+   (unless (equal (selected-window) (org-noter--get-notes-window))
+     (error "You should use this command in an org-noter note buffer"))
+   (let* ((org-id (org-id-get)))
+     (unless (and (string-match ".*\\(annot-.*-.*\\)" org-id)
+                  org-noter-pdftools-use-org-id
+                  org-noter-pdftools-use-pdftools-link-location)
+       (error "This can only be run on an org heading with a valid org-pdftools annotation ID.
+Please also make sure `org-noter-pdftools-use-org-id' and `org-noter-pdftools-use-pdftools-link-location' are enabled"))
+     (let* ((annot-id (match-string 1 org-id))
+            note)
+       (setq kr kill-ring)
+       (org-copy-subtree nil nil nil t)
+       (setq note (car kill-ring))
+       (setq kill-ring kr)
+       (with-selected-window
+           (org-noter--get-doc-window)
+         (let ((annot (pdf-annot-getannot (intern annot-id))))
+           (with-current-buffer (pdf-annot-edit-contents-noselect annot)
+             (insert note)
+             (pdf-annot-edit-contents-finalize t)))
+         (save-buffer))))))
+(defun org-noter-pdftools-embed-all-org-note-to-pdf ()
+  (interactive)
+  (org-noter--with-valid-session
+   (with-selected-window (org-noter--get-notes-window)
+     (save-excursion
+       (org-map-entries #'org-noter-pdftools-embed-org-note-to-pdf "ID={annot-}")))))
+(defun org-noter-pdftools-embed-org-buffer-to-pdf ()
+  "Embed the whole org-noter doc buffer to a PDF annotation."
+  (interactive)
+  (org-noter--with-valid-session
+   (let* ((note (with-selected-window (org-noter--get-notes-window)
+                 (save-excursion
+                   (buffer-substring-no-properties
+                    (point-min) (point-max)))))
+         annot-id)
+     (with-selected-window
+         (org-noter--get-doc-window)
+       (save-excursion
+         (pdf-view-goto-page 1)
+         (setq annot-id
+               (pdf-annot-get-id
+                (let ((annot (ignore-errors (pdf-annot-at-position '(0 . 0)))))
+                  (if annot
+                      annot
+                    (funcall-interactively
+                     #'pdf-annot-add-text-annotation
+                     '(0 . 0)
+                     org-pdftools-free-pointer-icon
+                     `((color . ,org-pdftools-free-pointer-color)
+                       (opacity . ,org-pdftools-free-pointer-opacity))))))))
+       (with-selected-window
+           (org-noter--get-doc-window)
+         (let ((annot (pdf-annot-getannot annot-id)))
+           (with-current-buffer (pdf-annot-edit-contents-noselect annot)
+             (insert note)
+             (pdf-annot-edit-contents-finalize t)))
+         (save-buffer))))))
+
+(provide 'org-noter-pdftools)
+
+;;; org-noter-pdftools.el ends here
