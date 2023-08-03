@@ -221,18 +221,21 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
 
 (defun org-noter-pdftools--insert-heading ()
   "Insert heading in the `org-noter' org document."
-  (let ((location-property (org-entry-get nil org-noter-property-note-location)))
-    (when (string-match ".*;;\\(.*\\)" location-property)
-      (org-noter--with-valid-session
-       (let ((id (match-string 1 location-property)))
-         (if org-noter-pdftools-use-org-id
-             (org-entry-put nil "ID"
-                            (if org-noter-pdftools-use-unique-org-id
-                                (concat
-                                 (org-noter--session-property-text session)
-                                 "-"
-                                 id)
-                              id))))))))
+  (let* ((location-property (org-entry-get nil org-noter-property-note-location)))
+    (when location-property
+      (if (string-suffix-p "]]" location-property)
+          (setq location-property (substring location-property 0 -2)))
+      (when (string-match ".*;;\\(.*\\)" location-property)
+        (org-noter--with-valid-session
+         (let ((id (match-string 1 location-property)))
+           (if org-noter-pdftools-use-org-id
+               (org-entry-put nil "ID"
+                              (if org-noter-pdftools-use-unique-org-id
+                                  (concat
+                                   (org-noter--session-property-text session)
+                                   "-"
+                                   id)
+                                id)))))))))
 
 (dolist (pair '((org-noter--check-location-property-hook   . org-noter-pdftools--check-link)
                 (org-noter--parse-location-property-hook   . org-noter-pdftools--parse-link)
