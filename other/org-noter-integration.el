@@ -1,5 +1,7 @@
-(require 'org-noter)
+(require 'org-id)
 (require 'org-pdftools)
+(require 'org-noter)
+(require 'image-mode)
 
 (declare-function pdf-info-editannot "ext:pdf-info")
 (declare-function pdf-annot-add-text-annotation "ext:pdf-annot")
