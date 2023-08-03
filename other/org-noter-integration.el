@@ -122,30 +122,49 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
 (defun org-noter-pdftools--parse-link (property)
   "Interface for parse PROPERTY link."
   (when (org-noter-pdftools--location-link-p property)
-    (string-match "\\(.*\\)::\\([0-9]*\\)\\(\\+\\+\\)?\\([[0-9]\\.*[0-9]*\\)?\\(;;\\|\\$\\$\\)?\\(.*\\)?" property)
-    (let ((path (match-string 1 property))
-          (page (match-string 2 property))
-          (height (match-string 4 property))
-          annot-id search-string)
-      (cond ((string-equal (match-string 5 property) ";;")
-             (setq annot-id (match-string 6 property)))
-            ((string-equal (match-string 5 property) "$$")
-             (setq search-string (replace-regexp-in-string "%20" " " (match-string 6 property)))))
-      (make-org-noter-pdftools--location
-       :path path
-       :page (and page (string-to-number page))
-       :height (and height (string-to-number height))
-       :annot-id annot-id
-       :search-string search-string
-       :original-property property))))
+    (setq property (string-trim property "\\[\\[" "\\]\\]"))
+    (let ((link-regexp (concat "\\(.*\\)::\\([0-9]*\\)\\(\\+\\+\\)?\\([[0-9]\\.*[0-9]*\\)?\\(;;\\|"
+                               (regexp-quote org-pdftools-search-string-separator)
+                               "\\)?\\(.*\\)?")))
+      (string-match link-regexp property)
+      (let ((path (match-string 1 property))
+            (page (match-string 2 property))
+            (height (match-string 4 property))
+            annot-id search-string)
+        (condition-case nil
+            (cond ((string-equal (match-string 5 property) ";;")
+                   (setq annot-id (match-string 6 property)))
+                  ((string-equal (match-string 5 property) org-pdftools-search-string-separator)
+                   (setq search-string (replace-regexp-in-string "%20" " " (match-string 6 property)))))
+          (error nil))
+        (make-org-noter-pdftools--location
+         :path path
+         :page (and page (string-to-number page))
+         :height (and height (string-to-number height))
+         :annot-id annot-id
+         :search-string search-string
+         :original-property property)))))
 
 (defun org-noter-pdftools--pretty-print-location (location)
-  (and (org-noter-pdftools--location-p location)
-       (org-noter-pdftools--location-original-property location)))
+  "Function for print the LOCATION link."
+  (org-noter--with-valid-session
+   (if (memq (org-noter--session-doc-mode session) '(doc-view-mode pdf-view-mode))
+       (let ((loc (if (org-noter-pdftools--location-p location)
+                      location
+                    (org-noter-pdftools--parse-link location))))
+         (concat "[["
+                 (org-noter-pdftools--location-original-property loc)
+                 "]]"))
+    nil)))
 
 (defun org-noter-pdftools--convert-to-location-cons (location)
-  (when (org-noter-pdftools--location-p location)
-    (org-noter-pdftools--location-link-to-cons location)))
+  "Function for converting the LOCATION link to cons."
+  (if (and location (consp location))
+      location
+    (let ((loc (if (org-noter-pdftools--location-p location)
+                   location
+                 (org-noter-pdftools--parse-link location))))
+      (org-noter-pdftools--location-link-to-cons loc))))
 
 (defun org-noter-pdftools--doc-goto-location (mode location  &optional _window)
   "Goto LOCATION in the corresponding MODE."
