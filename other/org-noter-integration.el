@@ -11,6 +11,11 @@ Can be one of highlight/underline/strikeout/squiggly."
   :group 'org-noter
   :type 'function)
 
+(defcustom org-noter-pdftools-path-generator #'abbreviate-file-name
+  "Translate your PDF file path the way you like. Take buffer-file-name as the argument."
+  :group 'org-pdftools
+  :type 'function)
+
 (defcustom org-noter-pdftools-markup-pointer-color "#A9A9A9"
   "Color for markup pointer annotations."
   :group 'org-noter
@@ -347,7 +352,7 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
            (require 'org-id)
            (goto-char
             (cdr (org-id-find-id-in-file
-                  (if org-noter-use-unique-org-id
+                  (if org-noter-pdftools-use-unique-org-id
                       (concat
                        (org-noter--session-property-text
                         session)
@@ -386,11 +391,8 @@ Only available with PDF Tools."
                (when (and (eq type 'goto-dest)
                           (> page 0))
                  (when org-noter-pdftools-use-pdftools-link-location
-                   (setq path (file-relative-name
-                               (expand-file-name
-                                (org-noter--session-property-text
-                                 session))
-                               org-pdftools-root-dir))
+                   (setq path
+                         (funcall org-noter-pdftools-path-generator (buffer-file-name)))
                    (if title
                        (setq pdftools-link
                              (concat
@@ -459,15 +461,10 @@ Only available with PDF Tools."
                       (top (nth 1 edges))
                       (item-subject (alist-get 'subject item))
                       (item-contents (alist-get 'contents item))
-                      name contents pdftools-link id path)
+                      (id (symbol-name (alist-get 'id item)))
+                      name contents pdftools-link path)
                  (when org-noter-pdftools-use-pdftools-link-location
-                   (setq path
-                         (file-relative-name
-                          (expand-file-name
-                           (org-noter--session-property-text
-                            session))
-                          org-pdftools-root-dir))
-                   (setq id (symbol-name (alist-get 'id item)))
+                   (setq path (funcall org-noter-pdftools-path-generator (buffer-file-name)))
                    (setq pdftools-link (concat org-pdftools-link-prefix ":" path "::"
                                                (number-to-string page) "++"
                                                (number-to-string top) ";;"
@@ -508,11 +505,7 @@ Only available with PDF Tools."
                             target heading-text pdftools-link path)
                        (when org-noter-pdftools-use-pdftools-link-location
                          (setq path
-                               (file-relative-name
-                                (expand-file-name
-                                 (org-noter--session-property-text
-                                  session))
-                                org-pdftools-root-dir))
+                               (funcall org-noter-pdftools-path-generator (buffer-file-name)))
                          (setq pdftools-link (concat org-pdftools-link-prefix ":" path "::"
                                                      (number-to-string page) "++"
                                                      (number-to-string top))))
