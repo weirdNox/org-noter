@@ -1,3 +1,31 @@
+;;; org-noter-pdftools.el --- Integration between org-pdftools and org-noter
+;; Copyright (C) 2020 Alexander Fu Xi
+
+;; Author: Alexander Fu Xi <fuxialexander@gmail.com>
+;; Maintainer: Alexander Fu Xi <fuxialexnader@gmail.com>
+;; Homepage: https://github.com/fuxialexander/org-pdftools
+;; Version: 1.0
+;; Keywords: convenience
+;; Package-Requires: ((emacs "26.1") (org "9.4") (pdf-tools "0.8") (org-pdftools "1.0") (org-noter "1.4.1"))
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+;; Add integration between org-pdftools and org-noter.
+
+
+;;; Code:
 (require 'org-id)
 (require 'org-pdftools)
 (require 'org-noter)
@@ -54,14 +82,13 @@ Can be one of highlight/underline/strikeout/squiggly."
   :type 'boolean)
 
 (defcustom org-noter-pdftools-export-to-pdf t
-  "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
+  "TODO: Whether you want to export the org notes to pdf annotation contents.
 To use this, `org-noter-pdftools-use-org-id' has to be t."
   :group 'org-noter
   :type 'boolean)
 
 (defcustom org-noter-pdftools-export-to-pdf-with-structure t
-  "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
-
+  "TODO: Whether you want to export the org notes to pdf annotation contents.
 To use this, `org-noter-pdftools-use-org-id' has to be t."
   :group 'org-noter
   :type 'boolean)
