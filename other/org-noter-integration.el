@@ -5,62 +5,61 @@
 (declare-function pdf-annot-add-text-annotation "ext:pdf-annot")
 (declare-function pdf-annot-get-id "ext:pdf-annot")
 
-(defcustom org-noter-markup-pointer-function 'pdf-annot-add-highlight-markup-annotation
+(defcustom org-noter-pdftools-markup-pointer-function 'pdf-annot-add-highlight-markup-annotation
   "Color for markup pointer annotations.
 Can be one of highlight/underline/strikeout/squiggly."
   :group 'org-noter
   :type 'function)
 
-(defcustom org-noter-markup-pointer-color "#A9A9A9"
-  "Color for markup pointer annotations"
+(defcustom org-noter-pdftools-markup-pointer-color "#A9A9A9"
+  "Color for markup pointer annotations."
   :group 'org-noter
   :type 'string)
 
-(defcustom org-noter-markup-pointer-opacity 1.0
-  "Color for markup pointer annotations"
+(defcustom org-noter-pdftools-markup-pointer-opacity 1.0
+  "Color for markup pointer annotations."
   :group 'org-noter
   :type 'float)
 
-(defcustom org-noter-free-pointer-icon "Circle"
+(defcustom org-noter-pdftools-free-pointer-icon "Circle"
   "Color for free pointer annotations. Refer to `pdf-annot-standard-text-icons`."
   :group 'org-noter
   :type 'string)
 
-(defcustom org-noter-free-pointer-color "#FFFFFF"
-  "Color for free pointer annotations"
+(defcustom org-noter-pdftools-free-pointer-color "#FFFFFF"
+  "Color for free pointer annotations."
   :group 'org-noter
   :type 'string)
 
-(defcustom org-noter-free-pointer-opacity 1.0
-  "Color for free pointer annotations"
+(defcustom org-noter-pdftools-free-pointer-opacity 1.0
+  "Color for free pointer annotations."
   :group 'org-noter
   :type 'float)
 
-(defcustom org-noter-use-pdftools-link-location t
+(defcustom org-noter-pdftools-use-pdftools-link-location t
   "When non-nil, org-pdftools link is used instead of location-cons when inserting notes."
   :group 'org-noter
   :type 'boolean)
 
-(defcustom org-noter-use-org-id t
+(defcustom org-noter-pdftools-use-org-id t
   "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
   :group 'org-noter
   :type 'boolean)
 
-(defcustom org-noter-export-to-pdf t
+(defcustom org-noter-pdftools-export-to-pdf t
   "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
-
-To use this, `org-noter-use-org-id' has to be t."
+To use this, `org-noter-pdftools-use-org-id' has to be t."
   :group 'org-noter
   :type 'boolean)
 
-(defcustom org-noter-export-to-pdf-with-structure t
+(defcustom org-noter-pdftools-export-to-pdf-with-structure t
   "When non-nil, PDF annotation contents will include both org-id of original notes and org-id of its parent.
 
-To use this, `org-noter-use-org-id' has to be t."
+To use this, `org-noter-pdftools-use-org-id' has to be t."
   :group 'org-noter
   :type 'boolean)
 
-(defcustom org-noter-use-unique-org-id t
+(defcustom org-noter-pdftools-use-unique-org-id t
   "When non-nil, an org-id is generated for each heading for linking with PDF annotations and record entry parents."
   :group 'org-noter
   :type 'boolean)
@@ -69,11 +68,13 @@ To use this, `org-noter-use-org-id' has to be t."
   path page height annot-id search-string original-property)
 
 (defun org-noter-pdftools--location-link-p (location)
+  "Check whether LOCATION is a org-pdftools link."
   (and location
        (stringp location)
        (string-prefix-p "pdftools:" location)))
 
-(defun org-noter--location-cons-to-link (location)
+(defun org-noter-pdftools--location-cons-to-link (location)
+  "Convert LOCATION cons to link."
   (cond ((consp location)
          (concat
           "::"
@@ -87,16 +88,18 @@ To use this, `org-noter-use-org-id' has to be t."
           (number-to-string
            (car location))))))
 
-(defun org-noter--location-link-to-cons (location)
-  "Convert a org-pdftools link to old location cons."
+(defun org-noter-pdftools--location-link-to-cons (location)
+  "Convert a org-pdftools link to old LOCATION cons."
   (cons (org-noter-pdftools--location-page location) (or (org-noter-pdftools--location-height location) 0.0)))
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): Interface
 (defun org-noter-pdftools--check-link (property)
+  "Interface for checking PROPERTY link."
   (org-noter-pdftools--location-link-p property))
 
 (defun org-noter-pdftools--parse-link (property)
+  "Interface for parse PROPERTY link."
   (when (org-noter-pdftools--location-link-p property)
     (string-match "\\(.*\\)::\\([0-9]*\\)\\(\\+\\+\\)?\\([[0-9]\\.*[0-9]*\\)?\\(;;\\|\\$\\$\\)?\\(.*\\)?" property)
     (let ((path (match-string 1 property))
@@ -121,9 +124,10 @@ To use this, `org-noter-use-org-id' has to be t."
 
 (defun org-noter-pdftools--convert-to-location-cons (location)
   (when (org-noter-pdftools--location-p location)
-    (org-noter--location-link-to-cons location)))
+    (org-noter-pdftools--location-link-to-cons location)))
 
-(defun org-noter-pdftools--doc-goto-location (mode location)
+(defun org-noter-pdftools--doc-goto-location (mode location  &optional _window)
+  "Goto LOCATION in the corresponding MODE."
   (when (and (eq mode 'pdf-view-mode) (org-noter-pdftools--location-p location))
     (when (org-noter-pdftools--location-page location)
       (pdf-view-goto-page (org-noter-pdftools--location-page location)))
@@ -139,24 +143,28 @@ To use this, `org-noter-use-org-id' has to be t."
     t))
 
 (defun org-noter-pdftools--note-after-tipping-point (point location view)
+  "Call `org-noter--note-after-tipping-point' relative to POINT based on LOCATION and VIEW."
   (when (org-noter-pdftools--location-p location)
-    (cons t (org-noter--note-after-tipping-point point (org-noter--location-link-to-cons location) view))))
+    (cons t (org-noter--note-after-tipping-point point (org-noter-pdftools--location-link-to-cons location) view))))
 
 (defun org-noter-pdftools--relative-position-to-view (location view)
+  "Get relative position based on LOCATION and VIEW."
   (when (org-noter-pdftools--location-p location)
-    (org-noter--relative-position-to-view (org-noter--location-link-to-cons location) view)))
+    (org-noter--relative-position-to-view (org-noter-pdftools--location-link-to-cons location) view)))
 
-(defun org-noter-pdftools--get-precise-info (mode)
+(defun org-noter-pdftools--get-precise-info (mode &optional _window)
+  "Get precise info from MODE."
   (when (eq mode 'pdf-view-mode)
-    (let ((org-pdftools-free-pointer-icon org-noter-free-pointer-icon)
-          (org-pdftools-free-pointer-color org-noter-free-pointer-color)
-          (org-pdftools-free-pointer-opacity org-noter-free-pointer-opacity)
-          (org-pdftools-markup-pointer-color org-noter-markup-pointer-color)
-          (org-pdftools-markup-pointer-opacity org-noter-markup-pointer-opacity)
-          (org-pdftools-markup-pointer-function org-noter-markup-pointer-function))
-      (org-noter-pdftools--parse-link (org-pdftools-get-link t)))))
+    (let ((org-pdftools-free-pointer-icon org-noter-pdftools-free-pointer-icon)
+          (org-pdftools-free-pointer-color org-noter-pdftools-free-pointer-color)
+          (org-pdftools-free-pointer-opacity org-noter-pdftools-free-pointer-opacity)
+          (org-pdftools-markup-pointer-color org-noter-pdftools-markup-pointer-color)
+          (org-pdftools-markup-pointer-opacity org-noter-pdftools-markup-pointer-opacity)
+          (org-pdftools-markup-pointer-function org-noter-pdftools-markup-pointer-function))
+      (org-noter-pdftools--parse-link (org-pdftools-get-link)))))
 
 (defun org-noter-pdftools--doc-approx-location (mode precise-info force-new-ref)
+  "Get approximate location in MODE buffer based on PRECISE-INFO and FORCE-NEW-REF."
   (org-noter--with-valid-session
    (when (eq mode 'pdf-view-mode)
      (cond ((or (numberp precise-info) (not precise-info))
@@ -172,13 +180,14 @@ To use this, `org-noter-use-org-id' has to be t."
            (t (error "Invalid pdftools precise-info case: %s" precise-info))))))
 
 (defun org-noter-pdftools--insert-heading ()
+  "Insert heading in the `org-noter' org document."
   (let ((location-property (org-entry-get nil org-noter-property-note-location)))
     (when (string-match ".*;;\\(.*\\)" location-property)
       (org-noter--with-valid-session
        (let ((id (match-string 1 location-property)))
-         (if org-noter-use-org-id
+         (if org-noter-pdftools-use-org-id
              (org-entry-put nil "ID"
-                            (if org-noter-use-unique-org-id
+                            (if org-noter-pdftools-use-unique-org-id
                                 (concat
                                  (org-noter--session-property-text session)
                                  "-"
@@ -199,7 +208,7 @@ To use this, `org-noter-use-org-id' has to be t."
 
 ;; --------------------------------------------------------------------------------
 ;; NOTE(nox): User commands
-(defun org-noter-convert-old-org-heading ()
+(defun org-noter-pdftools-convert-old-org-heading ()
   "Covert an old org heading to a new one for compatiblility."
   (interactive)
   (org-noter--with-valid-session
@@ -244,23 +253,23 @@ To use this, `org-noter-use-org-id' has to be t."
                (concat
                 "pdftools:"
                 path
-                (org-noter--location-cons-to-link
+                (org-noter-pdftools--location-cons-to-link
                  location)
                 ";;"
                 annot-id))
-              (when org-noter-use-org-id
+              (when org-noter-pdftools-use-org-id
                 (org-entry-put
                  nil
                  "ID"
-                 (if org-noter-use-unique-org-id
+                 (if org-noter-pdftools-use-unique-org-id
                      (concat
                       document-property
                       "-"
                       annot-id)
                    annot-id)))
-              (when org-noter-export-to-pdf
+              (when org-noter-pdftools-export-to-pdf
                 (let* ((content (if (and (> (org-current-level) 2)
-                                         org-noter-export-to-pdf-with-structure)
+                                         org-noter-pdftools-export-to-pdf-with-structure)
                                     (let ((parent-id (save-excursion
                                                        (org-up-heading-safe)
                                                        (org-id-get))))
@@ -288,7 +297,7 @@ To use this, `org-noter-use-org-id' has to be t."
           (error
            "This command is only supported on PDF Tools")))))
 
-(defun org-noter-convert-old-notes ()
+(defun org-noter-pdftools-convert-old-notes ()
   "Convert old notes (location cons based) to new format (link based)."
   (interactive)
   (org-noter--with-valid-session
@@ -306,17 +315,17 @@ To use this, `org-noter-use-org-id' has to be t."
                       "pdftools:"
                       prop)))
            (call-interactively
-            #'org-noter-convert-old-org-heading))))))
+            #'org-noter-pdftools-convert-old-org-heading))))))
 
-(defun org-noter-jump-to-note (a)
+(defun org-noter-pdftools-jump-to-note (a)
   "Jump from a PDF annotation A to the corresponding org heading."
   (interactive (list
                 (with-selected-window
                     (org-noter--get-doc-window)
                   (pdf-annot-read-annotation
                    "Left click the annotation "))))
-  (when (not org-noter-use-org-id)
-    "You have to enable `org-noter-use-org-id'!")
+  (unless org-noter-pdftools-use-org-id
+    "You have to enable `org-noter-pdftools-use-org-id'!")
   (org-noter--with-valid-session
    (pdf-annot-show-annotation a t)
    (let ((id (symbol-name
@@ -341,7 +350,7 @@ To use this, `org-noter-use-org-id' has to be t."
      t)))
 
 ;; TODO(nox): Implement interface for skeleton creation
-(defun org-noter-create-skeleton ()
+(defun org-noter-pdftools-create-skeleton ()
   "Create notes skeleton with the PDF outline or annotations.
 Only available with PDF Tools."
   (interactive)
@@ -367,7 +376,7 @@ Only available with PDF Tools."
                    pdftools-link path)
                (when (and (eq type 'goto-dest)
                           (> page 0))
-                 (when org-noter-use-pdftools-link-location
+                 (when org-noter-pdftools-use-pdftools-link-location
                    (setq path (file-relative-name
                                (expand-file-name
                                 (org-noter--session-property-text
@@ -398,7 +407,7 @@ Only available with PDF Tools."
                  (push
                   (vector
                    title
-                   (if org-noter-use-pdftools-link-location pdftools-link
+                   (if org-noter-pdftools-use-pdftools-link-location pdftools-link
                      (cons page top))
                    (1+ depth)
                    nil)
@@ -440,7 +449,7 @@ Only available with PDF Tools."
                       (item-subject (alist-get 'subject item))
                       (item-contents (alist-get 'contents item))
                       name contents pdftools-link id path)
-                 (when org-noter-use-pdftools-link-location
+                 (when org-noter-pdftools-use-pdftools-link-location
                    (setq path
                          (file-relative-name
                           (expand-file-name
@@ -470,7 +479,7 @@ Only available with PDF Tools."
                                                          (if (and item-subject item-contents) "\n" "")
                                                          (or item-contents ""))))))
 
-                     (push (vector (format "%s on page %d" name page) (if org-noter-use-pdftools-link-location
+                     (push (vector (format "%s on page %d" name page) (if org-noter-pdftools-use-pdftools-link-location
                                                                           pdftools-link
                                                                         (cons page top)) 'inside contents)
                            output-data)))))
@@ -486,7 +495,7 @@ Only available with PDF Tools."
                             (top (nth 1 edges))
                             (target-page (alist-get 'page link))
                             target heading-text pdftools-link path)
-                       (when org-noter-use-pdftools-link-location
+                       (when org-noter-pdftools-use-pdftools-link-location
                          (setq path
                                (file-relative-name
                                 (expand-file-name
@@ -514,7 +523,7 @@ Only available with PDF Tools."
                        (push
                         (vector
                          heading-text
-                         (if org-noter-use-pdftools-link-location
+                         (if org-noter-pdftools-use-pdftools-link-location
                              pdftools-link
                            (cons page top))
                          'inside
@@ -558,10 +567,12 @@ Only available with PDF Tools."
                (org-noter--insert-heading level title nil location)
 
                (when (car contents)
-                 (org-noter--insert-heading (1+ level) "Contents")
+                 (when org-noter-pdftools-insert-content-heading
+                    (org-noter--insert-heading (1+ level) "Contents"))
                  (insert (car contents)))
                (when (cdr contents)
-                 (org-noter--insert-heading (1+ level) "Comment")
+                 (when org-noter-pdftools-insert-comment-heading
+                     (org-noter--insert-heading (1+ level) "Comment"))
                  (insert (cdr contents)))))
 
            (setq ast (org-noter--parse-root))
@@ -570,4 +581,4 @@ Only available with PDF Tools."
            (outline-hide-subtree)
            (org-show-children 2)))))
 
-    (t (error "This command is only supported on PDF Tools.")))))
+    (t (error "This command is only supported on PDF Tools")))))
