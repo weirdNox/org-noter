@@ -1,7 +1,7 @@
 (require 'org-noter)
 (require 'org-pdftools)
 
-(declare-function pdf-info-editannots "ext:pdf-info")
+(declare-function pdf-info-editannot "ext:pdf-info")
 (declare-function pdf-annot-add-text-annotation "ext:pdf-annot")
 (declare-function pdf-annot-get-id "ext:pdf-annot")
 
@@ -81,7 +81,7 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
           (number-to-string
            (car location))
           "++"
-          (format "%.2f" (cdr location))))
+          (format "%.2f" (cadr location))))
         ((integerp location)
          (concat
           "::"
@@ -217,7 +217,7 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
               'pdf-view-mode)
           (let* ((document-property (org-noter--session-property-text
                                      session)))
-            (let* ((location (org-noter--location-property
+            (let* ((location (org-noter--parse-location-property
                               (org-entry-get
                                nil
                                org-noter-property-note-location)))
@@ -226,7 +226,7 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
                              (car location)
                            location))
                    (height (if (consp location)
-                               (cdr location)
+                               (cadr location)
                              0.0))
                    (pos `(0 . ,(round
                                 (*
