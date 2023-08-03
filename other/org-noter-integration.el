@@ -71,7 +71,13 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
   "Check whether LOCATION is a org-pdftools link."
   (and location
        (stringp location)
-       (string-prefix-p "pdftools:" location)))
+       (or
+        (string-prefix-p
+         (concat "[[" org-pdftools-link-prefix ":")
+         location)
+        (string-prefix-p
+         (concat org-pdftools-link-prefix ":")
+         location))))
 
 (defun org-noter-pdftools--location-cons-to-link (location)
   "Convert LOCATION cons to link."
@@ -169,7 +175,7 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
    (when (eq mode 'pdf-view-mode)
      (cond ((or (numberp precise-info) (not precise-info))
             (org-noter-pdftools--parse-link
-             (concat "pdftools:" (expand-file-name (org-noter--session-property-text session)) "::"
+             (concat org-pdftools-link-prefix ":" (expand-file-name (org-noter--session-property-text session)) "::"
                      (number-to-string (image-mode-window-get 'page))
                      (when precise-info (concat "++" (number-to-string precise-info))))))
            ((org-noter-pdftools--location-p precise-info) precise-info)
@@ -251,12 +257,15 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
                nil
                org-noter-property-note-location
                (concat
-                "pdftools:"
+                "[["
+                org-pdftools-link-prefix
+                ":"
                 path
                 (org-noter-pdftools--location-cons-to-link
                  location)
                 ";;"
-                annot-id))
+                annot-id
+                "]]"))
               (when org-noter-pdftools-use-org-id
                 (org-entry-put
                  nil
@@ -312,7 +321,7 @@ To use this, `org-noter-pdftools-use-org-id' has to be t."
                   org-noter-property-note-location)))
        (if (and prop
                 (not (string-prefix-p
-                      "pdftools:"
+                      org-pdftools-link-prefix ":"
                       prop)))
            (call-interactively
             #'org-noter-pdftools-convert-old-org-heading))))))
@@ -385,20 +394,22 @@ Only available with PDF Tools."
                    (if title
                        (setq pdftools-link
                              (concat
-                              "pdftools:"
+                              org-pdftools-link-prefix ":"
                               path
                               "::"
                               (number-to-string page)
                               "++"
-                              (number-to-string top)
-                              "$$"
+                              (if top
+                                  (number-to-string top)
+                               "0")
+                              org-pdftools-search-string-separator
                               (replace-regexp-in-string
                                " "
                                "%20"
                                title)))
                      (setq pdftools-link
                            (concat
-                            "pdftools:"
+                            org-pdftools-link-prefix ":"
                             path
                             "::"
                             (number-to-string page)
@@ -457,7 +468,7 @@ Only available with PDF Tools."
                             session))
                           org-pdftools-root-dir))
                    (setq id (symbol-name (alist-get 'id item)))
-                   (setq pdftools-link (concat "pdftools:" path "::"
+                   (setq pdftools-link (concat org-pdftools-link-prefix ":" path "::"
                                                (number-to-string page) "++"
                                                (number-to-string top) ";;"
                                                id)))
@@ -502,7 +513,7 @@ Only available with PDF Tools."
                                  (org-noter--session-property-text
                                   session))
                                 org-pdftools-root-dir))
-                         (setq pdftools-link (concat "pdftools:" path "::"
+                         (setq pdftools-link (concat org-pdftools-link-prefix ":" path "::"
                                                      (number-to-string page) "++"
                                                      (number-to-string top))))
                        (unless (and title (> (length title) 0)) (setq title (pdf-info-gettext page edges)))
