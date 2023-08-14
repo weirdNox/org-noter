@@ -44,6 +44,16 @@
         (require 'org-noter)
       #+end_src
 
+*** vanilla Emacs after version 29.1, which includes use-package
+
+#+begin_src elisp
+(use-package org-noter
+  :load-path "<path-to-org-noter>"
+  :ensure t
+  :demand t
+  )
+#+end_src
+
 *** straight.el
     In plain ~straight.el~ syntax
     #+begin_src elisp
