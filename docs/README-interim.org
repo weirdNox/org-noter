@@ -1,0 +1,193 @@
+#+STARTUP: hidestars
+* ORG-NOTER (fork of a fork)
+** If you are new to *ORG-NOTER*
+   Please first look at [[https://github.com/weirdNox/org-noter/blob/master/README.org][Gonçalo Santos's README]] ([[file:docs/README-orig.org]] in
+   this repo).
+
+** This is a refactor of the *c1-g* fork done collaboratively by [[https://github.com/petermao/org-noter][petermao]] and [[https://github.com/dmitrym0/org-noter-plus-djvu][dmitrym0]]
+   - In essence, this is close to the original *weirdNox* (Gonçalo Santos)
+     version that you find on MELPA with the refactoring that *c1-g* implemented.
+
+   - djvu and epub support have also been advanced by *c1-g*, but we have not
+     tested any of that code.  See [[https://github.com/c1-g/org-noter-plus-djvu/blob/master/README.org][Charlie Gordon's README]]
+     ([[file:docs/README-djvu.org]] in this repo).
+
+   - Prior to our work, the main new feature for PDF users was 2-D precise notes
+     (introduced by *Ahmed Shariff*, which can be inserted in two ways:
+     1. "Select-precise": selecting text in the pdf, followed by =M-i=.  *c1-g*
+        changed the position format to use the entire list returned by =edges=.
+        This breaks the other way of inserting precise notes.  On *dmitrym0*'s
+        fork, select-precise notes auto-fill the note title with the selected
+        text.  This has deleterious side effects for other note insertion methods.
+     2. "Click-precise": =M-i=, followed by clicking a location on the page.
+
+   - Standard notes can also be inserted in two ways:
+     1. "TAB".  Hitting tab creates a note title "Notes for page ##", where the
+        page number is inserted automatically over the octothorpes.
+     2. "i".  The fundamental =org-noter-insert-note=.  User types note title
+        into the minibuffer.
+
+** Stock vs refactored note insertion
+   - more consistent use of selected text in title or body
+   - more consistent primary default title (short-selected-text)
+   - more consistent secondary default title ("Notes for page <location>")
+   - avoids having different notes with the same heading
+
+     In Stock org-noter, repeated TAB's give multiple notes.  In this refactor,
+     new notes in the same location with the same title are not made, but
+     selected text is added to the note body.  For now, precise notes are
+     excepted from this rule.
+
+   - long text-selections are enclosed in #+BEGIN_QUOTE...#+END_QUOTE
+   - short text-selections are enclosed in ``...'' (LaTeX style) when they are
+     not used as the title of the note.
+   - short/long text-selections are differentiated by the custom variable
+     =org-noter-max-short-selected-text-length= (default: 80 char)
+
+     In Stock org-noter, long selections are those with more than 3 lines.
+
+   - *NEW:* Highlighting of selected text
+
+     Default setting is customizable, see =org-noter-highlight-selected-text=.
+     Calling insertions with a non-nil prefix (eg, =C-u=) toggles this setting for
+     individual note insertions.
+
+   - *NEW:* multicolumn precise-notes defined by property NUM_COLUMNS
+
+     Implements issue #153 in weirdNox/org-noter by adding
+     =org-noter-pdf-convert-to-location-cons= to
+     =org-noter--convert-to-location-cons-hook=, where a "virtual" vertical
+     location is calculated by dividing the page into equal width columns.  This
+     is not a perfect solution, and is probably best for low-integer numbers of
+     columns, since the page is just divided evenly into =NUM_COLUMNS= vertical
+     strips.
+
+     This can be set using =org-set-property-and-value=, but eventually we will
+     write a user function to prevent users from mistyping the name of the
+     property (=NUM_COLUMNS=).
+
+*** Stock
+   |                 | insert-note =i=                | precise note =M-i=        | no-questions =C-i, TAB= |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+   | title prompt?   | Y                              | Y                         | N                       |
+   | default title 1 | prior note by location         | selected-text             | N/A                     |
+   | default title 2 | "Notes for page #"             | "Notes for page # x y"    | "Notes for page #"      |
+   | new note        | with new title                 | always                    | always                  |
+   | body            | selected-text on existing note | selected-text (> 3 lines) | none                    |
+   |-----------------+--------------------------------+---------------------------+-------------------------|
+
+*** Refactored
+   |                     | insert-note               | precise note              | no-questions              |
+   |---------------------+---------------------------+---------------------------+---------------------------|
+   | title prompt?       | Y                         | Y                         | N                         |
+   | default title 1     | short-selected-text       | short-selected-text       | short-selected-text       |
+   | default title 2     | "Notes for page #"        | "Notes for page # x y"    | "Notes for page #"        |
+   | new note            | with new title            | always                    | with new title            |
+   | body                | selected-text (not title) | selected-text (not title) | selected-text (not title) |
+   |---------------------+---------------------------+---------------------------+---------------------------|
+   | highlight selection | user setting/toggle       | user setting/toggle       | user setting/toggle       |
+** Features
+*** New
+   1. Use pdf-view-current-pagelabel to use the page label instead of page in
+      default titles
+
+      new function/hook =...-pretty-print-location-for-title=
+
+   2. Customizable tooltip arrow colors
+      - =...-arrow-foreground-color=
+      - =...-arrow-background-color=
+
+   3. Text-selection higlighting: customizable default behavior, toggle
+      =...-highlight-selected-text= with =C-u= prefix on note-insertion
+      commands.
+
+   4. Rudimentary support for multicolumn PDFs with inheritable =NUM_COLUMNS=
+      property.  See =...-pdf-convert-to-location-cons=
+
+*** Wishlist
+   1. Bind M-<mouse-1> to precise-note, no-questions.
+
+   2. Make background of arrow transparent (see org-noter--show-arrow)
+      maybe https://emacs.stackexchange.com/questions/45588/how-to-make-tooltip-background-transparent
+
+   3. Dedicated insert-selected-text-into-page-note
+
+   4. Internationalize precise notes to handle right-to-left languages.
+** Bugs
+*** to fix
+    1. Sometimes (when?) M-p doesn't pick up the containing note-at-point right
+       away (or at all), requiring user to manually type in the (existing) title
+
+    2. With NUM_COLUMNS > 1, point in notes document doesn't land in the correct
+       place
+
+    3. With NUM_COLUMNS > 1, columns don't necessarily start at horizontal
+       positions k/NUM_COLUMNS for k \in {1,..,NUM_COLUMNS}.  We need to write a
+       user interface that builds a list of horizontal fractions to delimit the
+       columns.
+
+*** fixed
+    1. vertically stacked doc/notes layout fixed
+
+    2. =org-noter-sync-next-page-or-chapter= navigation fixed
+
+    3. Navigating up from a nested precise note lands in the prior note at the
+       next level up (eg level 3 -> level 2).  page notes behave properly.
+
+       [file:org-noter-core.el:2179]
+       =(org-element-property :begin (org-noter--get-containing-element))= returns
+       the begin of the element one level up when the current note location is of
+       the form (<page#> <vpos> . <hpos>).  It works properly for locations of
+       the form (<page#> . <vpos>).
+
+       It will be one of these two:
+       - =org-noter--get-containing-heading=
+         - =org-noter--check-location-property=
+           found bug: [[file:org-noter-core.el:1023]] change test from integerp to numberp
+       - =org-noter--get-containing-property-drawer=
+** Custom variables
+   Presently, the custom variables listed under =customize-group org-noter= is a
+   flat list.  I would like to group them into logical categories.
+
+*** start-stop
+   - org-noter-supported-modes '(doc-view-mode pdf-view-mode nov-mode djvu-read-mode)
+   - org-noter-auto-save-last-location nil
+   - org-noter-default-notes-file-names '("Notes.org")
+   - org-noter-notes-search-path '("~/Documents")
+   - org-noter-notes-window-behavior '(start scroll)
+   - org-noter-suggest-from-attachments t
+   - org-noter-find-additional-notes-functions nil
+   - org-noter-always-create-frame t
+   - org-noter-kill-frame-at-session-end t
+   - org-noter-use-indirect-buffer t
+
+*** layout
+   - org-noter-notes-window-location 'horizontal-split
+   - org-noter-doc-split-fraction '(0.5 . 0.5)
+   - org-noter-disable-narrowing nil
+   - org-noter-swap-window nil
+   - org-noter-hide-other t
+
+*** note-insertion
+   - org-noter-default-heading-title "Notes for page $p$"
+   - org-noter-separate-notes-from-heading nil
+   - org-noter-insert-selected-text-inside-note t
+   - org-noter-highlight-selected-text nil
+   - org-noter-max-short-selected-text-length 80
+   - org-noter-insert-heading-hook nil
+   - org-noter-insert-note-no-questions nil
+
+*** navigation-display
+   - org-noter-arrow-delay 0.2
+   - org-noter-arrow-horizontal-offset -0.02
+   - org-noter-arrow-foreground-color "orange red"
+   - org-noter-arrow-background-color "white"
+   - org-noter-closest-tipping-point 0.3
+   - org-noter-no-notes-exist-face
+   - org-noter-notes-exist-face
+
+*** other
+   - org-noter-property-doc-file "NOTER_DOCUMENT"
+   - org-noter-property-note-location "NOTER_PAGE"
+   - org-noter-prefer-root-as-file-level nil # used in org-noter--parse-root
+   - org-noter-doc-property-in-notes nil

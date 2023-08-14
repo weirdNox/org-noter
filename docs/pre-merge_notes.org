@@ -1,0 +1,210 @@
+* Pre-merge deltas w/ *dmitrym0*
+   In the diffs below the color coding is
+   #+begin_src diff
+-  Dmitry [f3f5a05]
++  Peter  [6488cc6]
+   #+end_src
+** DONE *-get-buffer-file-name-*
+#+begin_src diff
+-(defun org-noter-get-buffer-file-name-* (&optional major-mode)
++(defun org-noter-get-buffer-file-name-* (mode)
+   (bound-and-true-p *-file-name))
+
++(add-to-list 'org-noter-get-buffer-file-name-hook #'org-noter-get-buffer-file-name-*)
+#+end_src
+
+    - =major-mode= is a native elisp function, =mode= is a better name
+    - the arg is not used, so the =&optional= is appropriate
+    - for the =pdf= variant, we both use =(&optional major-mode)=
+
+    proposal: =(&optional mode)= or remove the argument completely.
+
+    ACTIONS: Do this in our own repos before merge
+    1. major-mode -> mode in module files
+    2. use &optional when the argument is not used in the function
+
+** DONE -get-buffer-file-name-hook
+#+begin_src diff
+-(defcustom org-noter-get-buffer-file-name-hook '(org-noter-get-buffer-file-name-nov org-noter-get-buffer-file-name-pdf)
++(defcustom org-noter-get-buffer-file-name-hook nil
+#+end_src
+
+    should be nil in =org-noter-core= and set in modules.
+
+    ACTION: already converged
+** DONE *-get-precise-info-*
+#+begin_src diff
+-(defun org-noter-*--get-precise-info (major-mode)
++(defun org-noter-*--get-precise-info (major-mode window)
+   (when (eq major-mode 'djvu-read-mode)
+     (if (region-active-p)
+         (cons (mark) (point))
+-      (while (not (and (eq 'mouse-1 (car event))
+-                       (eq window (posn-window (event-start event)))))
+-        (setq event (read-event "Click where you want the start of the note to be!")))
+-      (posn-point (event-start event)))))
++      (let ((event nil))
++        (while (not (and (eq 'mouse-1 (car event))
++                         (eq window (posn-window (event-start event)))))
++          (setq event (read-event "Click where you want the start of the note to be!")))
++        (posn-point (event-start event))))))
+#+end_src
+
+    - calling function already calls =org-noter--get-doc-window=
+    - =window= is used in all document modes
+
+    proposal: change =major-mode= to =mode=, pass in =window=
+
+    ACTION: (done) Dmitry took mine
+** DONE *-goto-location
+#+begin_src diff
+-(defun org-noter-pdf-goto-location (mode location)
++(defun org-noter-pdf-goto-location (mode location window)
+   (when (memq mode '(doc-view-mode pdf-view-mode))
+     (let ((top (org-noter--get-location-top location))
+-          (window (org-noter--get-doc-window))
+           (left (org-noter--get-location-left location)))
+#+end_src
+    - calling function already calls =org-noter--get-doc-window=
+    - nov and djvu don't need the =window= argument
+
+    proposal: we discuss this one, but I think it's better to not call functions
+    unnecessarily
+
+    ACTION:
+    pass in window, use &optional as appropriate.
+
+** DONE *-check-location-property
+ #+begin_src diff
+ (defun org-noter-pdf-check-location-property (&optional property)
+   "Check if PROPERTY is a valid location property"
+-  (equal 5 (length (read property))))
++  t)
+ #+end_src
+
+    location can be
+    1. page
+    2. page v-pos
+    3. page v-pos . h-pos
+
+    neither function works properly.  need to read the calling function to
+    determine course of action..
+
+    ACTION: done, gone on Dmitry's side.
+    P: check diff, remove if it's still there.
+** DONE -doc--get-precise-info
+#+begin_src diff
++(defun org-noter-doc--get-precise-info (major-mode window)
++  (when (eq major-mode 'doc-view-mode)
+     (let ((event nil))
+       (while (not (and (eq 'mouse-1 (car event))
+                        (eq window (posn-window (event-start event)))))
+         (setq event (read-event "Click where you want the start of the note to be!")))
+-      (let ((col-row (posn-col-row (event-start event))))
+-        (org-noter--conv-page-scroll-percentage (+ (window-vscroll) (cdr col-row))
+-                                                (+ (window-hscroll) (car col-row))))))))
++      (org-noter--conv-page-scroll-percentage (+ (window-vscroll)
++                                                 (cdr (posn-col-row (event-start event))))))))
+#+end_src
+Dmitry removed this function at [9d437bf]
+
+ACTION: Dmitry revive on his side.
+** DONE --doc-approx-location-hook
+ #+begin_src diff
+ (defcustom org-noter--doc-approx-location-hook nil
+-  "This returns an approximate location if no precise info is passed: (PAGE 0)
+-   or if precise info is passed, it's (PAGE 0 0 0 0) where 0s are the precise coords)
+-"
++  "TODO"
+   :group 'org-noter
+   :type 'hook)
+ #+end_src
+
+    docstring needs to be updated.
+
+    ACTION: Dmitry reverted
+** DONE --note-search-no-recurse                            :11fc0a8:9dfac53:
+#+begin_src diff
++(defconst org-noter--note-search-no-recurse (delete 'headline (append org-element-all-elements nil))
++  "List of elements that shouldn't be recursed into when searching for notes.")
+#+end_src
+
+    called in =org-noter--get-view-info= by =org-element-map=
+#+begin_src diff
+-           nil nil (delete 'headline (append org-element-all-elements nil))))
++         nil nil org-noter--note-search-no-recurse)
+#+end_src
+
+    but this defconst is used by =org-noter--map-ignore-headings-with-doc-file=, which is
+    used by all of the sync functions
+
+    probably should keep it, and since we keep it, use it in
+    =org-noter--get-view-info=
+
+    ACTION: safe for Dmitry to cherry-pick these commits, but
+    =with-current-buffer= call gets removed.  This is the one change I took from
+    ~cbpnk~
+** DONE org-noter--create-session                                   :9dfac53:
+ #+begin_src diff
+ (defun org-noter--create-session (ast document-property-value notes-file-path)
+   (let* ((raw-value-not-empty (> (length (org-element-property :raw-value ast)) 0))
+-         (link-p (or (string-match-p org-bracket-link-regexp document-property-value)
++         (link-p (or (string-match-p org-link-bracket-re document-property-value)
+                      (string-match-p org-noter--url-regexp document-property-value)))
+ #+end_src
+    =org-bracket-link-regexp= is obsolete. keep mine.
+
+    ACTION: safe for Dmitry to cherry-pick
+** DONE org-noter--narrow-to-root (ast)                             :dfe7df2:
+#+begin_src diff
+-  (when ast
++  (when (and ast (not (org-noter--no-heading-p)))
+     (save-excursion
+       (goto-char (org-element-property :contents-begin ast))
+       (org-show-entry)
+-      (when (org-at-heading-p) (org-narrow-to-subtree))
++      (org-narrow-to-subtree)
+       (org-cycle-hide-drawers 'all))))
+#+end_src
+    "I don't really understand this bit of code, especially what `ast' is, but
+    it breaks narrowing when multiple documents' notes are stored in a single
+    file."
+
+    ACTION: safe for Dmitry to cherry-pick
+** DONE org-noter--get-location-page (location)                  :DM:629fbb6:
+   #+begin_src diff
+   "Get the page number given a LOCATION of form (page top . left) or (page . top)."
+-  (message "===> %s" location)
+-  (if (listp location)
+-      (car location)
+-      location))
++  (car location))
+   #+end_src
+
+   ACTION: Peter -- what happens with a page note (no precise location)?  does (car location) make an
+   error?
+   Answer: No, (car location) works fine because for a page note, location is a
+   cons cell, e.g. (19 . 0) by the time it reaches this function.
+
+   @DM -- I think we should go back to the original (car location).
+
+   HISTORY:
+   - 5bc5754 Ahmed Shariff original code
+   - c1ed245 c1g moved code from org-noter.el to org-noter-core.el, changing
+     function name
+   - 629fbb6 introduced by DM
+
+** DONE org-noter-kill-session                                      :9dfac53:
+    #+begin_src diff
+    (with-current-buffer notes-buffer
+      (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t)
+      (restore-buffer-modified-p nil))
+-   (unless org-noter-use-indirect-buffer
++   (when org-noter-use-indirect-buffer
+      (kill-buffer notes-buffer))
+    #+end_src
+    kill the notes buffer **when** an indirect buffer is used, not **unless** it
+    is used
+
+    ACTION: safe for Dmitry to cherry-pick
+** DONE use cl-lib or native elisp hash tables rather than the =ht= package.

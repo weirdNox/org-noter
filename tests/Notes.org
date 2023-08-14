@@ -1,0 +1,998 @@
+#+COLUMNS: %25ITEM %NOTER_PAGE %NUM_COLUMNS
+#+STARTUP: overview
+
+* BuzzanitiG_EnricoFermi
+  :PROPERTIES:
+  :NOTER_DOCUMENT: _BuzzanitiG_EnricoFermi.pdf
+  :END:
+** Chapter 1: The last Galilean
+   :PROPERTIES:
+   :NOTER_PAGE: 17
+   :END:
+*** Fig 1.1 college entrance exam
+    :PROPERTIES:
+    :NOTER_PAGE: 20
+    :END:
+ First page of Fermi’s written exam to enter Scuola Normale Superiore
+
+ Second page of Fermi’s written exam to enter Scuola Normale Superiore
+** sin
+   :PROPERTIES:
+   :NOTER_PAGE: 45
+   :END:
+** last trip
+   :PROPERTIES:
+   :NOTER_PAGE: 59
+   :END:
+** Fig 2.4: cathode rays to nuclear atom
+   :PROPERTIES:
+   :NOTER_PAGE: 76
+   :END:
+** tx th
+   :PROPERTIES:
+   :NOTER_PAGE: 78
+   :END:
+** Fig 2.9 nuclear protophysics
+   :PROPERTIES:
+   :NOTER_PAGE: 91
+   :END:
+** beta decay
+   :PROPERTIES:
+   :NOTER_PAGE: 117
+   :END:
+** fig 3.3 Fermi on relativity
+   :PROPERTIES:
+   :NOTER_PAGE: 128
+   :END:
+** Fig 3.4 Fermi transitions to quantum mechanics
+   :PROPERTIES:
+   :NOTER_PAGE: 141
+   :END:
+** Chapter 4
+   :PROPERTIES:
+   :NOTER_PAGE: 172
+   :END:
+** 4.1 Nuclei and particle accelerators
+   :PROPERTIES:
+   :NOTER_PAGE: (172 0.7057971014492753 . 0.10417582417582417)
+   :END:
+** 4.3 The “birth song”
+   :PROPERTIES:
+   :NOTER_PAGE: (177 0.4181159420289855 . 0.09758241758241758)
+   :END:
+Nowadays we know that cosmic rays are mainly protons (about 85%)
+
+#+BEGIN_QUOTE
+This whole work constitutes, then, very powerful evidence that the sort of creative, or atom-
+building processes discussed above, are continually going on all about us, possibly also
+even on the earth, and that each such event is broadcast through the heavens in the form of
+the appropriate cosmic ray.14
+#+END_QUOTE
+** Fig. 4.6
+   :PROPERTIES:
+   :NOTER_PAGE: (185 0.4623188405797102 . 0.09978021978021978)
+   :END:
+   Neutron physics
+** Letter from Rutherford
+   :PROPERTIES:
+   :NOTER_PAGE: (217 0.2710144927536232 . 0.13494505494505496)
+   :END:
+#+BEGIN_QUOTE
+Dear Fermi,
+I have to thank you for your kindness in sending me an account of your recent experiments
+in causing temporary radioactivity in a number of elements by means of neutrons. Your
+results are of great interest, and no doubt later we shall be able to obtain more information
+as to the actual mechanism of such transformations. It is by no means clear that in all
+cases the process is as simple as appears to be the case in the observations of the Joliot.
+I congratulate you on your successful escape from the sphere of theoretical physics! You
+seem to have struck a good line to start with. You may be interested to hear that Professor
+Dirac also is doing some experiments. This seems to be a good augury for the future of
+theoretical physics!
+Congratulations and best wishes.
+Yours sincerely, Rutherford11
+#+END_QUOTE
+** Epilogue
+   :PROPERTIES:
+   :NOTER_PAGE: (273 0.09202898550724638 . 0.09868131868131867)
+   :END:
+** Chicago days
+   :PROPERTIES:
+   :NOTER_PAGE: 311
+   :END:
+TD Lee's stories about Fermi and Chicago in the late 40s.
+
+Nevertheless, since Fermi was not scheduled
+to give any courses that quarter, I did register for quantum mechanics with Teller,
+electromagnetic theory with Zachariasen, and, later, statistical mechanics with both
+Mayers. By attending those classes I felt I was betraying the secret that I was not
+an exceptional student. However, that feeling was soon dissipated by my observing
+that there were many other students in these classes.
+** B.6 T. D. Lee. Reminiscence of Chicago days
+   :PROPERTIES:
+   :NOTER_PAGE: (311 0.10144927536231885 . 0.10637362637362636)
+   :END:
+   square dancing!
+** slide rule
+   :PROPERTIES:
+   :NOTER_PAGE: 312
+   :END:
+radiative transfer equations
+** Appendix C Background material
+   :PROPERTIES:
+   :NOTER_PAGE: 314
+   :END:
+** C.1 Newtonian mechanics; inertial and gravitational mass
+   :PROPERTIES:
+   :NOTER_PAGE: (314 0.3521739130434783 . 0.10747252747252746)
+   :END:
+
+** The identity of the inertial and gravitational mass is a remarkable fact
+   :PROPERTIES:
+   :NOTER_PAGE: (314 0.7768115942028986 . 0.12725274725274727)
+   :END:
+
+** C.2 Curved space: ... Flatland and Spheriland
+   :PROPERTIES:
+   :NOTER_PAGE: (315 0.09927536231884058 . 0.10307692307692308)
+   :END:
+C.2 Curved space: the strange worlds of Flatland
+and Spheriland
+
+Rev. Edwin A. Abbott
+
+They are thinking beings with a rigid social structure; the circles are at the
+vertex of the social pyramid; they are the high priests, who control the power. The
+aristocracy is formed by the regular polygons, the midd
+
+** Fig C.2
+   :PROPERTIES:
+   :NOTER_PAGE: (316 0.16014492753623188 . 0.11428571428571428)
+   :END:
+positive curvature
+
+** Fig.  C.3 neg curv
+   :PROPERTIES:
+   :NOTER_PAGE: (316 0.39420289855072466 . 0.2813186813186813)
+   :END:
+sum of the interior angles of a triangle is less than 180
+** C.3 ˛ particle scattering
+   :PROPERTIES:
+   :NOTER_PAGE: (316 0.7007246376811594 . 0.10307692307692308)
+   :END:
+#+BEGIN_QUOTE
+The passage of particles through matter has been the first tool to investigate the
+atomic structure. ˛ particles (having twice the charge of the electron, and a mass four
+times bigger than the hydrogen atom mass) are emitted by radioactive substances at
+a very high speed (about 107 m/s). Due to their high speed they can travel in air for
+several centimeters and cross thick layers of several substances, such as gold. Fermi
+in his textbook on atomic physics explained w
+#+END_QUOTE
+
+Let us now suppose that a thin beam of \alpha particles o
+
+** Let us now suppose that a thin beam of ˛ particles o
+   :PROPERTIES:
+   :NOTER_PAGE: (316 0.8775362318840579 . 0.13054945054945055)
+   :END:
+
+** C.4 Planck’s constant and the birth of the wave-particle duality
+   :PROPERTIES:
+   :NOTER_PAGE: (317 0.7130434782608696 . 0.10197802197802197)
+   :END:
+
+** C.5 The electron spin and the exclusion principle
+   :PROPERTIES:
+   :NOTER_PAGE: (320 0.6094202898550725 . 0.10307692307692308)
+   :END:
+The failure to provide an explanation of the anomalous Zeeman effect was certainly
+the main reason why at the beginning of the 20s a fourth quantum number was
+introduced. Uhlenbeck and Goudsmit’s idea was that the difficulties lay in some
+unknown structural property of the electron. In particular they made the hypothesis
+that the electron rotates around its axis, thus having an angular momentum, and
+therefore a magnetic momentum. The empirical evidence of the doubling of the
+spectral line of the alkaline metals implied that this intrinsic angular momentum of
+the electron (spin) only can have two directions in space with respect to a given
+direction. An easy calculation shows that the absolute value of the spin must be 1/2
+
+* MahajanS_Art of Insight (navigation timing)
+  :PROPERTIES:
+  :NOTER_DOCUMENT: MahajanS_Art of Insight.pdf
+  :END:
+** Skeleton
+   8th and 9th notes are precise (pg . v)
+*** Preface
+    :PROPERTIES:
+    :NOTER_PAGE: 15
+    :END:
+    #+begin_src elisp
+      (let (ii jj
+               (note-steps 17)
+               (repeats 10))
+        (measure-time
+         (other-window 1)
+         (dotimes (jj repeats)
+           (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
+           (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))
+         (other-window 1)))
+    #+end_src
+
+    #+RESULTS:
+    : 4.525487
+
+    org-babel is slow on subsequent runs after B9, but direct execution with C-x
+    C-e does not suffer the same performance degradation.
+    
+**** summary of results
+    (PM) 56a45e0: 4.45s (17x10) slower 2nd time in org babel, but consistent w/ C-xC-e
+    (PM) 7d94dc2: 3.279694, 9.246695 (2 note-steps x 1 repeats)
+    (B9) f74263f: 5.030582, 13.833845 (3x1)
+    (B5) 49bc6ee: 11.525995 (7 note-steps x 1 repeat)
+    (A3) a83a2eb: 3.046663 ( 7 note-steps x 24 repeats), nav broken
+    (GS) 9ead81d: 3.051076 (17 note-steps x 10 repeats)
+
+**** raw results
+     (PM) 56a45e0: 4.45s (17x10) slower 2nd time in org babel, but consistent w/ C-xC-e
+     (PM) cd3c86c: 22.911387 (7 x  1) 2nd
+     (PM) cd3c86c: 4.101886, (7 x 24) 1st 
+     (PM) 7d94dc2: 3.279694, 9.246695 (2 note-steps x 1 repeats)
+     (D1) a494169: 9.266794 (2 note-steps x 1 repeats)
+     (M2) b30cbaa: 11.612586, 32.265847 (7 note-steps x 1 repeat)
+
+     (B6) b9ddcbd: 32.272890 (7 note-steps x 1 repeat), 2nd time
+     (B6) b9ddcbd: 11.630274 (7 note-steps x 1 repeat), 1st time
+
+     (B7) 5002732: 11.78...., 32.263172 (7 note-steps x 1 repeat) 1st,2nd
+     (B8) e417890: 11.627328, 32....... (7 note-steps x 1 repeat) 1st,2nd
+
+     (B9) f74263f: 5.030582 , 13.833845 (3x1)
+     (B1) e8d3fc1: 11.571044 (7 note-steps x 1 repeat)
+     (B2) 52a14db: 11.607116 (7 note-steps x 1 repeat)
+     (B4) bec9767: 11.557839 (7 note-steps x 1 repeat)
+     (B5) 49bc6ee: 11.525995 (7 note-steps x 1 repeat)
+     (B3) f38f313: 3.083761 ( 7 note-steps x 24 repeats)
+     (A6) ced2751: 3.049991 ( 7 note-steps x 24 repeats), nav broken
+     (A3) a83a2eb: 3.046663 ( 7 note-steps x 24 repeats), nav broken
+     (A2) 3924fd8: 3.013850 (17 note-steps x 10 repeats), nav OK
+     (C1) 924dc55: 2.951571 (17 note-steps x 10 repeats)
+     (GS) 9ead81d: 3.051076 (17 note-steps x 10 repeats)
+
+
+     #+begin_src elisp
+       (let (ii jj
+             (note-steps 2)
+             (repeats 1))
+         (measure-time
+          (other-window 1)
+          (dotimes (jj repeats)
+            (dotimes (ii note-steps) (org-noter-sync-next-note))
+            (dotimes (ii note-steps) (org-noter-sync-prev-note)))
+          (other-window 1)))
+     #+end_src
+
+     #+RESULTS:
+
+     (PM) 7d94dc2: 9.246695 (2 note-steps x 1 repeats)
+     (GS) 9ead81d: 3.051076 (17 note-steps x 10 repeats)
+
+*** Values for Backs of Envelopes
+    :PROPERTIES:
+    :NOTER_PAGE: 19
+    :COLUMN_EDGES: (0.27281191806331473 0.5633147113594041 0.6675977653631285 1)
+    :END:
+(car (read-from-string (org-entry-get nil "COLUMN_EDGES" t)))
+
+**** R
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.2954380883417813 . 0.15597765363128493)
+     :END:
+gas const
+
+**** Notes for page xvii V: 75% H: 16%
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.7509051412020276 . 0.15597765363128493)
+     :END:
+**** "m" of Boltzmann with W
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.37880184331797234 . 0.3981042654028436)
+     :END:
+     -0.0075 with W
+     -0.018 with P
+     (* 7.5 (/ 211.0 (- 211 134.25)))
+     org-noter--arrow-location
+**** s in sun
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.4554670528602462 . 0.3547486033519553)
+     :END:
+**** M of moon
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.4677769732078204 . 0.4590316573556797)
+     :END:
+**** Moon or Sun
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.4742939898624185 . 0.46834264432029793)
+     :HIGHLIGHT: #s(pdf-highlight 19 ((0.46834264432029793 0.4742939898624185 0.5735567970204841 0.47863866763215057)))
+     :END:
+**** human basal metabolic rate
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.6748732802317161 . 0.3063314711359404)
+     :END:
+
+**** notes for page xvii V: 22% H: 60%
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.22157856625633598 . 0.6029050279329609)
+     :END:
+i
+**** Notes for page xvii V: 32% H: 67%
+     :PROPERTIES:
+     :NOTER_PAGE: (19 0.32005792903692976 . 0.6699441340782123)
+     :END:
+*** Part I: Organizing Complexity
+    :PROPERTIES:
+    :NOTER_PAGE: 21
+    :END:
+**** 1. Divide and conquer
+     :PROPERTIES:
+     :NOTER_PAGE: 23
+     :END:
+**** 2. Abstraction
+     :PROPERTIES:
+     :NOTER_PAGE: 47
+     :END:
+*** Part II: Discarding Complexity Without Losing Information
+    :PROPERTIES:
+    :NOTER_PAGE: 75
+    :END:
+**** 3. Symmetry and Conservation
+     :PROPERTIES:
+     :NOTER_PAGE: 77
+     :END:
+**** 4. Proportional Reasoning
+     :PROPERTIES:
+     :NOTER_PAGE: 123
+     :END:
+**** 4.1 Population scaling
+     :PROPERTIES:
+     :NOTER_PAGE: (123 . 0.6335988414192614)
+     :END:
+**** 4.2 Finding scaling exponents
+     :PROPERTIES:
+     :NOTER_PAGE: (125 . 0.12599565532223025)
+     :END:
+
+**** 5. Dimensions
+     :PROPERTIES:
+     :NOTER_PAGE: 157
+     :END:
+*** Part III: Discarding Complexity with Loss of Information
+    :PROPERTIES:
+    :NOTER_PAGE: 217
+    :END:
+**** 6. Lumping
+     :PROPERTIES:
+     :NOTER_PAGE: 219
+     :END:
+**** 7. Probabilistic Reasoning
+     :PROPERTIES:
+     :NOTER_PAGE: 255
+     :END:
+**** 8. Easy Cases
+     :PROPERTIES:
+     :NOTER_PAGE: 299
+     :END:
+***** Wave dispersion diagram
+      :PROPERTIES:
+      :NOTER_PAGE: (330 0.2831281679942071 . 0.10383612662942271)
+      :END:
+
+**** 9. Spring Models
+     :PROPERTIES:
+     :NOTER_PAGE: 337
+     :END:
+*** Bon Voyage: Long-Lasting Learning
+    :PROPERTIES:
+    :NOTER_PAGE: 377
+    :END:
+*** Bibliography
+    :PROPERTIES:
+    :NOTER_PAGE: 379
+    :END:
+*** Index
+    :PROPERTIES:
+    :NOTER_PAGE: 383
+    :END:
+* MobyDick
+  :PROPERTIES:
+  :NOTER_DOCUMENT: MobyDick.pdf
+  :NOTER_PAGE: 171
+  :END:
+** Skeleton
+    To time this code, you need the measure-time macro.
+    #+begin_src elisp
+            ;; http://lists.gnu.org/archive/html/help-gnu-emacs/2008-06/msg00087.html
+      (defmacro measure-time (&rest body)
+        "Measure the time it takes to evaluate BODY."
+        `(let ((time (current-time)))
+           ,@body
+           (message "%.06f" (float-time (time-since time)))))
+
+      (defmacro measure-time-sexp (&rest body)
+        "Measure the time it takes to evaluate BODY.
+      Returns the value of BODY, so it can be used to time any elisp
+      sexp."
+        `(let* ((time (current-time))
+                (retval ,@body))
+           (message "%.06f" (float-time (time-since time)))
+           retval))
+    #+end_src
+*** Title page
+    :PROPERTIES:
+    :NOTER_PAGE: 1
+    :END:
+
+    #+begin_src elisp
+      (let (ii jj
+               (note-steps 138)
+               (repeats 1))
+        (measure-time
+         (other-window 1)
+         (dotimes (jj repeats)
+           (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
+           (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))
+         (other-window -1)))
+    #+end_src
+
+    #+RESULTS:
+    : 10.116560
+
+*** ETYMOLOGY
+    :PROPERTIES:
+    :NOTER_PAGE: (11 . 0.123031)
+    :END:
+*** EXTRACTS
+    :PROPERTIES:
+    :NOTER_PAGE: (13 . 0.123031)
+    :END:
+*** LOOMINGS
+    :PROPERTIES:
+    :NOTER_PAGE: (25 . 0.123031)
+    :END:
+*** THE CARPET-BAG
+    :PROPERTIES:
+    :NOTER_PAGE: (31 . 0.123031)
+    :END:
+*** THE SPOUTER-INN
+    :PROPERTIES:
+    :NOTER_PAGE: (37 . 0.123031)
+    :END:
+*** THE COUNTERPANE
+    :PROPERTIES:
+    :NOTER_PAGE: (53 . 0.123031)
+    :END:
+*** BREAKFAST
+    :PROPERTIES:
+    :NOTER_PAGE: (59 . 0.123031)
+    :END:
+*** THE STREET
+    :PROPERTIES:
+    :NOTER_PAGE: (63 . 0.123031)
+    :END:
+*** THE CHAPEL
+    :PROPERTIES:
+    :NOTER_PAGE: (67 . 0.123031)
+    :END:
+*** THE PULPIT
+    :PROPERTIES:
+    :NOTER_PAGE: (71 . 0.123031)
+    :END:
+*** THE SERMON
+    :PROPERTIES:
+    :NOTER_PAGE: (75 . 0.123031)
+    :END:
+*** A BOSOM FRIEND
+    :PROPERTIES:
+    :NOTER_PAGE: (85 . 0.123031)
+    :END:
+*** NIGHTGOWN
+    :PROPERTIES:
+    :NOTER_PAGE: (91 . 0.123031)
+    :END:
+*** BIOGRAPHICAL
+    :PROPERTIES:
+    :NOTER_PAGE: (95 . 0.123031)
+    :END:
+*** WHEELBARROW
+    :PROPERTIES:
+    :NOTER_PAGE: (99 . 0.123031)
+    :END:
+*** NANTUCKET
+    :PROPERTIES:
+    :NOTER_PAGE: (105 . 0.123031)
+    :END:
+*** CHOWDER
+    :PROPERTIES:
+    :NOTER_PAGE: (109 . 0.123031)
+    :END:
+*** THE SHIP
+    :PROPERTIES:
+    :NOTER_PAGE: (113 . 0.123031)
+    :END:
+*** THE RAMADAN
+    :PROPERTIES:
+    :NOTER_PAGE: (129 . 0.123031)
+    :END:
+*** HIS MARK
+    :PROPERTIES:
+    :NOTER_PAGE: (137 . 0.123031)
+    :END:
+*** THE PROPHET
+    :PROPERTIES:
+    :NOTER_PAGE: (143 . 0.123031)
+    :END:
+*** ALL ASTIR
+    :PROPERTIES:
+    :NOTER_PAGE: (147 . 0.123031)
+    :END:
+*** GOING ABOARD
+    :PROPERTIES:
+    :NOTER_PAGE: (151 . 0.123031)
+    :END:
+*** MERRY CHRISTMAS
+    :PROPERTIES:
+    :NOTER_PAGE: (155 . 0.123031)
+    :END:
+*** THE LEE SHORE
+    :PROPERTIES:
+    :NOTER_PAGE: (161 . 0.123031)
+    :END:
+*** THE ADVOCATE
+    :PROPERTIES:
+    :NOTER_PAGE: (163 . 0.123031)
+    :END:
+*** POSTSCRIPT
+    :PROPERTIES:
+    :NOTER_PAGE: (169 . 0.123031)
+    :END:
+*** KNIGHTS AND SQUIRES
+    :PROPERTIES:
+    :NOTER_PAGE: (171 . 0.123031)
+    :END:
+*** KNIGHTS AND SQUIRES
+    :PROPERTIES:
+    :NOTER_PAGE: (175 . 0.123031)
+    :END:
+*** AHAB
+    :PROPERTIES:
+    :NOTER_PAGE: (181 . 0.123031)
+    :END:
+*** ENTER AHAB; TO HIM, STUBB
+    :PROPERTIES:
+    :NOTER_PAGE: (185 . 0.123031)
+    :END:
+*** THE PIPE
+    :PROPERTIES:
+    :NOTER_PAGE: (189 . 0.123031)
+    :END:
+*** QUEEN MAB
+    :PROPERTIES:
+    :NOTER_PAGE: (191 . 0.123031)
+    :END:
+*** CETOLOGY
+    :PROPERTIES:
+    :NOTER_PAGE: (195 . 0.123031)
+    :END:
+*** THE SPECKSNYDER
+    :PROPERTIES:
+    :NOTER_PAGE: (209 . 0.123031)
+    :END:
+*** THE CABIN-TABLE
+    :PROPERTIES:
+    :NOTER_PAGE: (213 . 0.123031)
+    :END:
+*** THE MAST-HEAD
+    :PROPERTIES:
+    :NOTER_PAGE: (219 . 0.123031)
+    :END:
+*** THE QUARTER-DECK
+    :PROPERTIES:
+    :NOTER_PAGE: (227 . 0.123031)
+    :END:
+*** SUNSET
+    :PROPERTIES:
+    :NOTER_PAGE: (235 . 0.123031)
+    :END:
+*** DUSK
+    :PROPERTIES:
+    :NOTER_PAGE: (237 . 0.123031)
+    :END:
+*** FIRST NIGHT-WATCH FORE-TOP
+    :PROPERTIES:
+    :NOTER_PAGE: (239 . 0.123031)
+    :END:
+*** MIDNIGHT, FORECASTLE
+    :PROPERTIES:
+    :NOTER_PAGE: (241 . 0.123031)
+    :END:
+*** MOBY DICK
+    :PROPERTIES:
+    :NOTER_PAGE: (247 . 0.123031)
+    :END:
+*** THE WHITENESS OF THE WHALE
+    :PROPERTIES:
+    :NOTER_PAGE: (259 . 0.123031)
+    :END:
+*** HARK!
+    :PROPERTIES:
+    :NOTER_PAGE: (269 . 0.123031)
+    :END:
+*** THE CHART
+    :PROPERTIES:
+    :NOTER_PAGE: (271 . 0.123031)
+    :END:
+*** THE AFFIDAVIT
+    :PROPERTIES:
+    :NOTER_PAGE: (277 . 0.123031)
+    :END:
+*** SURMISES
+    :PROPERTIES:
+    :NOTER_PAGE: (287 . 0.123031)
+    :END:
+*** THE MAT-MAKER
+    :PROPERTIES:
+    :NOTER_PAGE: (291 . 0.123031)
+    :END:
+*** THE FIRST LOWERING
+    :PROPERTIES:
+    :NOTER_PAGE: (295 . 0.123031)
+    :END:
+*** THE HYENA
+    :PROPERTIES:
+    :NOTER_PAGE: (307 . 0.123031)
+    :END:
+*** AHAB’S BOAT AND CREW. FEDALLAH
+    :PROPERTIES:
+    :NOTER_PAGE: (311 . 0.123031)
+    :END:
+*** THE SPIRIT-SPOUT
+    :PROPERTIES:
+    :NOTER_PAGE: (315 . 0.123031)
+    :END:
+*** THE ALBATROSS
+    :PROPERTIES:
+    :NOTER_PAGE: (321 . 0.123031)
+    :END:
+*** THE GAM
+    :PROPERTIES:
+    :NOTER_PAGE: (325 . 0.123031)
+    :END:
+*** THE TOWN-HO’S STORY
+    :PROPERTIES:
+    :NOTER_PAGE: (331 . 0.123031)
+    :END:
+*** OF THE MONSTROUS PICTURES OF WHALES
+    :PROPERTIES:
+    :NOTER_PAGE: (353 . 0.123031)
+    :END:
+*** OF THE LESS ERRONEOUS PICTURES OF WHALES, AND THE TRUE PICTURES OF WHALING SCENES
+    :PROPERTIES:
+    :NOTER_PAGE: (359 . 0.123031)
+    :END:
+*** OF WHALES IN PAINT; IN TEETH; IN WOOD; IN SHEET-IRON; IN STONE; IN MOUNTAINS; IN STARS
+    :PROPERTIES:
+    :NOTER_PAGE: (365 . 0.123031)
+    :END:
+*** BRIT
+    :PROPERTIES:
+    :NOTER_PAGE: (369 . 0.123031)
+    :END:
+*** SQUID
+    :PROPERTIES:
+    :NOTER_PAGE: (373 . 0.123031)
+    :END:
+*** THE LINE
+    :PROPERTIES:
+    :NOTER_PAGE: (377 . 0.123031)
+    :END:
+*** STUBB KILLS A WHALE
+    :PROPERTIES:
+    :NOTER_PAGE: (381 . 0.123031)
+    :END:
+*** THE DART
+    :PROPERTIES:
+    :NOTER_PAGE: (387 . 0.123031)
+    :END:
+*** THE CROTCH
+    :PROPERTIES:
+    :NOTER_PAGE: (389 . 0.123031)
+    :END:
+*** STUBB’S SUPPER
+    :PROPERTIES:
+    :NOTER_PAGE: (391 . 0.123031)
+    :END:
+*** THE WHALE AS A DISH
+    :PROPERTIES:
+    :NOTER_PAGE: (401 . 0.123031)
+    :END:
+*** THE SHARK MASSACRE
+    :PROPERTIES:
+    :NOTER_PAGE: (405 . 0.123031)
+    :END:
+*** CUTTING IN
+    :PROPERTIES:
+    :NOTER_PAGE: (409 . 0.123031)
+    :END:
+*** THE BLANKET
+    :PROPERTIES:
+    :NOTER_PAGE: (413 . 0.123031)
+    :END:
+*** THE FUNERAL
+    :PROPERTIES:
+    :NOTER_PAGE: (417 . 0.123031)
+    :END:
+*** THE SPHYNX
+    :PROPERTIES:
+    :NOTER_PAGE: (419 . 0.123031)
+    :END:
+*** THE JEROBOAM’S STORY
+    :PROPERTIES:
+    :NOTER_PAGE: (423 . 0.123031)
+    :END:
+*** THE MONKEY-ROPE
+    :PROPERTIES:
+    :NOTER_PAGE: (431 . 0.123031)
+    :END:
+*** STUBB AND FLASK KILL A RIGHT WHALE; AND THEN HAVE A TALK OVER HIM
+    :PROPERTIES:
+    :NOTER_PAGE: (437 . 0.123031)
+    :END:
+*** THE SPERM WHALE’S HEAD – CONTRASTED VIEW
+    :PROPERTIES:
+    :NOTER_PAGE: (443 . 0.123031)
+    :END:
+*** THE RIGHT WHALE’S HEAD – CONTRASTED VIEW
+    :PROPERTIES:
+    :NOTER_PAGE: (449 . 0.123031)
+    :END:
+*** THE BATTERING-RAM
+    :PROPERTIES:
+    :NOTER_PAGE: (453 . 0.123031)
+    :END:
+*** THE GREAT HEIDELBURGH TUN
+    :PROPERTIES:
+    :NOTER_PAGE: (457 . 0.123031)
+    :END:
+*** CISTERN AND BUCKETS
+    :PROPERTIES:
+    :NOTER_PAGE: (461 . 0.123031)
+    :END:
+*** THE PRAIRE
+    :PROPERTIES:
+    :NOTER_PAGE: (467 . 0.123031)
+    :END:
+*** THE NUT
+    :PROPERTIES:
+    :NOTER_PAGE: (471 . 0.123031)
+    :END:
+*** THE PEQUOD MEETS THE VIRGIN
+    :PROPERTIES:
+    :NOTER_PAGE: (475 . 0.123031)
+    :END:
+*** THE HONOR AND GLORY OF WHALING
+    :PROPERTIES:
+    :NOTER_PAGE: (487 . 0.123031)
+    :END:
+*** JONAH HISTORICALLY REGARDED
+    :PROPERTIES:
+    :NOTER_PAGE: (491 . 0.123031)
+    :END:
+*** PITCHPOLING
+    :PROPERTIES:
+    :NOTER_PAGE: (495 . 0.123031)
+    :END:
+*** THE FOUNTAIN
+    :PROPERTIES:
+    :NOTER_PAGE: (499 . 0.123031)
+    :END:
+*** THE TAIL
+    :PROPERTIES:
+    :NOTER_PAGE: (505 . 0.123031)
+    :END:
+*** THE GRAND ARMADA
+    :PROPERTIES:
+    :NOTER_PAGE: (511 . 0.123031)
+    :END:
+*** SCHOOLS AND SCHOOLMASTERS
+    :PROPERTIES:
+    :NOTER_PAGE: (525 . 0.123031)
+    :END:
+*** FAST-FISH AND LOOSE-FISH
+    :PROPERTIES:
+    :NOTER_PAGE: (529 . 0.123031)
+    :END:
+*** HEADS OR TAILS
+    :PROPERTIES:
+    :NOTER_PAGE: (535 . 0.123031)
+    :END:
+*** THE PEQUOD MEETS THE ROSE-BUD
+    :PROPERTIES:
+    :NOTER_PAGE: (539 . 0.123031)
+    :END:
+*** AMBERGRIS
+    :PROPERTIES:
+    :NOTER_PAGE: (547 . 0.123031)
+    :END:
+*** THE CASTAWAY
+    :PROPERTIES:
+    :NOTER_PAGE: (551 . 0.123031)
+    :END:
+*** A SQUEEZE OF THE HAND
+    :PROPERTIES:
+    :NOTER_PAGE: (557 . 0.123031)
+    :END:
+*** THE CASSOCK
+    :PROPERTIES:
+    :NOTER_PAGE: (561 . 0.123031)
+    :END:
+*** THE TRY-WORKS
+    :PROPERTIES:
+    :NOTER_PAGE: (563 . 0.123031)
+    :END:
+*** THE LAMP
+    :PROPERTIES:
+    :NOTER_PAGE: (569 . 0.123031)
+    :END:
+*** STOWING DOWN AND CLEARING UP
+    :PROPERTIES:
+    :NOTER_PAGE: (571 . 0.123031)
+    :END:
+*** THE DOUBLOON
+    :PROPERTIES:
+    :NOTER_PAGE: (575 . 0.123031)
+    :END:
+*** LEG AND ARM. THE PEQUOD, OF NANTUCKET, MEETS THE SAMUEL ENDERBY, OF LONDON
+    :PROPERTIES:
+    :NOTER_PAGE: (583 . 0.123031)
+    :END:
+*** THE DECANTER
+    :PROPERTIES:
+    :NOTER_PAGE: (591 . 0.123031)
+    :END:
+*** A BOWER IN THE ARSACIDES
+    :PROPERTIES:
+    :NOTER_PAGE: (597 . 0.123031)
+    :END:
+*** MEASUREMENT OF THE WHALE’S SKELETON
+    :PROPERTIES:
+    :NOTER_PAGE: (603 . 0.123031)
+    :END:
+*** THE FOSSIL WHALE
+    :PROPERTIES:
+    :NOTER_PAGE: (607 . 0.123031)
+    :END:
+*** DOES THE WHALE’S MAGNITUDE DIMINISH? – WILL HE PERISH?
+    :PROPERTIES:
+    :NOTER_PAGE: (613 . 0.123031)
+    :END:
+*** AHAB’S LEG
+    :PROPERTIES:
+    :NOTER_PAGE: (619 . 0.123031)
+    :END:
+*** THE CARPENTER
+    :PROPERTIES:
+    :NOTER_PAGE: (623 . 0.123031)
+    :END:
+*** AHAB AND THE CARPENTER
+    :PROPERTIES:
+    :NOTER_PAGE: (627 . 0.123031)
+    :END:
+*** AHAB AND STARBUCK IN THE CABIN
+    :PROPERTIES:
+    :NOTER_PAGE: (633 . 0.123031)
+    :END:
+*** QUEEQUEG IN HIS COFFIN
+    :PROPERTIES:
+    :NOTER_PAGE: (637 . 0.123031)
+    :END:
+*** THE PACIFIC
+    :PROPERTIES:
+    :NOTER_PAGE: (645 . 0.123031)
+    :END:
+*** THE BLACKSMITH
+    :PROPERTIES:
+    :NOTER_PAGE: (647 . 0.123031)
+    :END:
+*** THE FORGE
+    :PROPERTIES:
+    :NOTER_PAGE: (651 . 0.123031)
+    :END:
+*** THE GILDER
+    :PROPERTIES:
+    :NOTER_PAGE: (655 . 0.123031)
+    :END:
+*** THE PEQUOD MEETS THE BACHELOR
+    :PROPERTIES:
+    :NOTER_PAGE: (659 . 0.123031)
+    :END:
+*** THE DYING WHALE
+    :PROPERTIES:
+    :NOTER_PAGE: (663 . 0.123031)
+    :END:
+*** THE WHALE WATCH
+    :PROPERTIES:
+    :NOTER_PAGE: (665 . 0.123031)
+    :END:
+*** THE QUADRANT
+    :PROPERTIES:
+    :NOTER_PAGE: (667 . 0.123031)
+    :END:
+*** THE CANDLES
+    :PROPERTIES:
+    :NOTER_PAGE: (671 . 0.123031)
+    :END:
+*** THE DECK TOWARDS THE END OF THE FIRST NIGHT WATCH
+    :PROPERTIES:
+    :NOTER_PAGE: (679 . 0.123031)
+    :END:
+*** MIDNIGHT – THE FORECASTLE BULWARKS
+    :PROPERTIES:
+    :NOTER_PAGE: (681 . 0.123031)
+    :END:
+*** MIDNIGHT ALOFT – THUNDER AND LIGHTNING
+    :PROPERTIES:
+    :NOTER_PAGE: (685 . 0.123031)
+    :END:
+*** THE MUSKET
+    :PROPERTIES:
+    :NOTER_PAGE: (687 . 0.123031)
+    :END:
+*** THE NEEDLE
+    :PROPERTIES:
+    :NOTER_PAGE: (691 . 0.123031)
+    :END:
+*** THE LOG AND LINE
+    :PROPERTIES:
+    :NOTER_PAGE: (695 . 0.123031)
+    :END:
+*** THE LIFE-BUOY
+    :PROPERTIES:
+    :NOTER_PAGE: (699 . 0.123031)
+    :END:
+*** THE DECK
+    :PROPERTIES:
+    :NOTER_PAGE: (703 . 0.123031)
+    :END:
+*** THE PEQUOD MEETS THE RACHEL
+    :PROPERTIES:
+    :NOTER_PAGE: (707 . 0.123031)
+    :END:
+*** THE CABIN
+    :PROPERTIES:
+    :NOTER_PAGE: (713 . 0.123031)
+    :END:
+*** THE HAT
+    :PROPERTIES:
+    :NOTER_PAGE: (715 . 0.123031)
+    :END:
+*** THE PEQUOD MEETS THE DELIGHT
+    :PROPERTIES:
+    :NOTER_PAGE: (721 . 0.123031)
+    :END:
+*** THE SYMPHONY
+    :PROPERTIES:
+    :NOTER_PAGE: (723 . 0.123031)
+    :END:
+*** THE CHASE – FIRST DAY
+    :PROPERTIES:
+    :NOTER_PAGE: (729 . 0.123031)
+    :END:
+*** THE CHASE – SECOND DAY
+    :PROPERTIES:
+    :NOTER_PAGE: (739 . 0.123031)
+    :END:
+*** THE CHASE – THIRD DAY
+    :PROPERTIES:
+    :NOTER_PAGE: (749 . 0.123031)
+    :END:
+*** EPILOGUE.
+    :PROPERTIES:
+    :NOTER_PAGE: (761 . 0.123031)
+    :END:
