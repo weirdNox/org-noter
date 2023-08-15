@@ -50,8 +50,7 @@
 (use-package org-noter
   :load-path "<path-to-org-noter>"
   :ensure t
-  :demand t
-  )
+  :demand t)
 #+end_src
 
 *** straight.el
