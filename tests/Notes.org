@@ -413,7 +413,7 @@ i
         "Measure the time it takes to evaluate BODY."
         `(let ((time (current-time)))
            ,@body
-           (message "%.2f s; %s; %s" (float-time (time-since time)) (org-version nil t) (version))))
+           (float-time (time-since time))))
 
       (defmacro measure-time-sexp (&rest body)
         "Measure the time it takes to evaluate BODY.
@@ -431,24 +431,26 @@ i
     :END:
 
      #+begin_src elisp :results raw
-       (let (ii jj
-                (note-steps 138)
-                (repeats 1))
-         (measure-time
-          (other-window -1)
-          (dotimes (jj repeats)
-            (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
-            (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))
-          (other-window -1)))
+       (let ((note-steps 138)
+	     (repeats 1)
+	     ii jj et)
+	 (other-window -1)
+	 (profiler-start 'cpu)
+	 (setq et (measure-time
+		   (dotimes (jj repeats)
+		     (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
+		     (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))))
+	 (profiler-stop)
+	 (profiler-report)
+	 (profiler-report-write-profile (format "speed-test-Emacs%s-Org%s-%.6f" emacs-version (org-git-version) et))
+	 (quit-window)
+	 (other-window -1)
+	 (format "%.2f s; Emacs %s; Org %s" et emacs-version (org-git-version)))
      #+end_src
 
     #+RESULTS:
-    11.12 s; Org mode version 9.4.6 (release_9.4.6 @ /home/peterm/emacs/org-mode/lisp/); GNU Emacs 28.2 (build 2, x86_64-pc-linux-gnu, GTK+ Version 3.24.33, cairo version 1.16.0)
-     of 2022-09-12
-    11.17 s; Org mode version 9.4.6 (release_9.4.6 @ /home/peterm/emacs/org-mode/lisp/); GNU Emacs 28.2 (build 2, x86_64-pc-linux-gnu, GTK+ Version 3.24.33, cairo version 1.16.0)
-     of 2022-09-12
-    14.61 s; Org mode version 9.4.6 (release_9.4.6 @ /home/peterm/emacs/org-mode/lisp/); GNU Emacs 28.2 (build 2, x86_64-pc-linux-gnu, GTK+ Version 3.24.33, cairo version 1.16.0)
-     of 2022-09-12
+    17.37 s; Emacs 29.1; Org release_9.4.6
+    32.99 s; Emacs 29.1; Org release_9.6.7-476-g4d63e5
 
 *** ETYMOLOGY
     :PROPERTIES:
