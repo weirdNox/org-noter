@@ -432,20 +432,22 @@ i
 
      #+begin_src elisp :results raw
        (let ((note-steps 138)
-	     (repeats 1)
-	     ii jj et)
-	 (other-window -1)
-	 (profiler-start 'cpu)
-	 (setq et (measure-time
-		   (dotimes (jj repeats)
-		     (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
-		     (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))))
-	 (profiler-stop)
-	 (profiler-report)
-	 (profiler-report-write-profile (format "speed-test-Emacs%s-Org%s-%.6f" emacs-version (org-git-version) et))
-	 (quit-window)
-	 (other-window -1)
-	 (format "%.2f s; Emacs %s; Org %s" et emacs-version (org-git-version)))
+             (repeats 1)
+             ii jj et)
+         (other-window -1)
+         (profiler-start 'cpu)
+         (setq et (measure-time
+                   (dotimes (jj repeats)
+                     (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
+                     (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))))
+         (profiler-stop)
+         (profiler-report)
+         (profiler-report-write-profile (format "%s/speed-test-Emacs%s-Org%s-%.6f"
+                                                speed-test-results-dir
+                                                emacs-version (org-git-version) et))
+         (quit-window)
+         (other-window -1)
+         (format "%.2f s; Emacs %s; Org %s" et emacs-version (org-git-version)))
      #+end_src
 
     #+RESULTS:
