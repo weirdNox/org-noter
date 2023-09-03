@@ -1125,10 +1125,11 @@ FORCE-NEW-REF is not used by PDF, NOV, or DJVU format files."
   (org-noter--with-valid-session (org-noter--doc-location-change-handler)))
 
 (defsubst org-noter--doc-file-property (headline)
-  (let ((doc-prop (or (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline)
-                      (org-entry-get nil org-noter-property-doc-file t))))
-    (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
-        doc-prop)))
+  (when (derived-mode-p 'org-mode)
+    (let ((doc-prop (or (org-element-property (intern (concat ":" org-noter-property-doc-file)) headline)
+                        (org-entry-get nil org-noter-property-doc-file t))))
+      (or (run-hook-with-args-until-success 'org-noter-parse-document-property-hook doc-prop)
+          doc-prop))))
 
 (defun org-noter--check-location-property (arg)
   (let ((property (if (stringp arg) arg
