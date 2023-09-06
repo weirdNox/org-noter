@@ -1,7 +1,7 @@
 (require 'org-noter-test-utils)
 (require 'org-noter-org-roam)
 
-(describe "org-noter-core"
+(describe "org-roam integration"
           (before-each
            (create-org-noter-test-session)
            )
@@ -111,5 +111,10 @@
                         (org-noter--create-session-from-document-file-supporting-org-roam nil "/tmp/pubs/solove-nothing-to-hide.pdf")
                         (expect 'org-noter :to-have-been-called))
                     )
+
+          (it "sets the hook correctly when org-roam integration is enabled"
+              (org-noter-enable-org-roam-integration)
+              (expect org-noter-create-session-from-document-hook :to-equal '(org-noter--create-session-from-document-file-supporting-org-roam)))
+
 
 )
