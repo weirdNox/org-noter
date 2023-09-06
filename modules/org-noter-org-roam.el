@@ -39,9 +39,17 @@
 
 
 (defun org-noter--create-session-from-document-file-supporting-org-roam (&optional arg doc-path)
-  "TBD."
+  "This is a hook function that is to be assigned to `org-noter-create-session-from-document-hook'
+to enable org-roam integration:
+
+  `(setq org-noter-create-session-from-document-hook '(org-noter--create-session-from-document-file-supporting-org-roam)'
+
+
+Alternatively, youc an call the `org-noter-enable-org-roam-integration'.
+"
   (let* ((file-path-for-org-roam-node (org-noter--get-filename-for-org-roam-node))
          (_ (message "[d] opening up notes: %s doc: %s" file-path-for-org-roam-node doc-path))
+         ;; create or find a top level heading for the document and return it
          (top-level-heading-for-doc-position (with-current-buffer (find-file-noselect file-path-for-org-roam-node)
                                                (org-noter--find-create-top-level-heading-for-doc doc-path (file-name-base doc-path)))))
     (message "going to pos: %s" top-level-heading-for-doc-position)
