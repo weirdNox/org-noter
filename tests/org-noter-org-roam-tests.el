@@ -93,8 +93,23 @@
                     )
 
 
+          (describe "org-noter integration"
+                    (before-each
+                     ;; org-noter uses file-equal-p that looks at the filesystem. We need real files to verify this functionality.
+                     (shell-command "mkdir -p /tmp/pubs/ && touch /tmp/pubs/solove-nothing-to-hide.pdf"))
 
-
-
+                    ;; mocking a lot of stuff, for integration sake.
+                    ;; ideally we'd split up functions to be somewhat smaller to ease testing.
+                    (it "executes org-noter"
+                        (spy-on 'org-noter--find-create-top-level-heading-for-doc :and-call-fake (lambda (doc-path desired-heading) 1001))
+                        (spy-on 'org-noter--get-filename-for-org-roam-node :and-call-fake (lambda () "/tmp/pubs/notes.org"))
+                        (spy-on 'org-noter)
+                        (with-mock-contents
+                         mock-contents-simple-notes-file
+                         '(lambda ()
+                            (write-region (point-min) (point-max) "/tmp/pubs/notes.org")))
+                        (org-noter--create-session-from-document-file-supporting-org-roam nil "/tmp/pubs/solove-nothing-to-hide.pdf")
+                        (expect 'org-noter :to-have-been-called))
+                    )
 
 )
