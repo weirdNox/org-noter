@@ -24,7 +24,7 @@
 ;;; Code:
 
 (defun org-noter--get-filename-for-org-roam-node ()
-  "Use the standard org-roam interface to select an existing node or create a new one and return a path to it"
+  "Use org-roam to specify a node."
   (let* ((templates (list (append (car org-roam-capture-templates) '(:immediate-finish t))))
          (node (org-roam-node-read))
          (_ (org-roam-capture-
@@ -39,14 +39,18 @@
 
 
 (defun org-noter--create-session-from-document-file-supporting-org-roam (&optional arg doc-path)
-  "This is a hook function that is to be assigned to `org-noter-create-session-from-document-hook'
-to enable org-roam integration:
+  "Main point of integration with org-noter.
+
+This is a hook function that is to be assigned
+to `org-noter-create-session-from-document-hook' to enable org-roam integration:
 
   `(setq org-noter-create-session-from-document-hook '(org-noter--create-session-from-document-file-supporting-org-roam)'
 
 
-Alternatively, youc an call the `org-noter-enable-org-roam-integration'.
-"
+Alternatively, you can call the `org-noter-enable-org-roam-integration'.
+
+ARG is not current used but here for compatibility reasons.
+DOC-PATH is the path to the document (pdf)."
   (let* ((file-path-for-org-roam-node (org-noter--get-filename-for-org-roam-node))
          (_ (message "[d] opening up notes: %s doc: %s" file-path-for-org-roam-node doc-path))
          ;; create or find a top level heading for the document and return it
@@ -61,9 +65,8 @@ Alternatively, youc an call the `org-noter-enable-org-roam-integration'.
 
 
 (defun org-noter--find-top-level-heading-for-document-path (doc-path)
-  "Given publication path, DOC-PATH tries to see if the current buffer has a
-top level (\"NOTER_DOCUMENT\") heading for it. It returns the point for the heading (if found)
-`nil' otherwise."
+  "Given a DOC-PATH check to see if there's a top level heading for it.
+It returns the point for the heading (if found) \"nil\" otherwise."
   (let ((found-heading-position nil))
     (org-with-point-at (point-min)
       (condition-case nil
@@ -80,8 +83,8 @@ top level (\"NOTER_DOCUMENT\") heading for it. It returns the point for the head
 
 
 (defun org-noter--find-create-top-level-heading-for-doc (doc-path desired-heading)
-  "In current buffer, looks for a top level heading for document at DOC-PATH.
-If one is not found, creates one and returns it's position"
+  "In current buffer, look for a top level heading for document at DOC-PATH.
+If one is not found, DESIRED-HEADING is created and it's position is returned"
     (let* ((top-level-heading-for-doc-position (org-noter--find-top-level-heading-for-document-path doc-path)))
       ;; does this buffer have a top level notes heading for this document?
       (if (eq top-level-heading-for-doc-position nil)
@@ -92,8 +95,9 @@ If one is not found, creates one and returns it's position"
 ;; TODO How is this different from org-noter--insert-heading?
 ;; org-noter--insert-heading doesn't deal with top level headings.
 (defun org-noter--create-notes-heading (notes-heading document-path)
-  "Create a top level notes heading for the document along with the path to the backing document.
-Return the point where the heading was inserted."
+  "Create a top level notes heading for the document.
+NOTES-HEADING is the headline, DOCUMENT-PATH is used for the
+NOTER_DOCUMENT property.  Return the point where the heading was inserted."
   (cl-assert notes-heading t "notes-heading cannot be nil. we can't insert a nil heading.")
   (goto-char (point-max))
   (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
@@ -105,3 +109,5 @@ Return the point where the heading was inserted."
 
 
 (provide 'org-noter-org-roam)
+
+;;; org-noter-org-roam.el ends here
