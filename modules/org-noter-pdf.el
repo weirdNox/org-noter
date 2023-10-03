@@ -34,6 +34,7 @@
     (require 'pdf-tools)
   (error (message "ATTENTION: org-noter-pdf has many featues that depend on the package `pdf-tools'")))
 
+(push "pdf" org-noter--doc-extensions)
 (cl-defstruct pdf-highlight page coords)
 
 (defun org-noter-pdf--get-highlight ()
@@ -498,6 +499,23 @@ current heading inherit the COLUMN_EDGES property."
     (setq edge-list (append edge-list '(1)))
     (select-window (org-noter--get-notes-window))
     (org-entry-put nil "COLUMN_EDGES" (format "%s" (princ edge-list)))))
+
+;;; override some deleterious keybindings in pdf-view-mode.
+(define-key org-noter-doc-mode-map (kbd "C-c C-c")
+  (defun org-noter-pdf--execute-CcCc-in-notes ()
+    "Override C-c C-c in pdf document buffer."
+    (interactive)
+    (select-window (org-noter--get-notes-window))
+    (org-ctrl-c-ctrl-c)))
+
+(define-key org-noter-doc-mode-map (kbd "C-c C-x")
+  (defun org-noter-pdf--execute-CcCx-in-notes ()
+    "Override C-c C-x <event> in pdf document buffer."
+    (interactive)
+    (let ((this-CxCc-cmd (vector (read-event))))
+      (select-window (org-noter--get-notes-window))
+      (execute-kbd-macro
+       (vconcat (kbd "C-c C-x") this-CxCc-cmd)))))
 
 (provide 'org-noter-pdf)
 ;;; org-noter-pdf.el ends here

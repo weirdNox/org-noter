@@ -44,6 +44,15 @@
         (require 'org-noter)
       #+end_src
 
+*** vanilla Emacs after version 29.1, which includes use-package
+
+#+begin_src elisp
+(use-package org-noter
+  :load-path "<path-to-org-noter>"
+  :ensure t
+  :demand t)
+#+end_src
+
 *** straight.el
     In plain ~straight.el~ syntax
     #+begin_src elisp
@@ -105,6 +114,12 @@
      the document to annotate.
 
 *** new (all formats)
+    - ~org-noter-enable-update-renames~ :: Optional feature to update document
+      paths when renaming or moving document files or notes files.  This allows
+      you to change your mind later about the names and locations of your
+      document files and notes files without having to manually update all the
+      links.
+
     - ~org-noter-toggle-notes-window-location~ (~M-T~) :: Toggle between
       horizontal and vertical document/notes layout.
 

@@ -40,10 +40,30 @@
                                       (expect (string-match "\\:HIGHLIGHT\\:" (buffer-string))  :not :to-be nil)
                                       (expect (string-match (format "%s" expected-highlight-info) (buffer-string))  :not :to-be nil)
                                       )
-
-                                   ))
-
+                                   )
+                                  )
                               )
+                    )
 
+          (describe "pdf keybinding overrides"
+                    (it "C-c C-c called from a PDF document executes in the notes buffer"
+                        ;; open `org-noter' session with PDF and notes
+
+                        ;; execute `C-c C-c' from document buffer
+
+                        ;; check that current window is notes-window, check that
+                        ;; last command was `org-ctrl-c-ctrl-c'
+                        )
+
+                    (it "C-c C-x <event> called from a PDF document executes in the notes buffer"
+                        ;; open `org-noter' session with PDF and notes
+
+                        ;; execute `C-c C-x <event>' from document buffer, where
+                        ;; <event> \in {C-b, C-v, maybe a few others}
+
+                        ;; check that current window is notes-window, check that
+                        ;; last command corresponds to the keybinding of C-c C-x
+                        ;; <event>.
+                        )
                     )
           )

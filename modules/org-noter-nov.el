@@ -33,6 +33,8 @@
     (require 'nov)
   (error (message "ATTENTION: org-noter-nov needs the package `nov'")))
 
+(push "epub" org-noter--doc-extensions)
+
 (defvar nov-documents-index)
 (defvar nov-file-name)
 (defvar-local org-noter--nov-timer nil

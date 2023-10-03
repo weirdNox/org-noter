@@ -8,7 +8,7 @@
 ;;             Dmitry M <dmitrym@gmail.com>
 ;; Homepage: https://github.com/org-noter/org-noter
 ;; Keywords: lisp pdf interleave annotate external sync notes documents org-mode
-;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.0"))
+;; Package-Requires: ((emacs "24.4") (cl-lib "0.6") (org "9.4"))
 ;; Version: 1.5.0
 
 ;; This file is not part of GNU Emacs.
@@ -47,7 +47,7 @@
 (declare-function org-entry-put "org")
 (declare-function org-with-wide-buffer "org-macs")
 
-(add-to-list 'load-path (concat (file-name-directory load-file-name) "modules/"))
+(add-to-list 'load-path (concat (file-name-directory load-file-name) "modules"))
 (when (or (memq 'doc-view-mode org-noter-supported-modes)
           (memq 'pdf-view-mode org-noter-supported-modes))
   (require 'org-noter-pdf))
@@ -267,7 +267,10 @@ DOCUMENT-FILE-NAME is the document filename."
             (with-current-buffer (find-file-noselect (car notes-files))
               (goto-char (point-max))
               (insert (if (save-excursion (beginning-of-line) (looking-at "[[:space:]]*$")) "" "\n")
-                      "* " document-base)
+                      "* "
+                      org-noter-headline-title-decoration
+                      document-base
+                      org-noter-headline-title-decoration)
               (org-entry-put nil org-noter-property-doc-file
                              (file-relative-name document-used-path
                                                  (file-name-directory (car notes-files)))))

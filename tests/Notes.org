@@ -221,7 +221,7 @@ direction. An easy calculation shows that the absolute value of the spin must be
 
     org-babel is slow on subsequent runs after B9, but direct execution with C-x
     C-e does not suffer the same performance degradation.
-    
+
 **** summary of results
     (PM) 56a45e0: 4.45s (17x10) slower 2nd time in org babel, but consistent w/ C-xC-e
     (PM) 7d94dc2: 3.279694, 9.246695 (2 note-steps x 1 repeats)
@@ -233,7 +233,7 @@ direction. An easy calculation shows that the absolute value of the spin must be
 **** raw results
      (PM) 56a45e0: 4.45s (17x10) slower 2nd time in org babel, but consistent w/ C-xC-e
      (PM) cd3c86c: 22.911387 (7 x  1) 2nd
-     (PM) cd3c86c: 4.101886, (7 x 24) 1st 
+     (PM) cd3c86c: 4.101886, (7 x 24) 1st
      (PM) 7d94dc2: 3.279694, 9.246695 (2 note-steps x 1 repeats)
      (D1) a494169: 9.266794 (2 note-steps x 1 repeats)
      (M2) b30cbaa: 11.612586, 32.265847 (7 note-steps x 1 repeat)
@@ -403,17 +403,17 @@ i
 * MobyDick
   :PROPERTIES:
   :NOTER_DOCUMENT: MobyDick.pdf
-  :NOTER_PAGE: 171
+  :NOTER_PAGE: 1
   :END:
 ** Skeleton
     To time this code, you need the measure-time macro.
-    #+begin_src elisp
+    #+begin_src elisp :results none
             ;; http://lists.gnu.org/archive/html/help-gnu-emacs/2008-06/msg00087.html
       (defmacro measure-time (&rest body)
         "Measure the time it takes to evaluate BODY."
         `(let ((time (current-time)))
            ,@body
-           (message "%.06f" (float-time (time-since time)))))
+           (float-time (time-since time))))
 
       (defmacro measure-time-sexp (&rest body)
         "Measure the time it takes to evaluate BODY.
@@ -424,25 +424,35 @@ i
            (message "%.06f" (float-time (time-since time)))
            retval))
     #+end_src
+
 *** Title page
     :PROPERTIES:
     :NOTER_PAGE: 1
     :END:
 
-    #+begin_src elisp
-      (let (ii jj
-               (note-steps 138)
-               (repeats 1))
-        (measure-time
-         (other-window 1)
-         (dotimes (jj repeats)
-           (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
-           (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))
-         (other-window -1)))
-    #+end_src
+     #+begin_src elisp :results raw
+       (let ((note-steps 138)
+             (repeats 1)
+             ii jj et)
+         (other-window -1)
+         (profiler-start 'cpu)
+         (setq et (measure-time
+                   (dotimes (jj repeats)
+                     (dotimes (ii note-steps) (org-noter-sync-next-page-or-chapter))
+                     (dotimes (ii note-steps) (org-noter-sync-prev-page-or-chapter)))))
+         (profiler-stop)
+         (profiler-report)
+         (profiler-report-write-profile (format "%s/speed-test-Emacs%s-Org%s-%.6f"
+                                                speed-test-results-dir
+                                                emacs-version (org-git-version) et))
+         (quit-window)
+         (other-window -1)
+         (format "%.2f s; Emacs %s; Org %s" et emacs-version (org-git-version)))
+     #+end_src
 
     #+RESULTS:
-    : 10.116560
+    17.37 s; Emacs 29.1; Org release_9.4.6
+    32.99 s; Emacs 29.1; Org release_9.6.7-476-g4d63e5
 
 *** ETYMOLOGY
     :PROPERTIES:
