@@ -23,6 +23,9 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+(require 'org-roam-node)
+
 (defun org-noter--get-filename-for-org-roam-node ()
   "Use org-roam to specify a node."
   (let* ((templates (list (append (car org-roam-capture-templates) '(:immediate-finish t))))
@@ -38,7 +41,8 @@
     file-path-for-new-entry))
 
 
-(defun org-noter--create-session-from-document-file-supporting-org-roam (&optional arg doc-path)
+(defun org-noter--create-session-from-document-file-supporting-org-roam
+    (&optional arg doc-path)
   "Main point of integration with org-noter.
 
 This is a hook function that is to be assigned
