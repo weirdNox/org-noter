@@ -414,15 +414,16 @@ columns, so it takes values between 0 and the number of columns.
 Each column is specified by its right edge as a fractional
 horizontal position.  Output is nil for standard notes and (page
 v') for precise notes."
-  (if-let* ((_ (and (consp location) (consp (cdr location))))
-            (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
-            (right-edge-list (car (read-from-string column-edges-string)))
-            ;;(ncol (length left-edge-list))
-            (page (car location))
-            (v-pos (cadr location))
-            (h-pos (cddr location))
-            (column-index (seq-position right-edge-list h-pos #'>=)))
-      (cons page (+ v-pos column-index))))
+  (when (derived-mode-p 'org-mode)
+    (if-let* ((_ (and (consp location) (consp (cdr location))))
+              (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
+              (right-edge-list (car (read-from-string column-edges-string)))
+              ;;(ncol (length left-edge-list))
+              (page (car location))
+              (v-pos (cadr location))
+              (h-pos (cddr location))
+              (column-index (seq-position right-edge-list h-pos #'>=)))
+        (cons page (+ v-pos column-index)))))
 
 (add-to-list 'org-noter--convert-to-location-cons-hook #'org-noter-pdf--convert-to-location-cons)
 
