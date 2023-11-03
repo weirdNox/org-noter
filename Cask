@@ -8,3 +8,5 @@
 
 (depends-on "log4e")
 (depends-on "undercover")
+
+(depends-on "org-roam")
