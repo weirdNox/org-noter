@@ -415,7 +415,7 @@ Each column is specified by its right edge as a fractional
 horizontal position.  Output is nil for standard notes and (page
 v') for precise notes."
   (if-let* ((_ (and (consp location) (consp (cdr location))))
-            (column-edges-string (org-entry-get nil "COLUMN_EDGES" t))
+            (column-edges-string (when (derived-mode-p 'org-mode) (org-entry-get nil "COLUMN_EDGES" t)))
             (right-edge-list (car (read-from-string column-edges-string)))
             ;;(ncol (length left-edge-list))
             (page (car location))
