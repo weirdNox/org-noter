@@ -1733,10 +1733,16 @@ Only available with PDF Tools."
 
                (when (car contents)
                  (org-noter--insert-heading (1+ level) "Contents")
-                 (insert (car contents)))
+                 (let* ((text (car contents))
+                        (len (length text)))
+                   (insert (if org-noter-separate-notes-from-heading "\n" "")
+                           (if (<= len org-noter-max-short-selected-text-length)
+                               text
+                             (concat "#+BEGIN_QUOTE\n" text "\n#+END_QUOTE")))))
                (when (cdr contents)
                  (org-noter--insert-heading (1+ level) "Comment")
-                 (insert (cdr contents)))))
+                 (insert (if org-noter-separate-notes-from-heading "\n" "")
+                         (cdr contents)))))
 
            (setq ast (org-noter--parse-root))
            (org-noter--narrow-to-root ast)
