@@ -765,7 +765,6 @@ Otherwise return the maximum value for point."
       nil)))
 
 (defmacro org-noter--with-valid-session (&rest body)
-  (declare (debug (body)))
   `(let ((session org-noter--session))
      (when (org-noter--valid-session session)
        (progn ,@body))))
@@ -1059,7 +1058,6 @@ Used by interactive note-window location functions."
           (set-window-dedicated-p doc-window t))))))
 
 (defmacro org-noter--with-selected-notes-window (error-str &rest body)
-  (declare (debug ([&optional stringp] body)))
   (let ((with-error (stringp error-str)))
     `(org-noter--with-valid-session
       (let ((notes-window (org-noter--get-notes-window)))
